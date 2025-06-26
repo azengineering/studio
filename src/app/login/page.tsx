@@ -9,6 +9,7 @@ import Header from '@/components/header';
 import Footer from '@/components/footer';
 import { useAuth } from '@/context/auth-context';
 import { useEffect } from 'react';
+import { useLanguage } from '@/context/language-context';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24px" height="24px" {...props}>
@@ -23,6 +24,7 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export default function LoginPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
@@ -47,13 +49,13 @@ export default function LoginPage() {
       <main className="flex-grow flex items-center justify-center container mx-auto px-4">
         <Card className="w-full max-w-md shadow-2xl">
           <CardHeader className="text-center">
-            <CardTitle className="font-headline text-3xl">Welcome Back</CardTitle>
-            <CardDescription>Sign in to access your dashboard and activities.</CardDescription>
+            <CardTitle className="font-headline text-3xl">{t('loginPage.title')}</CardTitle>
+            <CardDescription>{t('loginPage.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={handleGoogleLogin} className="w-full" size="lg">
                 <GoogleIcon className="mr-2"/>
-                Sign in with Google
+                {t('loginPage.signInWithGoogle')}
             </Button>
           </CardContent>
         </Card>

@@ -1,21 +1,24 @@
 import Image from 'next/image';
 import { ShieldCheck, Zap, Vote } from 'lucide-react';
-
-const benefits = [
-  { icon: <ShieldCheck className="w-8 h-8 text-primary" />, title: "Increase Transparency", description: "Shine a light on the actions and performance of elected officials." },
-  { icon: <Vote className="w-8 h-8 text-primary" />, title: "Promote Accountability", description: "Your ratings create a public record, holding leaders answerable for their promises." },
-  { icon: <Zap className="w-8 h-8 text-primary" />, title: "Empower Your Community", description: "Collective feedback can influence policy and drive meaningful change." },
-];
+import { useLanguage } from '@/context/language-context';
 
 export default function WhyItMatters() {
+  const { t } = useLanguage();
+
+  const benefits = [
+    { icon: <ShieldCheck className="w-8 h-8 text-primary" />, title: t('whyItMatters.benefit1Title'), description: t('whyItMatters.benefit1Desc') },
+    { icon: <Vote className="w-8 h-8 text-primary" />, title: t('whyItMatters.benefit2Title'), description: t('whyItMatters.benefit2Desc') },
+    { icon: <Zap className="w-8 h-8 text-primary" />, title: t('whyItMatters.benefit3Title'), description: t('whyItMatters.benefit3Desc') },
+  ];
+  
   return (
     <section className="py-16 md:py-24 bg-secondary/50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-2 gap-16 items-center">
           <div className="space-y-8">
-            <h2 className="font-headline text-3xl md:text-4xl font-extrabold">Why Your Voice Matters</h2>
+            <h2 className="font-headline text-3xl md:text-4xl font-extrabold">{t('whyItMatters.heading')}</h2>
             <p className="text-lg text-muted-foreground">
-              A vibrant democracy thrives on active participation. Your feedback is a powerful tool for change, creating a direct line of communication with those in power.
+              {t('whyItMatters.description')}
             </p>
             <div className="space-y-6">
               {benefits.map((benefit) => (
@@ -35,7 +38,7 @@ export default function WhyItMatters() {
              <div className="aspect-w-4 aspect-h-3 rounded-xl overflow-hidden shadow-2xl border-4 border-background">
                  <Image
                     src="https://placehold.co/600x450.png"
-                    alt="A diverse group of citizens engaged in a community meeting"
+                    alt={t('whyItMatters.imageAlt')}
                     fill
                     className="object-cover"
                     data-ai-hint="community meeting diverse"

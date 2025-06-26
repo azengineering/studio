@@ -4,12 +4,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Star, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useLanguage } from '@/context/language-context';
 
 interface LeaderCardProps {
   leader: Leader;
 }
 
 export default function LeaderCard({ leader }: LeaderCardProps) {
+  const { t } = useLanguage();
   const genderHint = ['Priya', 'Sneha', 'Anika', 'Meera'].includes(leader.name.split(' ')[0]) ? 'woman' : 'man';
 
   return (
@@ -27,7 +29,7 @@ export default function LeaderCard({ leader }: LeaderCardProps) {
           <CardTitle className="font-headline text-xl">{leader.name}</CardTitle>
           <p className="text-sm text-muted-foreground">{leader.constituency}</p>
           <div className="flex items-center flex-wrap gap-2 mt-2">
-            <Badge variant="secondary" className="capitalize">{leader.electionType}</Badge>
+            <Badge variant="secondary" className="capitalize">{t(`filterDashboard.${leader.electionType}`)}</Badge>
             {leader.location.state && <Badge variant="outline">{leader.location.state}</Badge>}
           </div>
         </div>
@@ -37,17 +39,17 @@ export default function LeaderCard({ leader }: LeaderCardProps) {
           <div className="flex items-center gap-1">
             <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
             <span className="font-bold text-foreground">{leader.rating.toFixed(1)}</span>
-            <span>({leader.reviewCount} reviews)</span>
+            <span>({leader.reviewCount} {t('leaderCard.reviews')})</span>
           </div>
         </div>
       </CardContent>
       <CardFooter className="p-4 bg-secondary/50">
         <div className="w-full flex gap-2">
           <Button className="w-full">
-            <Star className="mr-2 h-4 w-4" /> Rate
+            <Star className="mr-2 h-4 w-4" /> {t('leaderCard.rate')}
           </Button>
           <Button variant="outline" className="w-full">
-            <MessageSquare className="mr-2 h-4 w-4" /> Comment
+            <MessageSquare className="mr-2 h-4 w-4" /> {t('leaderCard.comment')}
           </Button>
         </div>
       </CardFooter>

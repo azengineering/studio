@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { indianStates, districtsByState } from '@/data/locations';
 import type { Leader } from '@/data/leaders';
+import { useLanguage } from '@/context/language-context';
 
 type ElectionType = 'national' | 'state' | 'panchayat';
 
@@ -19,6 +20,7 @@ export default function FilterDashboard({ allLeaders, onFilterChange }: FilterDa
   const [electionType, setElectionType] = useState<ElectionType>('national');
   const [selectedState, setSelectedState] = useState<string>('');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
+  const { t } = useLanguage();
 
   const applyFilters = useCallback(() => {
     let filtered = allLeaders.filter(leader => leader.electionType === electionType);
@@ -58,25 +60,25 @@ export default function FilterDashboard({ allLeaders, onFilterChange }: FilterDa
   return (
     <Card className="shadow-lg border-2 border-primary/10">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl">Filter Representatives</CardTitle>
-        <CardDescription>Select the level of government and location to find your leaders.</CardDescription>
+        <CardTitle className="font-headline text-2xl">{t('filterDashboard.title')}</CardTitle>
+        <CardDescription>{t('filterDashboard.description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={electionType} onValueChange={handleElectionTypeChange}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="national">National</TabsTrigger>
-            <TabsTrigger value="state">State</TabsTrigger>
-            <TabsTrigger value="panchayat">Panchayat</TabsTrigger>
+            <TabsTrigger value="national">{t('filterDashboard.national')}</TabsTrigger>
+            <TabsTrigger value="state">{t('filterDashboard.state')}</TabsTrigger>
+            <TabsTrigger value="panchayat">{t('filterDashboard.panchayat')}</TabsTrigger>
           </TabsList>
           
           <div className="mt-6 min-h-[6rem] transition-all">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end animate-in fade-in-50 duration-300">
               { (electionType === 'state' || electionType === 'panchayat') && (
                 <div className="grid gap-2">
-                  <Label htmlFor="state-select">State</Label>
+                  <Label htmlFor="state-select">{t('filterDashboard.stateLabel')}</Label>
                   <Select value={selectedState} onValueChange={handleStateChange}>
                     <SelectTrigger id="state-select" className="bg-background">
-                      <SelectValue placeholder="Select a state" />
+                      <SelectValue placeholder={t('filterDashboard.statePlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {indianStates.map(state => (
@@ -89,10 +91,10 @@ export default function FilterDashboard({ allLeaders, onFilterChange }: FilterDa
 
               { electionType === 'panchayat' && (
                 <div className="grid gap-2">
-                  <Label htmlFor="district-select">District / Panchayat</Label>
+                  <Label htmlFor="district-select">{t('filterDashboard.districtLabel')}</Label>
                   <Select value={selectedDistrict} onValueChange={setSelectedDistrict} disabled={!selectedState}>
                     <SelectTrigger id="district-select" className="bg-background">
-                      <SelectValue placeholder="Select a district" />
+                      <SelectValue placeholder={t('filterDashboard.districtPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {selectedState && districtsByState[selectedState] ? (
@@ -101,7 +103,7 @@ export default function FilterDashboard({ allLeaders, onFilterChange }: FilterDa
                         ))
                       ) : (
                         <SelectItem value="none" disabled>
-                          {selectedState ? 'No districts available' : 'Select a state first'}
+                          {selectedState ? t('filterDashboard.noDistricts') : t('filterDashboard.selectStateFirst')}
                         </SelectItem>
                       )}
                     </SelectContent>

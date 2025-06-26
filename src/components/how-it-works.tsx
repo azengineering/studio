@@ -1,32 +1,35 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Star, MessageCircle } from 'lucide-react';
-
-const steps = [
-  {
-    icon: <Search className="w-10 h-10 text-primary" />,
-    title: "1. Find Your Leader",
-    description: "Use our comprehensive filters to search for political representatives at any level of government."
-  },
-  {
-    icon: <Star className="w-10 h-10 text-primary" />,
-    title: "2. Rate Performance",
-    description: "Give a star rating based on their performance, promises kept, and overall impact on your community."
-  },
-  {
-    icon: <MessageCircle className="w-10 h-10 text-primary" />,
-    title: "3. Leave a Review",
-    description: "Share detailed feedback, opinions, and experiences. Constructive comments help others form a balanced view."
-  }
-];
+import { useLanguage } from '@/context/language-context';
 
 export default function HowItWorks() {
+  const { t } = useLanguage();
+
+  const steps = [
+    {
+      icon: <Search className="w-10 h-10 text-primary" />,
+      title: t('howItWorks.step1Title'),
+      description: t('howItWorks.step1Desc')
+    },
+    {
+      icon: <Star className="w-10 h-10 text-primary" />,
+      title: t('howItWorks.step2Title'),
+      description: t('howItWorks.step2Desc')
+    },
+    {
+      icon: <MessageCircle className="w-10 h-10 text-primary" />,
+      title: t('howItWorks.step3Title'),
+      description: t('howItWorks.step3Desc')
+    }
+  ];
+
   return (
     <section id="how-it-works-section" className="py-16 md:py-24 bg-background scroll-mt-20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="font-headline text-3xl md:text-4xl font-extrabold">How It Works</h2>
+          <h2 className="font-headline text-3xl md:text-4xl font-extrabold">{t('howItWorks.heading')}</h2>
           <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
-            Engage in 3 simple, powerful steps.
+            {t('howItWorks.subheading')}
           </p>
         </div>
         <div className="relative">

@@ -20,18 +20,18 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/s
 import { useState } from 'react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-
-const navLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/about', label: 'About' },
-];
+import { useLanguage, type Language } from '@/context/language-context';
 
 export default function Header() {
   const { user, loading } = useAuth();
+  const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [language, setLanguage] = useState('English');
 
+  const navLinks = [
+    { href: '/', label: t('header.home') },
+    { href: '/about', label: t('header.about') },
+  ];
 
   const handleLogout = async () => {
     try {
@@ -64,12 +64,12 @@ export default function Header() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => router.push('/my-activities')}>
           <User className="mr-2 h-4 w-4" />
-          <span>My Activities</span>
+          <span>{t('header.myActivities')}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>{t('header.logout')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -80,15 +80,15 @@ export default function Header() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="icon">
           <Globe className="h-[1.2rem] w-[1.2rem]" />
-          <span className="sr-only">Select language</span>
+          <span className="sr-only">{t('header.language')}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => setLanguage('English')}>
-          English
+        <DropdownMenuItem onSelect={() => setLanguage('en')}>
+          {t('header.english')}
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => setLanguage('Hindi')}>
-          हिन्दी
+        <DropdownMenuItem onSelect={() => setLanguage('hi')}>
+          {t('header.hindi')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -121,15 +121,15 @@ export default function Header() {
                 </nav>
                 <div className="mt-auto pt-8">
                     <div className="mb-6">
-                        <p className="mb-2 font-medium text-muted-foreground px-1">Language</p>
-                        <RadioGroup defaultValue={language} onValueChange={setLanguage}>
+                        <p className="mb-2 font-medium text-muted-foreground px-1">{t('header.language')}</p>
+                        <RadioGroup defaultValue={language} onValueChange={(value) => setLanguage(value as Language)}>
                             <div className="flex items-center space-x-2 p-1">
-                                <RadioGroupItem value="English" id="lang-en-mobile" />
-                                <Label htmlFor="lang-en-mobile">English</Label>
+                                <RadioGroupItem value="en" id="lang-en-mobile" />
+                                <Label htmlFor="lang-en-mobile">{t('header.english')}</Label>
                             </div>
                             <div className="flex items-center space-x-2 p-1">
-                                <RadioGroupItem value="Hindi" id="lang-hi-mobile" />
-                                <Label htmlFor="lang-hi-mobile">हिन्दी</Label>
+                                <RadioGroupItem value="hi" id="lang-hi-mobile" />
+                                <Label htmlFor="lang-hi-mobile">{t('header.hindi')}</Label>
                             </div>
                         </RadioGroup>
                     </div>
@@ -137,19 +137,19 @@ export default function Header() {
                         <>
                             <SheetClose asChild>
                                 <Button onClick={() => router.push('/my-activities')} className="w-full justify-start mb-2" variant="ghost">
-                                    <User className="mr-2 h-4 w-4" /> My Activities
+                                    <User className="mr-2 h-4 w-4" /> {t('header.myActivities')}
                                 </Button>
                             </SheetClose>
                             <SheetClose asChild>
                                 <Button onClick={handleLogout} className="w-full justify-start" variant="ghost">
-                                    <LogOut className="mr-2 h-4 w-4" /> Logout
+                                    <LogOut className="mr-2 h-4 w-4" /> {t('header.logout')}
                                 </Button>
                             </SheetClose>
                         </>
                     ) : firebaseEnabled && (
                         <SheetClose asChild>
                             <Button onClick={() => router.push('/login')} className="w-full">
-                                Login
+                                {t('header.login')}
                             </Button>
                         </SheetClose>
                     )}
@@ -177,7 +177,7 @@ export default function Header() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2">
                 <LanguageSelector />
-                {!loading && firebaseEnabled && (user ? <UserMenu /> : <Button onClick={() => router.push('/login')}>Login</Button>)}
+                {!loading && firebaseEnabled && (user ? <UserMenu /> : <Button onClick={() => router.push('/login')}>{t('header.login')}</Button>)}
             </div>
             <MobileNav />
           </div>

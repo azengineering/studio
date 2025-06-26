@@ -16,11 +16,16 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (sessionStorage.getItem('hasVisitedPolitiRate')) {
       setIsLoading(false);
-    }, 3000);
+    } else {
+      sessionStorage.setItem('hasVisitedPolitiRate', 'true');
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 3000);
 
-    return () => clearTimeout(timer);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   if (isLoading) {

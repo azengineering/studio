@@ -83,11 +83,18 @@ export default {
           '25%': { transform: 'rotate(8deg)' },
           '75%': { transform: 'rotate(-8deg)' },
         },
+        'fade-in-out': {
+          '0%': { opacity: '0' },
+          '20%': { opacity: '1' },
+          '80%': { opacity: '1' },
+          '100%': { opacity: '0' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'balance': 'balance 2.5s ease-in-out infinite',
+        'fade-in-out': 'fade-in-out 3s ease-in-out infinite',
       },
     },
   },

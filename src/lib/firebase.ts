@@ -1,5 +1,4 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,19 +10,15 @@ const firebaseConfig = {
 };
 
 let app: FirebaseApp;
-let auth: Auth;
 const firebaseEnabled = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
 if (firebaseEnabled) {
   try {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
   } catch (error) {
     console.error("Firebase initialization error:", error);
     // @ts-ignore
     app = {};
-    // @ts-ignore
-    auth = {};
   }
 } else {
   console.warn(
@@ -31,8 +26,6 @@ if (firebaseEnabled) {
   );
   // @ts-ignore
   app = {};
-  // @ts-ignore
-  auth = {};
 }
 
-export { app, auth, firebaseEnabled };
+export { app, firebaseEnabled };

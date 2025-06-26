@@ -1,13 +1,10 @@
 "use client";
 
-import withAuth from '@/components/with-auth';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
-import { useAuth } from '@/context/auth-context';
 import { useLanguage } from '@/context/language-context';
 
 function MyActivitiesPage() {
-  const { user } = useAuth();
   const { t } = useLanguage();
 
   return (
@@ -17,7 +14,7 @@ function MyActivitiesPage() {
         <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold font-headline">{t('myActivitiesPage.title')}</h1>
             <p className="mt-4 text-lg text-muted-foreground">
-            {t('myActivitiesPage.welcome').replace('{name}', user?.displayName || 'User')}
+              This feature is currently unavailable.
             </p>
         </div>
       </main>
@@ -26,4 +23,4 @@ function MyActivitiesPage() {
   );
 }
 
-export default withAuth(MyActivitiesPage);
+export default MyActivitiesPage;

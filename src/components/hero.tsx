@@ -33,11 +33,6 @@ export default function Hero() {
                   {t('hero.findLeader')}
               </Button>
              </Link>
-             <Link href="/login">
-              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20">
-                  {t('hero.addNewLeader')}
-              </Button>
-             </Link>
           </div>
       </div>
     </section>

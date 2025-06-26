@@ -74,7 +74,8 @@ const translations = {
         panchayat: 'Enter Panchayat name...',
         default: 'Select election type first'
       },
-      searchButton: 'Search'
+      searchButton: 'Search',
+      resetButton: 'Reset',
     },
     leaderList: {
       noLeaders: 'No Leaders Found',
@@ -179,7 +180,8 @@ const translations = {
         panchayat: 'पंचायत का नाम दर्ज करें...',
         default: 'पहले चुनाव का प्रकार चुनें'
       },
-      searchButton: 'खोजें'
+      searchButton: 'खोजें',
+      resetButton: 'रीसेट',
     },
     leaderList: {
       noLeaders: 'कोई नेता नहीं मिला',

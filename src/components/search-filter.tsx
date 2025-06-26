@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/context/language-context';
 import { Label } from '@/components/ui/label';
-import { Search } from 'lucide-react';
+import { Search, RotateCw } from 'lucide-react';
 
 type ElectionType = 'national' | 'state' | 'panchayat' | '';
 
@@ -23,6 +23,12 @@ export default function SearchFilter({ onSearch }: SearchFilterProps) {
     onSearch({ electionType, searchTerm });
   };
   
+  const handleReset = () => {
+    setElectionType('');
+    setSearchTerm('');
+    onSearch({ electionType: '', searchTerm: '' });
+  };
+
   const handleElectionTypeChange = (value: string) => {
     const newElectionType = value as ElectionType;
     setElectionType(newElectionType);
@@ -67,10 +73,16 @@ export default function SearchFilter({ onSearch }: SearchFilterProps) {
           />
         </div>
 
-        <Button onClick={handleSearch} disabled={!electionType}>
-          <Search className="mr-2 h-4 w-4" />
-          {t('searchFilter.searchButton')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleSearch} disabled={!electionType} size="icon">
+            <Search className="h-4 w-4" />
+            <span className="sr-only">{t('searchFilter.searchButton')}</span>
+          </Button>
+          <Button onClick={handleReset} variant="outline" size="icon">
+            <RotateCw className="h-4 w-4" />
+            <span className="sr-only">{t('searchFilter.resetButton')}</span>
+          </Button>
+        </div>
       </div>
     </div>
   );

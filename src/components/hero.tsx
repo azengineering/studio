@@ -27,11 +27,16 @@ export default function Hero() {
           <p className="mt-6 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground">
             {t('hero.description')}
           </p>
-          <div className="mt-10 flex gap-4 justify-center">
+          <div className="mt-10 flex flex-wrap gap-4 justify-center">
              <Link href="/rate-leader">
               <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
                   {t('hero.findLeader')}
               </Button>
+             </Link>
+             <Link href="/add-leader">
+                <Button size="lg" variant="outline">
+                    {t('hero.addNewLeader')}
+                </Button>
              </Link>
           </div>
       </div>

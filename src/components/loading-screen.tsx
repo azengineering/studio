@@ -15,7 +15,7 @@ const LoadingScreen = () => {
       if (progress >= 100) {
         clearInterval(interval);
       }
-    }, 400); // Each step takes 400ms, for a total of 8 seconds
+    }, 250); // Each step takes 250ms, for a total of 5 seconds
     return () => clearInterval(interval);
   }, []);
 

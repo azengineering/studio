@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const timer = setTimeout(() => {
         setLoading(false);
-    }, 8000);
+    }, 5000);
 
     return () => {
         unsubscribe();

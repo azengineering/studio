@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/components/ui/sheet';
 import { useState } from 'react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -53,6 +53,7 @@ export default function Header() {
             </Button>
         </SheetTrigger>
         <SheetContent side="left">
+            <SheetTitle className="sr-only">Menu</SheetTitle>
             <div className="flex flex-col h-full">
                  <div className="flex items-center justify-between border-b pb-4">
                      <Link href="/" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>

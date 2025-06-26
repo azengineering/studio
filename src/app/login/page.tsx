@@ -2,16 +2,13 @@
 
 import { useRouter } from 'next/navigation';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth, firebaseEnabled } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import { useAuth } from '@/context/auth-context';
 import { useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal } from 'lucide-react';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24px" height="24px" {...props}>
@@ -26,7 +23,6 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export default function LoginPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { toast } = useToast();
 
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
@@ -35,11 +31,6 @@ export default function LoginPage() {
       router.push('/my-activities');
     } catch (error) {
       console.error('Error during Google login:', error);
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: "There was an error while trying to log in. Check if Firebase is configured correctly.",
-      });
     }
   };
   
@@ -59,17 +50,8 @@ export default function LoginPage() {
             <CardTitle className="font-headline text-3xl">Welcome Back</CardTitle>
             <CardDescription>Sign in to access your dashboard and activities.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {!firebaseEnabled && (
-              <Alert variant="destructive">
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Firebase Not Configured</AlertTitle>
-                <AlertDescription>
-                  Authentication is disabled. Please provide Firebase credentials in a <code>.env.local</code> file to enable login.
-                </AlertDescription>
-              </Alert>
-            )}
-            <Button onClick={handleGoogleLogin} className="w-full" size="lg" disabled={!firebaseEnabled}>
+          <CardContent>
+            <Button onClick={handleGoogleLogin} className="w-full" size="lg">
                 <GoogleIcon className="mr-2"/>
                 Sign in with Google
             </Button>

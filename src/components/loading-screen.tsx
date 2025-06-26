@@ -37,11 +37,11 @@ export default function LoadingScreen() {
         }
         return prev + 2;
       });
-    }, 100);
+    }, 150);
 
     const quoteTimer = setInterval(() => {
       setQuoteIndex((prevIndex) => (prevIndex + 1) % quotes.length);
-    }, 4000);
+    }, 6000);
 
     return () => {
       clearInterval(progressTimer);

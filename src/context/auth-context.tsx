@@ -17,18 +17,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubscribe = () => {};
     if (firebaseEnabled) {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
+        unsubscribe = onAuthStateChanged(auth, (user) => {
           setUser(user);
-          setLoading(false);
         });
-
-        return () => unsubscribe();
     } else {
-        // If Firebase is not configured, stop loading and set user to null
-        setLoading(false);
         setUser(null);
     }
+
+    const timer = setTimeout(() => {
+        setLoading(false);
+    }, 8000);
+
+    return () => {
+        unsubscribe();
+        clearTimeout(timer);
+    };
   }, []);
 
   return (

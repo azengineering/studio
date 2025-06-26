@@ -15,7 +15,7 @@ const LoadingScreen = () => {
       if (progress >= 100) {
         clearInterval(interval);
       }
-    }, 150); // Update every 150ms for a smoother animation
+    }, 400); // Each step takes 400ms, for a total of 8 seconds
     return () => clearInterval(interval);
   }, []);
 

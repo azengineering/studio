@@ -22,13 +22,14 @@ import Header from '@/components/header';
 import Footer from '@/components/footer';
 import { useLanguage } from '@/context/language-context';
 import { useAuth } from '@/context/auth-context';
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address.",
   }),
-  password: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
+  password: z.string().min(1, {
+    message: "Password is required.",
   }),
 });
 
@@ -36,6 +37,7 @@ export default function LoginPage() {
   const { t } = useLanguage();
   const router = useRouter();
   const { login } = useAuth();
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,8 +47,20 @@ export default function LoginPage() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    login(values.email);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      await login(values.email, values.password);
+      toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
+    } catch (error) {
+      toast({
+        title: "Login Failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred.",
+        variant: "destructive",
+      });
+    }
   }
 
   return (

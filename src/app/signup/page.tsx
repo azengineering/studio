@@ -22,6 +22,7 @@ import Header from '@/components/header';
 import Footer from '@/components/footer';
 import { useLanguage } from '@/context/language-context';
 import { useAuth } from "@/context/auth-context";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -39,7 +40,8 @@ const formSchema = z.object({
 export default function SignupPage() {
   const { t } = useLanguage();
   const router = useRouter();
-  const { login } = useAuth();
+  const { signup } = useAuth();
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,10 +52,21 @@ export default function SignupPage() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    // Log the user in upon successful signup
-    login(values.email);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      await signup(values.email, values.password);
+      toast({
+        title: "Account Created!",
+        description: "You have been successfully signed up and logged in.",
+      });
+      // The signup function in context will handle redirection
+    } catch (error) {
+      toast({
+        title: "Signup Failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred.",
+        variant: "destructive",
+      });
+    }
   }
 
   return (

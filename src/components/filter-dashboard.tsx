@@ -56,10 +56,10 @@ export default function FilterDashboard({ allLeaders, onFilterChange }: FilterDa
   };
   
   return (
-    <Card id="filter-section" className="shadow-lg border-2 border-primary/10 scroll-mt-20">
+    <Card className="shadow-lg border-2 border-primary/10">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl">Find Your Representative</CardTitle>
-        <CardDescription>Use the filters below to find leaders at different levels of government.</CardDescription>
+        <CardTitle className="font-headline text-2xl">Filter Representatives</CardTitle>
+        <CardDescription>Select the level of government and location to find your leaders.</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={electionType} onValueChange={handleElectionTypeChange}>

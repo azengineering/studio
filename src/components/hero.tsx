@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Vote, Plus } from 'lucide-react';
+import { Vote } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
 import Link from 'next/link';
 
@@ -30,12 +30,12 @@ export default function Hero() {
           <div className="mt-10 flex gap-4 justify-center">
              <a href="#find-leader-section">
               <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
-                  {t('hero.findLeader')} <ArrowRight className="ml-2 h-5 w-5" />
+                  {t('hero.findLeader')}
               </Button>
              </a>
              <Link href="/login">
-              <Button size="lg" variant="outline">
-                  <Plus className="mr-2 h-5 w-5" />{t('hero.addNewLeader')}
+              <Button size="lg" variant="secondary">
+                  {t('hero.addNewLeader')}
               </Button>
              </Link>
           </div>

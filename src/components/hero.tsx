@@ -28,11 +28,11 @@ export default function Hero() {
             {t('hero.description')}
           </p>
           <div className="mt-10 flex gap-4 justify-center">
-             <a href="#find-leader-section">
+             <Link href="/rate-leader">
               <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
                   {t('hero.findLeader')}
               </Button>
-             </a>
+             </Link>
              <Link href="/login">
               <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20">
                   {t('hero.addNewLeader')}

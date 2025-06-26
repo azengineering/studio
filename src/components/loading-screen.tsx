@@ -2,9 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 
+const quotes = [
+  { text: "The ballot is stronger than the bullet.", author: "Abraham Lincoln" },
+  { text: "In a democracy, the well-being, individuality and happiness of every citizen is important.", author: "A. P. J. Abdul Kalam" },
+  { text: "Let us not seek the Republican answer or the Democratic answer, but the right answer.", author: "John F. Kennedy" },
+];
+
+
 // Welcome Page Component (Enhanced, No Blinking Loader - as preferred by user)
 const LoadingScreen = () => {
   const [loadingProgress, setLoadingProgress] = useState(0); // State for loading progress
+  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
 
   // Simulate loading progress
   useEffect(() => {
@@ -18,6 +26,16 @@ const LoadingScreen = () => {
     }, 250); // Each step takes 250ms, for a total of 5 seconds
     return () => clearInterval(interval);
   }, []);
+
+  // Cycle through quotes
+  useEffect(() => {
+    const quoteInterval = setInterval(() => {
+        setCurrentQuoteIndex((prevIndex) => (prevIndex + 1) % quotes.length);
+    }, 2500); // Change quote every 2.5 seconds, matching the animation duration
+
+    return () => clearInterval(quoteInterval);
+  }, []);
+
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-gray-800 p-6 relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 animate-gradient-shift">
@@ -52,6 +70,14 @@ const LoadingScreen = () => {
         <p className="text-lg md:text-xl font-medium text-gray-600">
           Loading your political landscape... <span className="font-bold text-blue-700">{loadingProgress}%</span>
         </p>
+
+        {/* Quotes Section */}
+        <div className="mt-12 h-24 flex items-center justify-center px-4">
+            <div className="text-center animate-quote-cycle">
+                <p className="text-lg italic text-gray-600">"{quotes[currentQuoteIndex].text}"</p>
+                <p className="text-md font-semibold text-gray-700 mt-2">- {quotes[currentQuoteIndex].author}</p>
+            </div>
+        </div>
       </div>
 
       {/* Tailwind CSS keyframes for animation */}
@@ -87,6 +113,14 @@ const LoadingScreen = () => {
         }
         .animate-float {
           animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes quote-cycle {
+          0%, 100% { opacity: 0; transform: translateY(10px); }
+          20%, 80% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-quote-cycle {
+          animation: quote-cycle 2.5s ease-in-out infinite;
         }
       `}</style>
     </div>

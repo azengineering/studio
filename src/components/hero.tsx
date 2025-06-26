@@ -34,7 +34,7 @@ export default function Hero() {
               </Button>
              </Link>
              <Link href="/add-leader">
-                <Button size="lg" variant="outline">
+                <Button size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20">
                     {t('hero.addNewLeader')}
                 </Button>
              </Link>

@@ -16,24 +16,24 @@ export default function RateLeaderPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-grow">
-        <section className="bg-secondary/50 py-16 md:py-24">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h1 className="font-headline text-4xl md:text-5xl font-extrabold text-primary">{t('findAndRate.heading')}</h1>
-              <p className="mt-4 max-w-3xl mx-auto text-lg text-muted-foreground">
+      <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-4 lg:gap-12">
+          {/* Left Column: Filters */}
+          <aside className="lg:col-span-1 lg:sticky lg:top-24 h-fit">
+            <div className="mb-8">
+              <h1 className="font-headline text-3xl font-extrabold text-primary">{t('findAndRate.heading')}</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
                 {t('findAndRate.subheading')}
               </p>
             </div>
             <FilterDashboard allLeaders={leaders} onFilterChange={setFilteredLeaders} />
-          </div>
-        </section>
+          </aside>
 
-        <section className="py-12 md:py-16">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Right Column: Leader List */}
+          <div className="lg:col-span-3 mt-8 lg:mt-0">
             {filteredLeaders.length > 0 && (
               <>
-                <h2 className="text-2xl md:text-3xl font-bold font-headline mb-8">
+                <h2 className="text-2xl font-bold font-headline mb-4">
                   {t('leaderList.resultsTitle')}
                 </h2>
                 <Separator className="mb-8" />
@@ -41,7 +41,7 @@ export default function RateLeaderPage() {
             )}
             <LeaderList leaders={filteredLeaders} />
           </div>
-        </section>
+        </div>
       </main>
       <Footer />
     </div>

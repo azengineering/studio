@@ -7,15 +7,18 @@ import Hero from '@/components/hero';
 import HowItWorks from '@/components/how-it-works';
 import WhyItMatters from '@/components/why-it-matters';
 import FeaturedLeaders from '@/components/featured-leaders';
-import { leaders } from '@/data/leaders';
+import { getLeaders, type Leader } from '@/data/leaders';
 import LoadingScreen from '@/components/loading-screen';
-
-const topRatedLeaders = [...leaders].sort((a, b) => b.rating - a.rating).slice(0, 4);
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
+  const [topRatedLeaders, setTopRatedLeaders] = useState<Leader[]>([]);
 
   useEffect(() => {
+    const allLeaders = getLeaders();
+    const sortedLeaders = [...allLeaders].sort((a, b) => b.rating - a.rating).slice(0, 4);
+    setTopRatedLeaders(sortedLeaders);
+    
     if (sessionStorage.getItem('hasVisitedPolitiRate')) {
       setIsLoading(false);
     } else {

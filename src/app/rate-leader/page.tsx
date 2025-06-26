@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import LeaderList from '@/components/leader-list';
-import { leaders, type Leader } from '@/data/leaders';
+import { getLeaders, type Leader } from '@/data/leaders';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/context/language-context';
 import SearchFilter from '@/components/search-filter';
@@ -13,12 +13,19 @@ type ElectionType = 'national' | 'state' | 'panchayat' | '';
 
 export default function RateLeaderPage() {
   const { t } = useLanguage();
-  const [filteredLeaders, setFilteredLeaders] = useState<Leader[]>(leaders);
+  const [allLeaders, setAllLeaders] = useState<Leader[]>([]);
+  const [filteredLeaders, setFilteredLeaders] = useState<Leader[]>([]);
+
+  useEffect(() => {
+    const leadersFromStorage = getLeaders();
+    setAllLeaders(leadersFromStorage);
+    setFilteredLeaders(leadersFromStorage);
+  }, []);
 
   const handleSearch = (filters: { electionType: ElectionType; searchTerm: string }) => {
     const { electionType, searchTerm } = filters;
     
-    let results = leaders;
+    let results = allLeaders;
 
     if (electionType) {
       results = results.filter(leader => leader.electionType === electionType);
@@ -47,7 +54,7 @@ export default function RateLeaderPage() {
         <SearchFilter onSearch={handleSearch} />
         
         <div className="mt-12">
-          {leaders.length > 0 && (
+          {allLeaders.length > 0 && (
             <>
               <h2 className="text-2xl font-bold font-headline mb-4">
                 {t('leaderList.resultsTitle')}

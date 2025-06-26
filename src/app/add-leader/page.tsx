@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { indianStates, districtsByState } from '@/data/locations';
 import { useToast } from "@/hooks/use-toast";
 import withAuth from '@/components/with-auth';
+import { addLeader } from "@/data/leaders";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -51,6 +52,13 @@ const formSchema = z.object({
     path: ["district"],
 });
 
+const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+});
+
 function AddLeaderPage() {
   const { t } = useLanguage();
   const router = useRouter();
@@ -67,13 +75,38 @@ function AddLeaderPage() {
   const electionType = form.watch('electionType');
   const selectedState = form.watch('state');
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    let photoDataUrl = "https://placehold.co/400x400.png";
+    if (values.photo instanceof File) {
+        try {
+            photoDataUrl = await toBase64(values.photo);
+        } catch (error) {
+            console.error("Error converting file to base64", error);
+            toast({
+                title: "Error",
+                description: "Could not process image file.",
+                variant: "destructive",
+            });
+            return;
+        }
+    }
+    
+    addLeader({
+        name: values.name,
+        constituency: values.constituency,
+        electionType: values.electionType,
+        imageUrl: photoDataUrl,
+        location: {
+            state: values.state,
+            district: values.district
+        }
+    });
+
     toast({
       title: "Success!",
       description: t('addLeaderPage.successMessage'),
     });
-    router.push('/');
+    router.push('/rate-leader');
   }
 
   return (

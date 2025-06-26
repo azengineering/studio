@@ -12,7 +12,7 @@ export interface Leader {
   reviewCount: number;
 }
 
-export const leaders: Leader[] = [
+export const initialLeaders: Leader[] = [
   {
     id: '1',
     name: 'Aarav Sharma',
@@ -94,3 +94,46 @@ export const leaders: Leader[] = [
     reviewCount: 88,
   }
 ];
+
+const LEADERS_STORAGE_KEY = 'politirate_leaders';
+
+export function getLeaders(): Leader[] {
+  if (typeof window === 'undefined') {
+    return initialLeaders;
+  }
+
+  try {
+    const storedLeaders = localStorage.getItem(LEADERS_STORAGE_KEY);
+    if (storedLeaders) {
+      return JSON.parse(storedLeaders);
+    } else {
+      localStorage.setItem(LEADERS_STORAGE_KEY, JSON.stringify(initialLeaders));
+      return initialLeaders;
+    }
+  } catch (error) {
+    console.error("Failed to read leaders from localStorage", error);
+    return initialLeaders;
+  }
+}
+
+export function addLeader(leader: Omit<Leader, 'id' | 'rating' | 'reviewCount'>): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const newLeader: Leader = {
+    ...leader,
+    id: new Date().getTime().toString(),
+    rating: 0,
+    reviewCount: 0,
+  };
+
+  const currentLeaders = getLeaders();
+  const updatedLeaders = [...currentLeaders, newLeader];
+
+  try {
+    localStorage.setItem(LEADERS_STORAGE_KEY, JSON.stringify(updatedLeaders));
+  } catch (error) {
+    console.error("Failed to save leader to localStorage", error);
+  }
+}

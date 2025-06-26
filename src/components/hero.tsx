@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 
 export default function Hero() {
   return (
@@ -9,7 +9,11 @@ export default function Hero() {
         <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_bottom_right,_var(--tw-gradient-stops))] from-accent/5 to-transparent to-70% opacity-50"></div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <Badge variant="outline" className="mb-6 py-2 px-4 rounded-full text-base border-primary/50 bg-primary/10">
+          <Badge
+            variant="outline"
+            className="mb-6 inline-flex items-center gap-2 rounded-full border-primary/50 bg-primary/10 px-4 py-2 text-base font-medium transition-all hover:scale-105 hover:shadow-lg hover:border-primary/75"
+          >
+            <Sparkles className="h-4 w-4 text-accent" />
             A Non-Partisan Platform for Civic Engagement
           </Badge>
           <h1 className="text-4xl md:text-6xl font-extrabold font-headline tracking-tighter text-foreground">

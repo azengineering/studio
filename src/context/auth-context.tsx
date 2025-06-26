@@ -42,7 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const existingUser = findUserByEmail(email);
 
-    if (!existingUser || existingUser.password !== password) {
+    if (!existingUser) {
+      throw new Error("An account with this email does not exist. Please sign up first.");
+    }
+    
+    if (existingUser.password !== password) {
       throw new Error('Invalid email or password.');
     }
 
@@ -66,8 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Failed to create account. Please try again.');
     }
 
-    // Automatically log in after successful signup
-    await login(email, password);
+    // Redirect to login page after successful signup
+    router.push('/login');
   };
 
 

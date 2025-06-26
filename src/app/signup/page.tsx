@@ -57,7 +57,7 @@ export default function SignupPage() {
       await signup(values.email, values.password);
       toast({
         title: "Account Created!",
-        description: "You have been successfully signed up and logged in.",
+        description: "Please log in to continue.",
       });
       // The signup function in context will handle redirection
     } catch (error) {

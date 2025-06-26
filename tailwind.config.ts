@@ -101,7 +101,7 @@ export default {
         'accordion-up': 'accordion-up 0.2s ease-out',
         'balance': 'balance 2.5s ease-in-out infinite',
         'fade-in-out': 'fade-in-out 3s ease-in-out infinite',
-        'fade-in-out-slow': 'fade-in-out-slow 4s ease-in-out infinite',
+        'fade-in-out-slow': 'fade-in-out-slow 2.5s ease-in-out infinite',
       },
     },
   },

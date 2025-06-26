@@ -16,8 +16,8 @@ const translations = {
       title_highlight: 'Report Card',
       title_part2: '.',
       description: "Welcome to PolitiRate, the people's platform to rate and review political leaders. Hold them accountable, share your opinions, and help build a more transparent democracy.",
-      findLeader: 'Find Your Leader',
-      learnHow: 'Learn How It Works',
+      findLeader: 'Rate Your Leader',
+      addNewLeader: 'Add New Leader',
     },
     howItWorks: {
       heading: 'How It Works',
@@ -105,8 +105,8 @@ const translations = {
       title_highlight: 'रिपोर्ट कार्ड',
       title_part2: '।',
       description: 'पॉलिटीरेट में आपका स्वागत है, राजनीतिक नेताओं को रेट करने और उनकी समीक्षा करने के लिए जनता का मंच। उन्हें जवाबदेह ठहराएं, अपनी राय साझा करें, और एक अधिक पारदर्शी लोकतंत्र बनाने में मदद करें।',
-      findLeader: 'अपने नेता को खोजें',
-      learnHow: 'यह कैसे काम करता है जानें',
+      findLeader: 'अपने नेता को रेट करें',
+      addNewLeader: 'नया नेता जोड़ें',
     },
     howItWorks: {
       heading: 'यह कैसे काम करता है',

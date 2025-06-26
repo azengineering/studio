@@ -1,7 +1,10 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Vote } from 'lucide-react';
+import { ArrowRight, Vote, Plus } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
+import Link from 'next/link';
 
 export default function Hero() {
   const { t } = useLanguage();
@@ -30,11 +33,11 @@ export default function Hero() {
                   {t('hero.findLeader')} <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
              </a>
-             <a href="#how-it-works-section">
+             <Link href="/login">
               <Button size="lg" variant="outline">
-                  {t('hero.learnHow')}
+                  <Plus className="mr-2 h-5 w-5" />{t('hero.addNewLeader')}
               </Button>
-             </a>
+             </Link>
           </div>
       </div>
     </section>

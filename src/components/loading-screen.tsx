@@ -21,6 +21,10 @@ const quotes = [
   {
     quote: "Let us never forget that government is ourselves and not an alien power over us.",
     author: "Franklin D. Roosevelt"
+  },
+  {
+    quote: "Voting is the expression of our commitment to ourselves, one another, this country, and this world.",
+    author: "Sharon Salzberg"
   }
 ];
 
@@ -37,11 +41,11 @@ export default function LoadingScreen() {
         }
         return prev + 2;
       });
-    }, 150);
+    }, 250); // Slower progress
 
     const quoteTimer = setInterval(() => {
       setQuoteIndex((prevIndex) => (prevIndex + 1) % quotes.length);
-    }, 6000);
+    }, 4000); // Faster quote change
 
     return () => {
       clearInterval(progressTimer);
@@ -50,33 +54,33 @@ export default function LoadingScreen() {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center text-white bg-black">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background text-foreground">
       <Image
         src="https://placehold.co/1920x1080.png"
         alt="Indian Parliament Building"
         fill
-        className="object-cover z-0 opacity-40"
+        className="object-cover z-0 opacity-10"
         data-ai-hint="parliament democracy"
         priority
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent z-10"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent z-10"></div>
       
       <div className="z-20 flex flex-col items-center justify-center text-center p-8 w-full h-full">
         <div className="flex items-center gap-4 mb-8">
-          <Scale className="w-12 h-12 text-white" />
-          <h1 className="text-6xl font-headline font-bold tracking-tight">PolitiRate</h1>
+          <Scale className="w-12 h-12 text-primary" />
+          <h1 className="text-6xl font-headline font-bold tracking-tight text-primary">PolitiRate</h1>
         </div>
         
         <div className="relative h-32 w-full max-w-4xl flex items-center justify-center overflow-hidden">
           <div key={quoteIndex} className="absolute w-full animate-fade-in-out-slow">
-            <blockquote className="text-3xl font-light italic">"{quotes[quoteIndex].quote}"</blockquote>
-            <p className="mt-4 text-xl text-white/70">- {quotes[quoteIndex].author}</p>
+            <blockquote className="text-3xl font-light italic text-muted-foreground">"{quotes[quoteIndex].quote}"</blockquote>
+            <p className="mt-4 text-xl text-muted-foreground/80">- {quotes[quoteIndex].author}</p>
           </div>
         </div>
 
         <div className="w-full max-w-lg mt-auto mb-16">
-          <p className="text-sm text-white/50 mb-2">Loading your dashboard...</p>
-          <Progress value={progress} className="h-1.5 bg-white/20 [&>div]:bg-white" />
+          <p className="text-sm text-muted-foreground mb-2">Loading your dashboard...</p>
+          <Progress value={progress} className="h-1.5 bg-primary/20 [&>div]:bg-primary" />
         </div>
       </div>
     </div>

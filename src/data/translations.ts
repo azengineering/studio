@@ -6,6 +6,7 @@ const translations = {
       myActivities: 'My Activities',
       logout: 'Log out',
       login: 'Login',
+      loginSignUp: 'Login / Sign Up',
       language: 'Language',
       english: 'English',
       hindi: 'हिन्दी',
@@ -72,7 +73,7 @@ const translations = {
         national: 'Enter Loksabha name...',
         state: 'Enter Bidhansabha name...',
         panchayat: 'Enter Panchayat name...',
-        default: 'Select election type first'
+        default: 'Enter constituency name...'
       },
       searchButton: 'Search',
       resetButton: 'Reset',
@@ -96,9 +97,23 @@ const translations = {
       mission: 'Our mission is to foster civic engagement and increase transparency in governance by providing a non-partisan platform for citizens to voice their opinions on elected officials.',
     },
     loginPage: {
-        title: 'Welcome Back',
-        description: 'Sign in to access your dashboard and activities.',
-        signInWithGoogle: 'Sign in with Google'
+        title: 'Welcome Back!',
+        description: 'Enter your credentials to access your account.',
+        emailLabel: 'Email',
+        passwordLabel: 'Password',
+        loginButton: 'Login',
+        signupPrompt: "Don't have an account?",
+        signupLink: 'Sign Up'
+    },
+    signupPage: {
+        title: 'Create an Account',
+        description: 'Fill out the form below to get started.',
+        emailLabel: 'Email',
+        passwordLabel: 'Password',
+        confirmPasswordLabel: 'Confirm Password',
+        signupButton: 'Create Account',
+        loginPrompt: 'Already have an account?',
+        loginLink: 'Login'
     },
     myActivitiesPage: {
         title: 'My Activities',
@@ -112,6 +127,7 @@ const translations = {
       myActivities: 'मेरी गतिविधियाँ',
       logout: 'लॉग आउट',
       login: 'लॉग इन करें',
+      loginSignUp: 'लॉग इन / साइन अप',
       language: 'भाषा',
       english: 'English',
       hindi: 'हिन्दी',
@@ -178,7 +194,7 @@ const translations = {
         national: 'लोकसभा का नाम दर्ज करें...',
         state: 'विधानसभा का नाम दर्ज करें...',
         panchayat: 'पंचायत का नाम दर्ज करें...',
-        default: 'पहले चुनाव का प्रकार चुनें'
+        default: 'निर्वाचन क्षेत्र का नाम दर्ज करें...'
       },
       searchButton: 'खोजें',
       resetButton: 'रीसेट',
@@ -202,9 +218,23 @@ const translations = {
       mission: 'हमारा मिशन नागरिकों को निर्वाचित अधिकारियों पर अपनी राय व्यक्त करने के लिए एक गैर-पक्षपातपूर्ण मंच प्रदान करके नागरिक जुड़ाव को बढ़ावा देना और शासन में पारदर्शिता बढ़ाना है।',
     },
     loginPage: {
-        title: 'वापसी पर स्वागत है',
-        description: 'अपने डैशबोर्ड और गतिविधियों तक पहुंचने के लिए साइन इन करें।',
-        signInWithGoogle: 'Google से साइन इन करें'
+        title: 'वापसी पर स्वागत है!',
+        description: 'अपने खाते तक पहुंचने के लिए अपनी क्रेडेंशियल दर्ज करें।',
+        emailLabel: 'ईमेल',
+        passwordLabel: 'पासवर्ड',
+        loginButton: 'लॉग इन करें',
+        signupPrompt: 'खाता नहीं है?',
+        signupLink: 'साइन अप करें'
+    },
+    signupPage: {
+        title: 'खाता बनाएं',
+        description: 'आरंभ करने के लिए नीचे दिया गया फ़ॉर्म भरें।',
+        emailLabel: 'ईमेल',
+        passwordLabel: 'पासवर्ड',
+        confirmPasswordLabel: 'पासवर्ड की पुष्टि करें',
+        signupButton: 'खाता बनाएं',
+        loginPrompt: 'पहले से ही एक खाता है?',
+        loginLink: 'लॉग इन करें'
     },
     myActivitiesPage: {
         title: 'मेरी गतिविधियाँ',

@@ -27,9 +27,13 @@ const formSchema = z.object({
   password: z.string().min(6, {
     message: "Password must be at least 6 characters.",
   }),
+  confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
 });
 
-export default function LoginPage() {
+export default function SignupPage() {
   const { t } = useLanguage();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -37,12 +41,13 @@ export default function LoginPage() {
     defaultValues: {
       email: "",
       password: "",
+      confirmPassword: ""
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
-    // Here you would handle the login logic, e.g., call an API
+    // Here you would handle the signup logic
   }
 
   return (
@@ -51,8 +56,8 @@ export default function LoginPage() {
       <main className="flex-grow flex items-center justify-center container mx-auto px-4 py-12">
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-headline">{t('loginPage.title')}</CardTitle>
-            <CardDescription>{t('loginPage.description')}</CardDescription>
+            <CardTitle className="text-3xl font-headline">{t('signupPage.title')}</CardTitle>
+            <CardDescription>{t('signupPage.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -62,7 +67,7 @@ export default function LoginPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('loginPage.emailLabel')}</FormLabel>
+                      <FormLabel>{t('signupPage.emailLabel')}</FormLabel>
                       <FormControl>
                         <Input placeholder="name@example.com" {...field} />
                       </FormControl>
@@ -75,7 +80,7 @@ export default function LoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('loginPage.passwordLabel')}</FormLabel>
+                      <FormLabel>{t('signupPage.passwordLabel')}</FormLabel>
                       <FormControl>
                         <Input type="password" placeholder="••••••••" {...field} />
                       </FormControl>
@@ -83,13 +88,26 @@ export default function LoginPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">{t('loginPage.loginButton')}</Button>
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('signupPage.confirmPasswordLabel')}</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full">{t('signupPage.signupButton')}</Button>
               </form>
             </Form>
           </CardContent>
           <CardFooter className="flex justify-center">
             <p className="text-sm text-muted-foreground">
-              {t('loginPage.signupPrompt')} <Link href="/signup" className="text-primary hover:underline font-medium">{t('loginPage.signupLink')}</Link>
+              {t('signupPage.loginPrompt')} <Link href="/login" className="text-primary hover:underline font-medium">{t('signupPage.loginLink')}</Link>
             </p>
           </CardFooter>
         </Card>

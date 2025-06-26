@@ -22,6 +22,7 @@ export default function Header() {
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
+    { href: '/', label: t('header.home') },
     { href: '/about', label: t('header.about') },
   ];
 
@@ -70,6 +71,13 @@ export default function Header() {
                     </SheetClose>
                 ))}
                 </nav>
+                <div className="mt-8">
+                     <SheetClose asChild>
+                        <Link href="/login">
+                            <Button className="w-full">{t('header.loginSignUp')}</Button>
+                        </Link>
+                    </SheetClose>
+                </div>
                 <div className="mt-auto pt-8">
                     <div className="mb-6">
                         <p className="mb-2 font-medium text-muted-foreground px-1">{t('header.language')}</p>
@@ -108,6 +116,9 @@ export default function Header() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2">
                 <LanguageSelector />
+                <Link href="/login">
+                    <Button>{t('header.loginSignUp')}</Button>
+                </Link>
             </div>
             <MobileNav />
           </div>

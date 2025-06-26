@@ -12,7 +12,7 @@ export default function FeaturedLeaders({ leaders }: FeaturedLeadersProps) {
     <section className="py-16 md:py-24 bg-secondary/50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="font-headline text-3xl md:text-4xl font-bold">Top Rated Leaders</h2>
+          <h2 className="font-headline text-3xl md:text-4xl font-extrabold">Top Rated Leaders</h2>
           <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
             See who is making a positive impact according to the community.
           </p>

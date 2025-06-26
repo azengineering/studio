@@ -26,12 +26,12 @@ export default function Home() {
         <FeaturedLeaders leaders={topRatedLeaders} />
         <WhyItMatters />
 
-        <section id="find-leader-section" className="py-16 md:py-24 bg-secondary/50 scroll-mt-20">
+        <section id="find-leader-section" className="py-16 md:py-24 bg-background scroll-mt-20">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="font-headline text-3xl md:text-4xl font-bold">Find & Rate Your Leaders</h2>
+              <h2 className="font-headline text-3xl md:text-4xl font-extrabold">Find & Rate Your Leaders</h2>
               <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
-                Search for your representatives and hold them accountable.
+                Search for your representatives, check their ratings, and hold them accountable.
               </p>
             </div>
             <FilterDashboard allLeaders={leaders} onFilterChange={setFilteredLeaders} />

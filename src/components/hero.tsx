@@ -1,41 +1,35 @@
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ArrowRight } from 'lucide-react';
 
 export default function Hero() {
   return (
-    <section className="bg-gradient-to-br from-secondary to-background pt-20 pb-12 md:pt-32 md:pb-24">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6 text-center md:text-left">
-            <h1 className="text-4xl md:text-6xl font-bold font-headline tracking-tighter text-primary">
-              Your Voice, Their Report Card.
-            </h1>
-            <p className="max-w-xl mx-auto md:mx-0 text-lg md:text-xl text-muted-foreground">
-              Welcome to PolitiRate, the people's platform to rate and review political leaders. Hold them accountable, share your opinions, and help build a more transparent democracy.
-            </p>
-            <div className="flex gap-4 justify-center md:justify-start">
-               <a href="#find-leader-section">
-                <Button size="lg" className="bg-primary hover:bg-primary/90">
-                    Find Your Leader
-                </Button>
-               </a>
-               <a href="#how-it-works-section">
-                <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/10 hover:text-primary">
-                    Learn How
-                </Button>
-               </a>
-            </div>
+    <section className="relative bg-gradient-to-br from-primary/10 via-background to-background pt-24 pb-20 md:pt-32 md:pb-28 text-center overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-primary/5 to-transparent to-70% opacity-50"></div>
+        <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_bottom_right,_var(--tw-gradient-stops))] from-accent/5 to-transparent to-70% opacity-50"></div>
+
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <Badge variant="outline" className="mb-6 py-2 px-4 rounded-full text-base border-primary/50 bg-primary/10">
+            A Non-Partisan Platform for Civic Engagement
+          </Badge>
+          <h1 className="text-4xl md:text-6xl font-extrabold font-headline tracking-tighter text-foreground">
+            Your Voice, Their <span className="text-primary">Report Card</span>.
+          </h1>
+          <p className="mt-6 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground">
+            Welcome to PolitiRate, the people's platform to rate and review political leaders. Hold them accountable, share your opinions, and help build a more transparent democracy.
+          </p>
+          <div className="mt-10 flex gap-4 justify-center">
+             <a href="#find-leader-section">
+              <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
+                  Find Your Leader <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+             </a>
+             <a href="#how-it-works-section">
+              <Button size="lg" variant="outline">
+                  Learn How It Works
+              </Button>
+             </a>
           </div>
-          <div className="relative h-64 md:h-96">
-             <Image
-                src="https://placehold.co/600x400.png"
-                alt="Illustration of people voting and discussing"
-                fill
-                className="object-contain"
-                data-ai-hint="civic engagement politics"
-             />
-          </div>
-        </div>
       </div>
     </section>
   );

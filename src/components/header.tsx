@@ -29,9 +29,12 @@ export default function Header() {
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: '/', label: t('header.home') },
     { href: '/about', label: t('header.about') },
   ];
+
+  if (user) {
+    navLinks.push({ href: '/my-activities', label: t('header.myActivities') });
+  }
 
   const handleLogout = async () => {
     try {
@@ -61,11 +64,6 @@ export default function Header() {
             </p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => router.push('/my-activities')}>
-          <User className="mr-2 h-4 w-4" />
-          <span>{t('header.myActivities')}</span>
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
@@ -135,11 +133,6 @@ export default function Header() {
                     </div>
                      {firebaseEnabled && user ? (
                         <>
-                            <SheetClose asChild>
-                                <Button onClick={() => router.push('/my-activities')} className="w-full justify-start mb-2" variant="ghost">
-                                    <User className="mr-2 h-4 w-4" /> {t('header.myActivities')}
-                                </Button>
-                            </SheetClose>
                             <SheetClose asChild>
                                 <Button onClick={handleLogout} className="w-full justify-start" variant="ghost">
                                     <LogOut className="mr-2 h-4 w-4" /> {t('header.logout')}

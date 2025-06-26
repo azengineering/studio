@@ -64,6 +64,7 @@ const translations = {
     leaderList: {
       noLeaders: 'No Leaders Found',
       noLeadersDesc: 'Try adjusting your filters to find political leaders.',
+      resultsTitle: 'Matching Leaders'
     },
     leaderCard: {
       reviews: 'reviews',
@@ -153,6 +154,7 @@ const translations = {
     leaderList: {
       noLeaders: 'कोई नेता नहीं मिला',
       noLeadersDesc: 'राजनीतिक नेताओं को खोजने के लिए अपने फ़िल्टर समायोजित करने का प्रयास करें।',
+      resultsTitle: 'मिलते-जुलते नेता'
     },
     leaderCard: {
       reviews: 'समीक्षाएं',

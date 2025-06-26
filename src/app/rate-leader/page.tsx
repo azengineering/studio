@@ -17,7 +17,7 @@ export default function RateLeaderPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow">
-        <section className="py-16 md:py-24 bg-background">
+        <section className="bg-secondary/50 py-16 md:py-24">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h1 className="font-headline text-4xl md:text-5xl font-extrabold text-primary">{t('findAndRate.heading')}</h1>
@@ -26,7 +26,19 @@ export default function RateLeaderPage() {
               </p>
             </div>
             <FilterDashboard allLeaders={leaders} onFilterChange={setFilteredLeaders} />
-            <Separator className="my-12" />
+          </div>
+        </section>
+
+        <section className="py-12 md:py-16">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            {filteredLeaders.length > 0 && (
+              <>
+                <h2 className="text-2xl md:text-3xl font-bold font-headline mb-8">
+                  {t('leaderList.resultsTitle')}
+                </h2>
+                <Separator className="mb-8" />
+              </>
+            )}
             <LeaderList leaders={filteredLeaders} />
           </div>
         </section>

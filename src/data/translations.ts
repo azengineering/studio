@@ -118,6 +118,23 @@ const translations = {
     myActivitiesPage: {
         title: 'My Activities',
         welcome: 'Welcome back, {name}! This is your personal dashboard.'
+    },
+    addLeaderPage: {
+      title: 'Add a New Leader',
+      description: 'Submit the details of a political leader to add them to our database.',
+      nameLabel: 'Full Name',
+      namePlaceholder: "Enter leader's full name",
+      constituencyLabel: 'Constituency',
+      constituencyPlaceholder: 'e.g., Mumbai South, Pune Assembly',
+      electionTypeLabel: 'Election Type',
+      selectElectionType: 'Select election type',
+      stateLabel: 'State',
+      selectState: 'Select a state',
+      districtLabel: 'District',
+      selectDistrict: 'Select a district',
+      photoLabel: "Leader's Photo",
+      submitButton: 'Add Leader',
+      successMessage: 'Leader added successfully!',
     }
   },
   hi: {
@@ -239,6 +256,23 @@ const translations = {
     myActivitiesPage: {
         title: 'मेरी गतिविधियाँ',
         welcome: 'वापस स्वागत है, {name}! यह आपका व्यक्तिगत डैशबोर्ड है।'
+    },
+    addLeaderPage: {
+      title: 'एक नया नेता जोड़ें',
+      description: 'हमारे डेटाबेस में जोड़ने के लिए एक राजनीतिक नेता का विवरण जमा करें।',
+      nameLabel: 'पूरा नाम',
+      namePlaceholder: 'नेता का पूरा नाम दर्ज करें',
+      constituencyLabel: 'निर्वाचन क्षेत्र',
+      constituencyPlaceholder: 'जैसे, मुंबई दक्षिण, पुणे विधानसभा',
+      electionTypeLabel: 'चुनाव का प्रकार',
+      selectElectionType: 'चुनाव का प्रकार चुनें',
+      stateLabel: 'राज्य',
+      selectState: 'एक राज्य चुनें',
+      districtLabel: 'जिला',
+      selectDistrict: 'एक जिला चुनें',
+      photoLabel: 'नेता का फोटो',
+      submitButton: 'नेता जोड़ें',
+      successMessage: 'नेता सफलतापूर्वक जोड़ा गया!',
     }
   },
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { Scale, LogOut, User, Menu } from 'lucide-react';
+import { Scale, LogOut, User, Menu, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { auth, firebaseEnabled } from '@/lib/firebase';
@@ -18,6 +18,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { useState } from 'react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 const navLinks = [
     { href: '/', label: 'Home' },
@@ -28,6 +30,7 @@ export default function Header() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [language, setLanguage] = useState('English');
 
 
   const handleLogout = async () => {
@@ -72,6 +75,25 @@ export default function Header() {
     </DropdownMenu>
   );
 
+  const LanguageSelector = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="icon">
+          <Globe className="h-[1.2rem] w-[1.2rem]" />
+          <span className="sr-only">Select language</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={() => setLanguage('English')}>
+          English
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setLanguage('Hindi')}>
+          हिन्दी
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   const MobileNav = () => (
       <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetTrigger asChild>
@@ -98,6 +120,19 @@ export default function Header() {
                 ))}
                 </nav>
                 <div className="mt-auto pt-8">
+                    <div className="mb-6">
+                        <p className="mb-2 font-medium text-muted-foreground px-1">Language</p>
+                        <RadioGroup defaultValue={language} onValueChange={setLanguage}>
+                            <div className="flex items-center space-x-2 p-1">
+                                <RadioGroupItem value="English" id="lang-en-mobile" />
+                                <Label htmlFor="lang-en-mobile">English</Label>
+                            </div>
+                            <div className="flex items-center space-x-2 p-1">
+                                <RadioGroupItem value="Hindi" id="lang-hi-mobile" />
+                                <Label htmlFor="lang-hi-mobile">हिन्दी</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
                      {firebaseEnabled && user ? (
                         <>
                             <SheetClose asChild>
@@ -140,7 +175,8 @@ export default function Header() {
              ))}
           </nav>
           <div className="flex items-center gap-4">
-            <div className="hidden md:block">
+            <div className="hidden md:flex items-center gap-2">
+                <LanguageSelector />
                 {!loading && firebaseEnabled && (user ? <UserMenu /> : <Button onClick={() => router.push('/login')}>Login</Button>)}
             </div>
             <MobileNav />

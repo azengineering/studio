@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Vote } from 'lucide-react';
 
 export default function Hero() {
   return (
@@ -13,8 +13,8 @@ export default function Hero() {
             variant="outline"
             className="mb-6 inline-flex items-center gap-2 rounded-full border-primary/50 bg-primary/10 px-4 py-2 text-base font-medium transition-all hover:scale-105 hover:shadow-lg hover:border-primary/75"
           >
-            <Sparkles className="h-4 w-4 text-accent" />
-            A Non-Partisan Platform for Civic Engagement
+            <Vote className="h-4 w-4 text-accent" />
+            Empowering the Indian Voter
           </Badge>
           <h1 className="text-4xl md:text-6xl font-extrabold font-headline tracking-tighter text-foreground">
             Your Voice, Their <span className="text-primary">Report Card</span>.

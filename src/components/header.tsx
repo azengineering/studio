@@ -15,15 +15,18 @@ import { useState } from 'react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useLanguage, type Language } from '@/context/language-context';
+import { useAuth } from '@/context/auth-context';
 
 export default function Header() {
   const { t, language, setLanguage } = useLanguage();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
     { href: '/', label: t('header.home') },
     { href: '/about', label: t('header.about') },
+    ...(user ? [{ href: '/my-activities', label: t('header.myActivities') }] : []),
   ];
 
   const LanguageSelector = () => (
@@ -72,11 +75,17 @@ export default function Header() {
                 ))}
                 </nav>
                 <div className="mt-8">
-                     <SheetClose asChild>
+                    {user ? (
+                      <SheetClose asChild>
+                         <Button onClick={logout} className="w-full">{t('header.logout')}</Button>
+                      </SheetClose>
+                    ) : (
+                      <SheetClose asChild>
                         <Link href="/login">
                             <Button className="w-full">{t('header.loginSignUp')}</Button>
                         </Link>
-                    </SheetClose>
+                      </SheetClose>
+                    )}
                 </div>
                 <div className="mt-auto pt-8">
                     <div className="mb-6">
@@ -116,9 +125,13 @@ export default function Header() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2">
                 <LanguageSelector />
-                <Link href="/login">
+                {user ? (
+                  <Button onClick={logout}>{t('header.logout')}</Button>
+                ) : (
+                  <Link href="/login">
                     <Button>{t('header.loginSignUp')}</Button>
-                </Link>
+                  </Link>
+                )}
             </div>
             <MobileNav />
           </div>

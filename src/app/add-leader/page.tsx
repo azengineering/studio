@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from 'next/navigation';
-import { UserPlus, X } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import type { ChangeEvent } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import { useLanguage } from '@/context/language-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { indianStates, districtsByState } from '@/data/locations';
 import { useToast } from "@/hooks/use-toast";
+import withAuth from '@/components/with-auth';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -50,7 +51,7 @@ const formSchema = z.object({
     path: ["district"],
 });
 
-export default function AddLeaderPage() {
+function AddLeaderPage() {
   const { t } = useLanguage();
   const router = useRouter();
   const { toast } = useToast();
@@ -78,12 +79,8 @@ export default function AddLeaderPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-grow flex items-center justify-center container mx-auto px-4 py-12 bg-gradient-to-br from-primary/5 via-background to-accent/5">
-        <Card className="w-full max-w-2xl shadow-2xl border-border/20 rounded-xl relative">
-          <Button variant="ghost" size="icon" className="absolute top-4 right-4 text-muted-foreground hover:text-foreground" onClick={() => router.back()}>
-            <X className="h-5 w-5" />
-            <span className="sr-only">Close</span>
-          </Button>
+      <main className="flex-grow container mx-auto px-4 py-12">
+        <Card className="w-full max-w-2xl mx-auto shadow-lg border-border/20 rounded-xl">
           <CardHeader className="text-center p-8">
             <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
               <UserPlus className="w-10 h-10 text-primary" />
@@ -241,3 +238,5 @@ export default function AddLeaderPage() {
     </div>
   );
 }
+
+export default withAuth(AddLeaderPage);

@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import { useLanguage } from '@/context/language-context';
+import { useAuth } from "@/context/auth-context";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -38,6 +39,7 @@ const formSchema = z.object({
 export default function SignupPage() {
   const { t } = useLanguage();
   const router = useRouter();
+  const { login } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,7 +52,8 @@ export default function SignupPage() {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
-    // Here you would handle the signup logic
+    // Log the user in upon successful signup
+    login(values.email);
   }
 
   return (

@@ -135,6 +135,12 @@ const translations = {
       photoLabel: "Leader's Photo",
       submitButton: 'Add Leader',
       successMessage: 'Leader added successfully!',
+    },
+    auth: {
+      requiredTitle: "Login Required",
+      requiredDescription: "You need to be logged in to add a new leader. Please log in to continue.",
+      cancel: "Cancel",
+      login: "Login"
     }
   },
   hi: {
@@ -273,6 +279,12 @@ const translations = {
       photoLabel: 'नेता का फोटो',
       submitButton: 'नेता जोड़ें',
       successMessage: 'नेता सफलतापूर्वक जोड़ा गया!',
+    },
+    auth: {
+      requiredTitle: "लॉगिन आवश्यक है",
+      requiredDescription: "एक नया नेता जोड़ने के लिए आपको लॉग इन होना चाहिए। कृपया जारी रखने के लिए लॉग इन करें।",
+      cancel: "रद्द करें",
+      login: "लॉग इन करें"
     }
   },
 };

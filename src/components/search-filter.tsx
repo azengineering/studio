@@ -68,19 +68,18 @@ export default function SearchFilter({ onSearch }: SearchFilterProps) {
             placeholder={getPlaceholder()}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            disabled={!electionType}
             className="bg-background"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <Button onClick={handleSearch} disabled={!electionType} size="icon">
-            <Search className="h-4 w-4" />
-            <span className="sr-only">{t('searchFilter.searchButton')}</span>
-          </Button>
           <Button onClick={handleReset} variant="outline" size="icon">
             <RotateCw className="h-4 w-4" />
             <span className="sr-only">{t('searchFilter.resetButton')}</span>
+          </Button>
+          <Button onClick={handleSearch} size="icon">
+            <Search className="h-4 w-4" />
+            <span className="sr-only">{t('searchFilter.searchButton')}</span>
           </Button>
         </div>
       </div>

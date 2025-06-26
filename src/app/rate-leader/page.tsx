@@ -1,16 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
-import FilterDashboard from '@/components/filter-dashboard';
 import LeaderList from '@/components/leader-list';
 import { leaders, type Leader } from '@/data/leaders';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/context/language-context';
 
 export default function RateLeaderPage() {
-  const [filteredLeaders, setFilteredLeaders] = useState<Leader[]>(leaders.filter(l => l.electionType === 'national'));
   const { t } = useLanguage();
 
   return (
@@ -24,10 +21,8 @@ export default function RateLeaderPage() {
           </p>
         </div>
         
-        <FilterDashboard allLeaders={leaders} onFilterChange={setFilteredLeaders} />
-
         <div className="mt-12">
-          {filteredLeaders.length > 0 && (
+          {leaders.length > 0 && (
             <>
               <h2 className="text-2xl font-bold font-headline mb-4">
                 {t('leaderList.resultsTitle')}
@@ -35,7 +30,7 @@ export default function RateLeaderPage() {
               <Separator className="mb-8" />
             </>
           )}
-          <LeaderList leaders={filteredLeaders} />
+          <LeaderList leaders={leaders} />
         </div>
       </main>
       <Footer />

@@ -1,14 +1,37 @@
 'use client';
 
+import { useState } from 'react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import LeaderList from '@/components/leader-list';
 import { leaders, type Leader } from '@/data/leaders';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/context/language-context';
+import SearchFilter from '@/components/search-filter';
+
+type ElectionType = 'national' | 'state' | 'panchayat' | '';
 
 export default function RateLeaderPage() {
   const { t } = useLanguage();
+  const [filteredLeaders, setFilteredLeaders] = useState<Leader[]>(leaders);
+
+  const handleSearch = (filters: { electionType: ElectionType; searchTerm: string }) => {
+    const { electionType, searchTerm } = filters;
+    
+    let results = leaders;
+
+    if (electionType) {
+      results = results.filter(leader => leader.electionType === electionType);
+    }
+    
+    if (searchTerm) {
+      results = results.filter(leader => 
+        leader.constituency.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredLeaders(results);
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -20,6 +43,8 @@ export default function RateLeaderPage() {
             {t('findAndRate.subheading')}
           </p>
         </div>
+
+        <SearchFilter onSearch={handleSearch} />
         
         <div className="mt-12">
           {leaders.length > 0 && (
@@ -30,7 +55,7 @@ export default function RateLeaderPage() {
               <Separator className="mb-8" />
             </>
           )}
-          <LeaderList leaders={leaders} />
+          <LeaderList leaders={filteredLeaders} />
         </div>
       </main>
       <Footer />

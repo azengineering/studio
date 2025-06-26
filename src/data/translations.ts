@@ -61,6 +61,21 @@ const translations = {
       noDistricts: 'No districts available',
       selectStateFirst: 'Select a state first',
     },
+    searchFilter: {
+      electionTypeLabel: 'Election Type',
+      electionTypePlaceholder: 'Select election type',
+      national: 'National Assembly Election',
+      state: 'State Assembly Election',
+      panchayat: 'Panchayat Election',
+      constituencyLabel: 'Constituency Name',
+      placeholder: {
+        national: 'Enter Loksabha name...',
+        state: 'Enter Bidhansabha name...',
+        panchayat: 'Enter Panchayat name...',
+        default: 'Select election type first'
+      },
+      searchButton: 'Search'
+    },
     leaderList: {
       noLeaders: 'No Leaders Found',
       noLeadersDesc: 'Try adjusting your filters to find political leaders.',
@@ -150,6 +165,21 @@ const translations = {
       districtPlaceholder: 'एक जिला चुनें',
       noDistricts: 'कोई जिला उपलब्ध नहीं है',
       selectStateFirst: 'पहले एक राज्य चुनें',
+    },
+    searchFilter: {
+      electionTypeLabel: 'चुनाव का प्रकार',
+      electionTypePlaceholder: 'चुनाव का प्रकार चुनें',
+      national: 'राष्ट्रीय विधानसभा चुनाव',
+      state: 'राज्य विधानसभा चुनाव',
+      panchayat: 'पंचायत चुनाव',
+      constituencyLabel: 'निर्वाचन क्षेत्र का नाम',
+      placeholder: {
+        national: 'लोकसभा का नाम दर्ज करें...',
+        state: 'विधानसभा का नाम दर्ज करें...',
+        panchayat: 'पंचायत का नाम दर्ज करें...',
+        default: 'पहले चुनाव का प्रकार चुनें'
+      },
+      searchButton: 'खोजें'
     },
     leaderList: {
       noLeaders: 'कोई नेता नहीं मिला',

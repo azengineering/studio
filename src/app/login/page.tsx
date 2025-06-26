@@ -4,7 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import Link from 'next/link';
-import { Scale } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Scale, X } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +33,7 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const { t } = useLanguage();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,7 +52,11 @@ export default function LoginPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow flex items-center justify-center container mx-auto px-4 py-12 bg-gradient-to-br from-primary/5 via-background to-accent/5">
-        <Card className="w-full max-w-md shadow-2xl border-border/20 rounded-xl">
+        <Card className="w-full max-w-md shadow-2xl border-border/20 rounded-xl relative">
+          <Button variant="ghost" size="icon" className="absolute top-4 right-4 text-muted-foreground hover:text-foreground" onClick={() => router.back()}>
+            <X className="h-5 w-5" />
+            <span className="sr-only">Close</span>
+          </Button>
           <CardHeader className="text-center p-8">
             <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
               <Scale className="w-10 h-10 text-primary" />

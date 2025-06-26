@@ -30,8 +30,11 @@ export default function Header() {
 
   const navLinks = [
     { href: '/about', label: t('header.about') },
-    { href: '/my-activities', label: t('header.myActivities') },
   ];
+
+  if (user) {
+    navLinks.push({ href: '/my-activities', label: t('header.myActivities') });
+  }
 
   const handleLogout = async () => {
     try {

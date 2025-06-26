@@ -3,61 +3,80 @@
 import { Scale } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
-const loadingMessages = [
-    "Weighing the scales of democracy...",
-    "Gathering public sentiment...",
-    "Empowering civic engagement...",
-    "Finalizing the report card..."
+const quotes = [
+  {
+    quote: "The ballot is stronger than the bullet.",
+    author: "Abraham Lincoln"
+  },
+  {
+    quote: "Democracy is not a spectator sport.",
+    author: "Marian Wright Edelman"
+  },
+  {
+    quote: "The ignorance of one voter in a democracy impairs the security of all.",
+    author: "John F. Kennedy"
+  },
+  {
+    quote: "Let us never forget that government is ourselves and not an alien power over us.",
+    author: "Franklin D. Roosevelt"
+  }
 ];
 
 export default function LoadingScreen() {
   const [progress, setProgress] = useState(0);
-  const [messageIndex, setMessageIndex] = useState(0);
+  const [quoteIndex, setQuoteIndex] = useState(0);
 
   useEffect(() => {
-    // This timer simulates loading progress for a better visual effect.
     const progressTimer = setInterval(() => {
-        setProgress((prev) => {
-            if (prev >= 95) {
-                clearInterval(progressTimer);
-                return 95;
-            }
-            return prev + 5;
-        });
-    }, 200);
+      setProgress((prev) => {
+        if (prev >= 98) {
+            clearInterval(progressTimer);
+            return 98;
+        }
+        return prev + 2;
+      });
+    }, 100);
 
-    const messageTimer = setInterval(() => {
-        setMessageIndex((prevIndex) => (prevIndex + 1) % loadingMessages.length);
-    }, 3000); // Change message every 3 seconds
+    const quoteTimer = setInterval(() => {
+      setQuoteIndex((prevIndex) => (prevIndex + 1) % quotes.length);
+    }, 4000);
 
     return () => {
-        clearInterval(progressTimer);
-        clearInterval(messageTimer);
+      clearInterval(progressTimer);
+      clearInterval(quoteTimer);
     };
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-background via-secondary to-background flex flex-col items-center justify-center z-50 overflow-hidden">
-      {/* Background shapes */}
-      <div className="absolute top-[-50px] left-[-50px] w-48 h-48 bg-primary/5 rounded-full animate-pulse"></div>
-      <div className="absolute bottom-[-50px] right-[-50px] w-72 h-72 bg-accent/5 rounded-full animate-pulse [animation-delay:500ms]"></div>
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center text-white bg-black">
+      <Image
+        src="https://placehold.co/1920x1080.png"
+        alt="Indian Parliament Building"
+        fill
+        className="object-cover z-0 opacity-40"
+        data-ai-hint="parliament democracy"
+        priority
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent z-10"></div>
       
-      <div className="w-full max-w-md text-center backdrop-blur-sm p-8 rounded-lg">
-        <div className="flex flex-col items-center gap-6">
-            <div className="p-4 bg-primary/10 rounded-full border border-primary/20 shadow-lg">
-                <Scale className="w-20 h-20 text-primary animate-balance" />
-            </div>
-            <h1 className="text-5xl font-headline font-bold text-primary">PolitiRate</h1>
-            <div className="h-12 flex items-center justify-center">
-                 <p key={messageIndex} className="text-lg text-muted-foreground animate-fade-in-out">
-                    {loadingMessages[messageIndex]}
-                 </p>
-            </div>
+      <div className="z-20 flex flex-col items-center justify-center text-center p-8 w-full h-full">
+        <div className="flex items-center gap-4 mb-8">
+          <Scale className="w-12 h-12 text-white" />
+          <h1 className="text-6xl font-headline font-bold tracking-tight">PolitiRate</h1>
         </div>
-        <div className="mt-12 px-4">
-            <Progress value={progress} className="h-2 bg-primary/20" />
-            <p className="text-sm mt-2 text-muted-foreground">Loading application...</p>
+        
+        <div className="relative h-32 w-full max-w-4xl flex items-center justify-center overflow-hidden">
+          <div key={quoteIndex} className="absolute w-full animate-fade-in-out-slow">
+            <blockquote className="text-3xl font-light italic">"{quotes[quoteIndex].quote}"</blockquote>
+            <p className="mt-4 text-xl text-white/70">- {quotes[quoteIndex].author}</p>
+          </div>
+        </div>
+
+        <div className="w-full max-w-lg mt-auto mb-16">
+          <p className="text-sm text-white/50 mb-2">Loading your dashboard...</p>
+          <Progress value={progress} className="h-1.5 bg-white/20 [&>div]:bg-white" />
         </div>
       </div>
     </div>

@@ -14,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -34,7 +33,10 @@ import { indianStates } from '@/data/locations';
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required."),
   gender: z.enum(['male', 'female', 'other', '']).optional(),
-  age: z.coerce.number().int().positive().optional().or(z.literal('')),
+  age: z.preprocess(
+    (val) => (val === "" || val === null ? undefined : val),
+    z.coerce.number({ invalid_type_error: 'Please enter a valid number' }).int().positive("Age must be positive").optional()
+  ),
   state: z.string().optional(),
   mpConstituency: z.string().optional(),
   mlaConstituency: z.string().optional(),
@@ -55,51 +57,41 @@ export default function ProfileDialog({ open, onOpenChange }: ProfileDialogProps
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: user?.name || "",
-      gender: user?.gender || "",
-      age: user?.age || "",
-      state: user?.state || "",
-      mpConstituency: user?.mpConstituency || "",
-      mlaConstituency: user?.mlaConstituency || "",
-      panchayat: user?.panchayat || "",
+      name: "",
+      gender: "",
+      age: undefined,
+      state: "",
+      mpConstituency: "",
+      mlaConstituency: "",
+      panchayat: "",
     }
   });
   
-  useEffect(() => {
+  const resetFormValues = () => {
     if (user) {
       form.reset({
         name: user.name || "",
         gender: user.gender || "",
-        age: user.age || "",
+        age: user.age || undefined,
         state: user.state || "",
         mpConstituency: user.mpConstituency || "",
         mlaConstituency: user.mlaConstituency || "",
         panchayat: user.panchayat || "",
       });
     }
-  }, [user, form]);
+  };
+
+  useEffect(() => {
+    resetFormValues();
+  }, [user, open]);
   
   const handleReset = () => {
-    if (user) {
-      form.reset({
-        name: user.name || "",
-        gender: user.gender || "",
-        age: user.age || "",
-        state: user.state || "",
-        mpConstituency: user.mpConstituency || "",
-        mlaConstituency: user.mlaConstituency || "",
-        panchayat: user.panchayat || "",
-      });
-    }
+    resetFormValues();
   }
 
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
     try {
-      const dataToUpdate = {
-        ...values,
-        age: values.age ? Number(values.age) : undefined,
-      };
-      await updateUser(dataToUpdate);
+      await updateUser(values);
       toast({
         title: t('profileDialog.successTitle'),
         description: t('profileDialog.successDescription'),
@@ -172,7 +164,13 @@ export default function ProfileDialog({ open, onOpenChange }: ProfileDialogProps
                     <FormItem>
                       <FormLabel>{t('profileDialog.ageLabel')}</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} readOnly={!isEditing} />
+                        <Input
+                          type="number"
+                          {...field}
+                          readOnly={!isEditing}
+                          value={field.value ?? ''}
+                          onChange={e => field.onChange(e.target.value)}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

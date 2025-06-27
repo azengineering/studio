@@ -9,7 +9,7 @@ export interface User {
   email: string;
   password?: string;
   name?: string;
-  gender?: 'male' | 'female' | 'other';
+  gender?: 'male' | 'female' | 'other' | '';
   age?: number;
   state?: string;
   mpConstituency?: string;
@@ -68,32 +68,39 @@ export async function addUser(user: Omit<User, 'id' | 'name'>): Promise<User | n
 
 export async function updateUserProfile(userId: string, profileData: Partial<User>): Promise<User | null> {
     try {
-        const setClauses = Object.keys(profileData)
-            .filter(key => key !== 'id' && (profileData as any)[key] !== undefined)
-            .map(key => `${key} = ?`)
-            .join(', ');
+        const updatableData: Partial<User> = { ...profileData };
+        delete updatableData.id;
+        delete updatableData.email;
+        delete updatableData.password;
 
-        if (!setClauses) {
-            // Nothing to update
-            const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as User;
-            delete user.password;
-            return user;
+        const fields = Object.entries(updatableData).filter(
+          ([, value]) => value !== undefined
+        );
+
+        // Handle cases where empty strings should be null, e.g., for optional foreign keys or numbers
+        const finalFields = fields.map(([key, value]) => {
+          if (value === '' || value === null) {
+            return [key, null];
+          }
+          return [key, value];
+        });
+
+
+        if (finalFields.length === 0) {
+            return findUserById(userId);
         }
 
-        const values = Object.values(profileData).filter(value => value !== undefined);
+        const setClauses = finalFields.map(([key]) => `${key} = ?`).join(', ');
+        const values = finalFields.map(([, value]) => value);
         values.push(userId);
         
         const stmt = db.prepare(`UPDATE users SET ${setClauses} WHERE id = ?`);
         stmt.run(...values);
 
-        const updatedUser = db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as User | undefined;
-        if (updatedUser) {
-            delete updatedUser.password;
-            return updatedUser;
-        }
-        return null;
+        const updatedUser = await findUserById(userId);
+        return updatedUser || null;
     } catch (error) {
         console.error("Database error in updateUserProfile:", error);
-        return null;
+        throw new Error("Failed to update profile in database.");
     }
 }

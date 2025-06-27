@@ -113,7 +113,7 @@ function AddLeaderPage() {
             district: values.district,
         },
         previousElections: values.previousElections || [],
-        photoUrl: values.photoUrl || 'https://placehold.co/400x400.png',
+        photoUrl: values.photoUrl,
         manifestoUrl: values.manifestoUrl,
         twitterUrl: values.twitterUrl,
     });
@@ -306,7 +306,13 @@ function AddLeaderPage() {
                                 <FormItem className="md:col-span-2">
                                     <FormLabel>{t('addLeaderPage.ageLabel')}</FormLabel>
                                     <FormControl>
-                                        <Input type="number" placeholder={t('addLeaderPage.agePlaceholder')} {...field} onChange={event => field.onChange(+event.target.value)} />
+                                        <Input
+                                          type="number"
+                                          placeholder={t('addLeaderPage.agePlaceholder')}
+                                          {...field}
+                                          onChange={event => field.onChange(event.target.value === '' ? undefined : +event.target.value)}
+                                          value={field.value ?? ''}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

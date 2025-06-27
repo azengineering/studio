@@ -69,6 +69,8 @@ const translations = {
       state: 'State Assembly Election',
       panchayat: 'Panchayat Election',
       constituencyLabel: 'Constituency Name',
+      candidateNameLabel: 'Candidate Name',
+      candidateNamePlaceholder: 'Enter candidate name...',
       placeholder: {
         national: 'Enter Loksabha name...',
         state: 'Enter Bidhansabha name...',
@@ -238,6 +240,8 @@ const translations = {
       state: 'राज्य विधानसभा चुनाव',
       panchayat: 'पंचायत चुनाव',
       constituencyLabel: 'निर्वाचन क्षेत्र का नाम',
+      candidateNameLabel: 'उम्मीदवार का नाम',
+      candidateNamePlaceholder: 'उम्मीदवार का नाम दर्ज करें...',
       placeholder: {
         national: 'लोकसभा का नाम दर्ज करें...',
         state: 'विधानसभा का नाम दर्ज करें...',

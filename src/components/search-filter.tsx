@@ -11,22 +11,24 @@ import { Search, RotateCw } from 'lucide-react';
 type ElectionType = 'national' | 'state' | 'panchayat' | '';
 
 interface SearchFilterProps {
-  onSearch: (filters: { electionType: ElectionType; searchTerm: string }) => void;
+  onSearch: (filters: { electionType: ElectionType; searchTerm: string; candidateName: string; }) => void;
 }
 
 export default function SearchFilter({ onSearch }: SearchFilterProps) {
   const [electionType, setElectionType] = useState<ElectionType>('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [candidateName, setCandidateName] = useState('');
   const { t } = useLanguage();
 
   const handleSearch = () => {
-    onSearch({ electionType, searchTerm });
+    onSearch({ electionType, searchTerm, candidateName });
   };
   
   const handleReset = () => {
     setElectionType('');
     setSearchTerm('');
-    onSearch({ electionType: '', searchTerm: '' });
+    setCandidateName('');
+    onSearch({ electionType: '', searchTerm: '', candidateName: '' });
   };
 
   const handleElectionTypeChange = (value: string) => {
@@ -42,7 +44,7 @@ export default function SearchFilter({ onSearch }: SearchFilterProps) {
 
   return (
     <div className="p-6 bg-secondary/50 rounded-lg mb-8 border border-border">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
         <div className="grid gap-2">
           <Label htmlFor="election-type" className="font-semibold">
             {t('searchFilter.electionTypeLabel')}
@@ -68,6 +70,19 @@ export default function SearchFilter({ onSearch }: SearchFilterProps) {
             placeholder={getPlaceholder()}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            className="bg-background"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="candidate-name" className="font-semibold">
+            {t('searchFilter.candidateNameLabel')}
+          </Label>
+          <Input
+            id="candidate-name"
+            placeholder={t('searchFilter.candidateNamePlaceholder')}
+            value={candidateName}
+            onChange={(e) => setCandidateName(e.target.value)}
             className="bg-background"
           />
         </div>

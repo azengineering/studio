@@ -22,8 +22,8 @@ export default function RateLeaderPage() {
     setFilteredLeaders(leadersFromStorage);
   }, []);
 
-  const handleSearch = (filters: { electionType: ElectionType; searchTerm: string }) => {
-    const { electionType, searchTerm } = filters;
+  const handleSearch = (filters: { electionType: ElectionType; searchTerm: string; candidateName: string; }) => {
+    const { electionType, searchTerm, candidateName } = filters;
     
     let results = allLeaders;
 
@@ -34,6 +34,12 @@ export default function RateLeaderPage() {
     if (searchTerm) {
       results = results.filter(leader => 
         leader.constituency.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (candidateName) {
+      results = results.filter(leader => 
+        leader.name.toLowerCase().includes(candidateName.toLowerCase())
       );
     }
 

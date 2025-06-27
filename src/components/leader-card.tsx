@@ -17,7 +17,7 @@ export default function LeaderCard({ leader }: LeaderCardProps) {
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
       <CardHeader className="flex-row gap-4 items-start p-4">
         <Image
-          src={leader.photoUrl}
+          src={leader.photoUrl || 'https://placehold.co/400x400.png'}
           alt={`Portrait of ${leader.name}`}
           width={80}
           height={80}

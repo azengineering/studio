@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import type { Leader as LeaderType } from '@/data/leaders';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Star, Twitter } from 'lucide-react';
+import { Star, Twitter, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/context/language-context';
 import {
@@ -24,6 +24,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from '@/context/auth-context';
 import RatingDialog from './rating-dialog';
+import ReviewsDialog from './reviews-dialog';
 
 interface LeaderCardProps {
   leader: LeaderType;
@@ -36,6 +37,7 @@ export default function LeaderCard({ leader: initialLeader }: LeaderCardProps) {
 
   const [leader, setLeader] = useState(initialLeader);
   const [isRatingDialogOpen, setRatingDialogOpen] = useState(false);
+  const [isReviewsDialogOpen, setReviewsDialogOpen] = useState(false);
   const [isLoginAlertOpen, setLoginAlertOpen] = useState(false);
 
   const genderText = leader.gender.charAt(0).toUpperCase() + leader.gender.slice(1);
@@ -77,7 +79,15 @@ export default function LeaderCard({ leader: initialLeader }: LeaderCardProps) {
                   <div className="flex items-center gap-1 text-amber-500 mt-1">
                       <Star className="w-4 h-4 fill-current" />
                       <span className="font-bold text-foreground text-sm">{leader.rating.toFixed(1)}</span>
-                      <span className="text-muted-foreground text-xs ml-1">({leader.reviewCount} {t('leaderCard.reviews')})</span>
+                       <button
+                          onClick={() => leader.reviewCount > 0 && setReviewsDialogOpen(true)}
+                          className="flex items-center gap-1 text-muted-foreground text-xs ml-1 hover:underline hover:text-primary disabled:no-underline disabled:cursor-default"
+                          disabled={leader.reviewCount === 0}
+                          aria-label={`View ${leader.reviewCount} reviews`}
+                        >
+                          <span>({leader.reviewCount} {t('leaderCard.reviews')})</span>
+                          {leader.reviewCount > 0 && <Eye className="h-3 w-3" />}
+                        </button>
                   </div>
               </div>
           </div>
@@ -184,6 +194,12 @@ export default function LeaderCard({ leader: initialLeader }: LeaderCardProps) {
               onRatingSuccess={handleRatingSuccess}
           />
       )}
+
+      <ReviewsDialog 
+        leader={leader} 
+        open={isReviewsDialogOpen} 
+        onOpenChange={setReviewsDialogOpen} 
+      />
 
       <AlertDialog open={isLoginAlertOpen} onOpenChange={setLoginAlertOpen}>
           <AlertDialogContent>

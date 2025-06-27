@@ -30,6 +30,13 @@ export interface Leader {
   twitterUrl?: string;
 }
 
+export interface Review {
+  userName: string;
+  rating: number;
+  comment: string;
+  updatedAt: string;
+}
+
 const defaultLeaders: Leader[] = [
   {
     id: '1',
@@ -341,5 +348,27 @@ export async function submitRatingAndComment(leaderId: string, userId: string, n
     } catch (error) {
         console.error("Database error in submitRatingAndComment:", error);
         return null;
+    }
+}
+
+export async function getReviewsForLeader(leaderId: string): Promise<Review[]> {
+    try {
+        const stmt = db.prepare(`
+            SELECT
+                c.comment,
+                c.updatedAt,
+                r.rating,
+                u.name as userName
+            FROM comments c
+            LEFT JOIN ratings r ON c.leaderId = r.leaderId AND c.userId = r.userId
+            LEFT JOIN users u ON c.userId = u.id
+            WHERE c.leaderId = ?
+            ORDER BY c.updatedAt DESC
+        `);
+        const rows = stmt.all(leaderId) as any[];
+        return rows;
+    } catch (error) {
+        console.error("Database error in getReviewsForLeader:", error);
+        return [];
     }
 }

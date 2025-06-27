@@ -215,6 +215,11 @@ const translations = {
       cancelButton: "Cancel",
       submitButton: "Submit Rating & Comment",
       submittingButton: "Submitting...",
+    },
+    reviewsDialog: {
+      title: "Reviews for {leaderName}",
+      description: "See what other citizens are saying.",
+      noReviews: "No reviews yet. Be the first to share your opinion!"
     }
   },
   hi: {
@@ -431,6 +436,11 @@ const translations = {
       cancelButton: "रद्द करें",
       submitButton: "रेटिंग और टिप्पणी सबमिट करें",
       submittingButton: "सबमिट हो रहा है...",
+    },
+    reviewsDialog: {
+      title: "{leaderName} के लिए समीक्षाएं",
+      description: "देखें कि अन्य नागरिक क्या कह रहे हैं।",
+      noReviews: "अभी तक कोई समीक्षा नहीं है। अपनी राय साझा करने वाले पहले व्यक्ति बनें!"
     }
   },
 };

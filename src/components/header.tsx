@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { Scale, Menu, Globe, User, Settings, LogOut } from 'lucide-react';
 import Link from 'next/link';
@@ -11,15 +11,16 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/components/ui/sheet';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useLanguage, type Language } from '@/context/language-context';
 import { useAuth } from '@/context/auth-context';
 import MyProfileDialog from './my-profile-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Header() {
   const { t, language, setLanguage } = useLanguage();
@@ -27,6 +28,31 @@ export default function Header() {
   const router = useRouter();
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isProfileDialogOpen, setProfileDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (user && !user.state && !sessionStorage.getItem('profileNotificationShown')) {
+      const { dismiss } = toast({
+        title: t('notifications.completeProfile.title'),
+        description: t('notifications.completeProfile.description'),
+        duration: Infinity,
+        action: (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setProfileDialogOpen(true);
+              dismiss();
+            }}
+          >
+            {t('notifications.completeProfile.action')}
+          </Button>
+        ),
+      });
+
+      sessionStorage.setItem('profileNotificationShown', 'true');
+    }
+  }, [user, t, toast]);
 
   const navLinks = [
     { href: '/', label: t('header.home') },

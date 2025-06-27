@@ -204,6 +204,13 @@ const translations = {
       requiredDescription: "You need to be logged in to add a new leader. Please log in to continue.",
       cancel: "Cancel",
       login: "Login"
+    },
+    notifications: {
+      completeProfile: {
+        title: "Complete Your Profile",
+        description: "Provide your location details for a better and more personalized experience.",
+        action: "Complete Profile"
+      }
     }
   },
   hi: {
@@ -410,6 +417,13 @@ const translations = {
       requiredDescription: "एक नया नेता जोड़ने के लिए आपको लॉग इन होना चाहिए। कृपया जारी रखने के लिए लॉग इन करें।",
       cancel: "रद्द करें",
       login: "लॉग इन करें"
+    },
+    notifications: {
+      completeProfile: {
+        title: "अपनी प्रोफ़ाइल पूरी करें",
+        description: "बेहतर और अधिक व्यक्तिगत अनुभव के लिए कृपया अपने स्थान का विवरण प्रदान करें।",
+        action: "प्रोफ़ाइल पूरी करें"
+      }
     }
   },
 };

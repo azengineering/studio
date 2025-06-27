@@ -284,24 +284,46 @@ export async function getLeaderById(id: string): Promise<Leader | null> {
     }
 }
 
-export async function updateLeaderRating(leaderId: string, newRating: number): Promise<Leader | null> {
+export async function updateLeaderRating(leaderId: string, userId: string, newRating: number): Promise<Leader | null> {
     try {
         const leader = await getLeaderById(leaderId);
         if (!leader) {
             throw new Error("Leader not found");
         }
 
-        const newReviewCount = leader.reviewCount + 1;
-        const newAverageRating = ((leader.rating * leader.reviewCount) + newRating) / newReviewCount;
-        
-        const stmt = db.prepare(`
-            UPDATE leaders
-            SET rating = ?, reviewCount = ?
-            WHERE id = ?
-        `);
-        
-        stmt.run(newAverageRating, newReviewCount, leaderId);
-        
+        const dbTransaction = db.transaction(() => {
+            const existingRatingStmt = db.prepare('SELECT rating FROM ratings WHERE userId = ? AND leaderId = ?');
+            const existingRatingResult = existingRatingStmt.get(userId, leaderId) as { rating: number } | undefined;
+            
+            let newAverageRating: number;
+            let newReviewCount: number;
+
+            if (existingRatingResult) {
+                const oldRating = existingRatingResult.rating;
+                
+                const updateRatingStmt = db.prepare('UPDATE ratings SET rating = ? WHERE userId = ? AND leaderId = ?');
+                updateRatingStmt.run(newRating, userId, leaderId);
+
+                newReviewCount = leader.reviewCount;
+                if (newReviewCount > 0) {
+                     newAverageRating = ((leader.rating * newReviewCount) - oldRating + newRating) / newReviewCount;
+                } else {
+                    newAverageRating = newRating;
+                }
+            } else {
+                const insertRatingStmt = db.prepare('INSERT INTO ratings (userId, leaderId, rating) VALUES (?, ?, ?)');
+                insertRatingStmt.run(userId, leaderId, newRating);
+
+                newReviewCount = leader.reviewCount + 1;
+                newAverageRating = ((leader.rating * leader.reviewCount) + newRating) / newReviewCount;
+            }
+
+            const updateLeaderStmt = db.prepare('UPDATE leaders SET rating = ?, reviewCount = ? WHERE id = ?');
+            updateLeaderStmt.run(newAverageRating, newReviewCount, leaderId);
+        });
+
+        dbTransaction();
+
         return await getLeaderById(leaderId);
     } catch (error) {
         console.error("Database error in updateLeaderRating:", error);

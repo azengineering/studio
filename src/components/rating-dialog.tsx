@@ -18,6 +18,7 @@ import type { Leader } from '@/data/leaders';
 import { updateLeaderRating } from '@/data/leaders';
 import { useLanguage } from '@/context/language-context';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/auth-context';
 
 interface RatingDialogProps {
   leader: Leader;
@@ -32,6 +33,7 @@ export default function RatingDialog({ leader, open, onOpenChange, onRatingSucce
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { user } = useAuth();
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -42,9 +44,17 @@ export default function RatingDialog({ leader, open, onOpenChange, onRatingSucce
       });
       return;
     }
+    if (!user) {
+       toast({
+        variant: 'destructive',
+        title: t('auth.requiredTitle'),
+        description: t('auth.rateLoginRequired'),
+      });
+      return;
+    }
     setIsSubmitting(true);
     try {
-      const updatedLeader = await updateLeaderRating(leader.id, rating);
+      const updatedLeader = await updateLeaderRating(leader.id, user.id, rating);
       if (updatedLeader) {
         toast({
           title: t('ratingDialog.successTitle'),

@@ -43,6 +43,15 @@ function initializeDb() {
             manifestoUrl TEXT,
             twitterUrl TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS ratings (
+            userId TEXT NOT NULL,
+            leaderId TEXT NOT NULL,
+            rating INTEGER NOT NULL,
+            PRIMARY KEY (userId, leaderId),
+            FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (leaderId) REFERENCES leaders(id) ON DELETE CASCADE
+        );
     `);
 }
 

@@ -93,7 +93,8 @@ const translations = {
     leaderCard: {
       reviews: 'reviews',
       rate: 'Rate',
-      comment: 'Comment'
+      comment: 'Comment',
+      ratesAndComment: 'Rates & Comment',
     },
     footer: {
       copyright: `© ${new Date().getFullYear()} PolitiRate. All rights reserved.`,
@@ -307,7 +308,8 @@ const translations = {
     leaderCard: {
       reviews: 'समीक्षाएं',
       rate: 'रेट करें',
-      comment: 'टिप्पणी करें'
+      comment: 'टिप्पणी करें',
+      ratesAndComment: 'रेट और टिप्पणी',
     },
     footer: {
       copyright: `© ${new Date().getFullYear()} पॉलिटीरेट। सर्वाधिकार सुरक्षित।`,

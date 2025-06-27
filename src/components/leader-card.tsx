@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import type { Leader as LeaderType } from '@/data/leaders';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Star, MessageSquare, Twitter } from 'lucide-react';
+import { Star, Twitter } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/context/language-context';
 import {
@@ -170,14 +170,9 @@ export default function LeaderCard({ leader: initialLeader }: LeaderCardProps) {
         </CardContent>
 
         <CardFooter className="p-2 bg-secondary/50 border-t">
-          <div className="w-full grid grid-cols-2 gap-2">
-              <Button size="sm" className="transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-px" onClick={handleRateClick}>
-                  <Star className="mr-2 h-4 w-4" /> {t('leaderCard.rate')}
-              </Button>
-              <Button variant="outline" size="sm" className="transition-all duration-300 hover:-translate-y-px">
-                  <MessageSquare className="mr-2 h-4 w-4" /> {t('leaderCard.comment')}
-              </Button>
-          </div>
+            <Button size="sm" className="w-full transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-px" onClick={handleRateClick}>
+                <Star className="mr-2 h-4 w-4" /> {t('leaderCard.ratesAndComment')}
+            </Button>
         </CardFooter>
       </Card>
 

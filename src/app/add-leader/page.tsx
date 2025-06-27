@@ -207,7 +207,7 @@ function AddLeaderPage() {
                     </div>
 
                      {/* --- Row 2: Election & Location --- */}
-                    <div className="grid md:grid-cols-3 gap-6">
+                    <div className="grid md:grid-cols-2 gap-6">
                          <FormField
                             control={form.control}
                             name="electionType"
@@ -226,32 +226,6 @@ function AddLeaderPage() {
                                             <SelectItem value="panchayat">{t('filterDashboard.panchayat')}</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="constituency"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('addLeaderPage.constituencyLabel')}</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder={t('addLeaderPage.constituencyPlaceholder')} {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="nativeAddress"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('addLeaderPage.nativeAddressLabel')}</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder={t('addLeaderPage.nativeAddressPlaceholder')} {...field} />
-                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -282,6 +256,35 @@ function AddLeaderPage() {
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                            control={form.control}
+                            name="constituency"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('addLeaderPage.constituencyLabel')}</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder={t('addLeaderPage.constituencyPlaceholder')} {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="nativeAddress"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('addLeaderPage.nativeAddressLabel')}</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder={t('addLeaderPage.nativeAddressPlaceholder')} {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-6">
                          {electionType === 'panchayat' && (
                             <FormField
                                 control={form.control}
@@ -354,6 +357,7 @@ function AddLeaderPage() {
                             )}
                         />
                     </div>
+
                     
                     {/* --- Row 4: Previous Elections --- */}
                     <div className="space-y-4">
@@ -472,7 +476,6 @@ function AddLeaderPage() {
                         ))}
                         <Button
                           type="button"
-                          size="sm"
                           className="bg-accent hover:bg-accent/90 text-accent-foreground"
                           onClick={() => append({ electionType: '', state: '', constituency: '', status: 'winner', electionYear: '', partyName: '' })}
                         >

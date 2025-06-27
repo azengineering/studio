@@ -28,6 +28,20 @@ export async function findUserByEmail(email: string): Promise<User | undefined> 
   }
 }
 
+export async function findUserById(id: string): Promise<User | undefined> {
+  try {
+    const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
+    const user = stmt.get(id) as User | undefined;
+    if (user) {
+      delete user.password;
+    }
+    return user;
+  } catch (error) {
+    console.error("Database error in findUserById:", error);
+    return undefined;
+  }
+}
+
 export async function addUser(user: Omit<User, 'id' | 'name'>): Promise<User | null> {
   const name = user.email.split('@')[0];
   const formattedName = name.charAt(0).toUpperCase() + name.slice(1);

@@ -24,23 +24,31 @@ export default function RateLeaderPage() {
 
   const handleSearch = (filters: { electionType: ElectionType; searchTerm: string; candidateName: string; }) => {
     const { electionType, searchTerm, candidateName } = filters;
-    
+
+    const trimmedCandidateName = candidateName.trim().toLowerCase();
+    const trimmedSearchTerm = searchTerm.trim().toLowerCase();
+
     let results = allLeaders;
 
-    if (electionType) {
-      results = results.filter(leader => leader.electionType === electionType);
-    }
-    
-    if (searchTerm) {
-      results = results.filter(leader => 
-        leader.constituency.toLowerCase().includes(searchTerm.toLowerCase())
+    if (trimmedCandidateName) {
+      // If candidate name is provided, use it as the primary filter.
+      results = allLeaders.filter(leader => 
+        leader.name.toLowerCase().includes(trimmedCandidateName)
       );
-    }
+    } else {
+      // Otherwise, filter by election type and constituency.
+      let locationFiltered = allLeaders;
 
-    if (candidateName) {
-      results = results.filter(leader => 
-        leader.name.toLowerCase().includes(candidateName.toLowerCase())
-      );
+      if (electionType) {
+        locationFiltered = locationFiltered.filter(leader => leader.electionType === electionType);
+      }
+      
+      if (trimmedSearchTerm) {
+        locationFiltered = locationFiltered.filter(leader => 
+          leader.constituency.toLowerCase().includes(trimmedSearchTerm)
+        );
+      }
+      results = locationFiltered;
     }
 
     setFilteredLeaders(results);

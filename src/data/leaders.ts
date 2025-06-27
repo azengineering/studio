@@ -1,3 +1,5 @@
+import { db } from '@/lib/db';
+
 export interface Leader {
   id: string;
   name: string;
@@ -23,30 +25,6 @@ export interface Leader {
   }>;
   manifestoUrl?: string;
   twitterUrl?: string;
-}
-
-let leaders: Leader[] | null = null;
-
-function initializeLeaders() {
-  if (typeof window === 'undefined') {
-    leaders = [];
-    return;
-  }
-  
-  if (leaders === null) {
-      const storedLeaders = localStorage.getItem('politirate_leaders');
-      if (storedLeaders) {
-          try {
-            leaders = JSON.parse(storedLeaders);
-          } catch(e) {
-            console.error("Failed to parse leaders, initializing with default.", e);
-            leaders = [...defaultLeaders];
-          }
-      } else {
-          leaders = [...defaultLeaders];
-      }
-      localStorage.setItem('politirate_leaders', JSON.stringify(leaders));
-  }
 }
 
 const defaultLeaders: Leader[] = [
@@ -182,15 +160,65 @@ const defaultLeaders: Leader[] = [
   }
 ];
 
+function seedDatabase() {
+  try {
+    const countStmt = db.prepare('SELECT COUNT(*) as count FROM leaders');
+    const result = countStmt.get() as { count: number };
+
+    if (result.count === 0) {
+      const insertStmt = db.prepare(`
+        INSERT INTO leaders (
+          id, name, partyName, gender, age, photoUrl, constituency, nativeAddress,
+          electionType, state, district, rating, reviewCount, previousElections,
+          manifestoUrl, twitterUrl
+        ) VALUES (
+          @id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress,
+          @electionType, @state, @district, @rating, @reviewCount, @previousElections,
+          @manifestoUrl, @twitterUrl
+        )
+      `);
+
+      const insertMany = db.transaction((leaders: Leader[]) => {
+        for (const leader of leaders) {
+            const leaderForDb = {
+                ...leader,
+                state: leader.location.state,
+                district: leader.location.district,
+                previousElections: JSON.stringify(leader.previousElections || []),
+            };
+            insertStmt.run(leaderForDb);
+        }
+      });
+
+      insertMany(defaultLeaders);
+    }
+  } catch (error) {
+    console.error("Database error during seeding:", error);
+  }
+}
+
+seedDatabase();
+
 export function getLeaders(): Leader[] {
-  initializeLeaders();
-  return leaders || [];
+  try {
+    const stmt = db.prepare('SELECT * FROM leaders');
+    const rows = stmt.all() as any[];
+
+    return rows.map(row => ({
+      ...row,
+      location: {
+        state: row.state,
+        district: row.district,
+      },
+      previousElections: JSON.parse(row.previousElections || '[]'),
+    }));
+  } catch (error) {
+    console.error("Database error in getLeaders:", error);
+    return [];
+  }
 }
 
 export function addLeader(leader: Omit<Leader, 'id' | 'rating' | 'reviewCount'>): void {
-  initializeLeaders();
-  if (!leaders) return;
-
   const newLeader: Leader = {
     ...leader,
     id: new Date().getTime().toString(),
@@ -198,9 +226,36 @@ export function addLeader(leader: Omit<Leader, 'id' | 'rating' | 'reviewCount'>)
     reviewCount: 0,
   };
 
-  leaders.push(newLeader);
-  
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('politirate_leaders', JSON.stringify(leaders));
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO leaders (
+        id, name, partyName, gender, age, photoUrl, constituency, nativeAddress,
+        electionType, state, district, rating, reviewCount, previousElections,
+        manifestoUrl, twitterUrl
+      ) VALUES (
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      )
+    `);
+    
+    stmt.run(
+      newLeader.id,
+      newLeader.name,
+      newLeader.partyName,
+      newLeader.gender,
+      newLeader.age,
+      newLeader.photoUrl || '',
+      newLeader.constituency,
+      newLeader.nativeAddress,
+      newLeader.electionType,
+      newLeader.location.state || null,
+      newLeader.location.district || null,
+      newLeader.rating,
+      newLeader.reviewCount,
+      JSON.stringify(newLeader.previousElections || []),
+      newLeader.manifestoUrl || null,
+      newLeader.twitterUrl || null
+    );
+  } catch (error) {
+    console.error("Database error in addLeader:", error);
   }
 }

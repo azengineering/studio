@@ -61,7 +61,12 @@ export default function LeaderCard({ leader }: LeaderCardProps) {
 
         <div className="space-y-3 text-sm border-t pt-4 flex-grow">
             <div>
-                <span className="font-medium text-foreground">{leader.partyName}</span>
+                <span className="text-xs text-muted-foreground">Party Name</span>
+                <p className="font-medium">{leader.partyName}</p>
+            </div>
+             <div>
+                <span className="text-xs text-muted-foreground">Election Type</span>
+                <p className="font-medium capitalize">{t(`filterDashboard.${leader.electionType}`)}</p>
             </div>
             <div>
                 <span className="text-xs text-muted-foreground">State</span>

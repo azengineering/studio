@@ -68,34 +68,40 @@ export async function addUser(user: Omit<User, 'id' | 'name'>): Promise<User | n
 
 export async function updateUserProfile(userId: string, profileData: Partial<User>): Promise<User | null> {
     try {
-        const updatableData: Partial<User> = { ...profileData };
-        delete updatableData.id;
-        delete updatableData.email;
-        delete updatableData.password;
+        const updatePayload: { [key: string]: any } = {};
 
-        const fields = Object.entries(updatableData).filter(
-          ([, value]) => value !== undefined
-        );
-
-        // Handle cases where empty strings should be null, e.g., for optional foreign keys or numbers
-        const finalFields = fields.map(([key, value]) => {
-          if (value === '' || value === null) {
-            return [key, null];
-          }
-          return [key, value];
+        // Define the keys that are allowed to be updated.
+        const allowedKeys: Array<keyof User> = ['name', 'gender', 'age', 'state', 'mpConstituency', 'mlaConstituency', 'panchayat'];
+        
+        allowedKeys.forEach(key => {
+            // Check if the key exists in the submitted data and is not undefined.
+            if (profileData[key] !== undefined) {
+                // If the value is an empty string, convert it to null for database consistency.
+                // Otherwise, use the provided value.
+                updatePayload[key] = profileData[key] === '' ? null : profileData[key];
+            }
         });
+        
+        // The zod schema on the client pre-processes an empty age input to `undefined`, 
+        // so it's correctly skipped here and not included in updatePayload.
 
+        const fieldsToUpdate = Object.keys(updatePayload);
 
-        if (finalFields.length === 0) {
+        if (fieldsToUpdate.length === 0) {
+            // Nothing to update, return the current user data.
             return findUserById(userId);
         }
 
-        const setClauses = finalFields.map(([key]) => `${key} = ?`).join(', ');
-        const values = finalFields.map(([, value]) => value);
-        values.push(userId);
+        // Build the SET clause dynamically using named parameters for safety.
+        const setClauses = fieldsToUpdate.map(key => `${key} = @${key}`).join(', ');
         
-        const stmt = db.prepare(`UPDATE users SET ${setClauses} WHERE id = ?`);
-        stmt.run(...values);
+        const sql = `UPDATE users SET ${setClauses} WHERE id = @id`;
+
+        // Combine the payload with the user ID for the query parameters.
+        const params = { ...updatePayload, id: userId };
+        
+        const stmt = db.prepare(sql);
+        stmt.run(params);
 
         const updatedUser = await findUserById(userId);
         return updatedUser || null;

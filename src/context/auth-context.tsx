@@ -25,15 +25,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Check for a logged-in user in sessionStorage on component mount
+    // Check for a logged-in user in localStorage on component mount
     try {
-      const storedUser = sessionStorage.getItem('politirate_user');
+      const storedUser = localStorage.getItem('politirate_user');
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
     } catch (error) {
-      console.error("Failed to parse user from sessionStorage", error);
-      sessionStorage.removeItem('politirate_user');
+      console.error("Failed to parse user from localStorage", error);
+      localStorage.removeItem('politirate_user');
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const name = email.split('@')[0];
     const loggedInUser = { name: name.charAt(0).toUpperCase() + name.slice(1), email };
     
-    sessionStorage.setItem('politirate_user', JSON.stringify(loggedInUser));
+    localStorage.setItem('politirate_user', JSON.stringify(loggedInUser));
     setUser(loggedInUser);
     router.push('/');
   };
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   const logout = () => {
-    sessionStorage.removeItem('politirate_user');
+    localStorage.removeItem('politirate_user');
     setUser(null);
     router.push('/login');
   };

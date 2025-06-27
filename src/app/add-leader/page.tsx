@@ -99,8 +99,8 @@ function AddLeaderPage() {
     form.reset();
   };
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    addLeader({
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    await addLeader({
         name: values.name,
         partyName: values.partyName,
         constituency: values.constituency,

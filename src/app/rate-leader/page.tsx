@@ -17,9 +17,12 @@ export default function RateLeaderPage() {
   const [filteredLeaders, setFilteredLeaders] = useState<Leader[]>([]);
 
   useEffect(() => {
-    const leadersFromStorage = getLeaders();
-    setAllLeaders(leadersFromStorage);
-    setFilteredLeaders(leadersFromStorage);
+    const fetchLeaders = async () => {
+      const leadersFromStorage = await getLeaders();
+      setAllLeaders(leadersFromStorage);
+      setFilteredLeaders(leadersFromStorage);
+    };
+    fetchLeaders();
   }, []);
 
   const handleSearch = (filters: { electionType: ElectionType; searchTerm: string; candidateName: string; }) => {

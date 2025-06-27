@@ -1,3 +1,5 @@
+'use server';
+
 import { db } from '@/lib/db';
 
 // For a real app, passwords should be securely hashed.
@@ -8,7 +10,7 @@ export interface User {
   password: string;
 }
 
-export function findUserByEmail(email: string): User | undefined {
+export async function findUserByEmail(email: string): Promise<User | undefined> {
   try {
     const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
     const user = stmt.get(email.toLowerCase()) as User | undefined;
@@ -19,11 +21,7 @@ export function findUserByEmail(email: string): User | undefined {
   }
 }
 
-export function addUser(user: Omit<User, 'id'>): User | null {
-  if (findUserByEmail(user.email)) {
-    return null; // User already exists
-  }
-
+export async function addUser(user: Omit<User, 'id'>): Promise<User | null> {
   const newUser: User = {
     ...user,
     id: new Date().getTime().toString(),

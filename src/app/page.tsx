@@ -15,9 +15,13 @@ export default function Home() {
   const [topRatedLeaders, setTopRatedLeaders] = useState<Leader[]>([]);
 
   useEffect(() => {
-    const allLeaders = getLeaders();
-    const sortedLeaders = [...allLeaders].sort((a, b) => b.rating - a.rating).slice(0, 4);
-    setTopRatedLeaders(sortedLeaders);
+    const fetchLeaders = async () => {
+      const allLeaders = await getLeaders();
+      const sortedLeaders = [...allLeaders].sort((a, b) => b.rating - a.rating).slice(0, 4);
+      setTopRatedLeaders(sortedLeaders);
+    };
+
+    fetchLeaders();
     
     if (localStorage.getItem('hasVisitedPolitiRate')) {
       setIsLoading(false);

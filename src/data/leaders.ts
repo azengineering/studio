@@ -1,3 +1,5 @@
+'use server';
+
 import { db } from '@/lib/db';
 
 export interface Leader {
@@ -199,7 +201,7 @@ function seedDatabase() {
 
 seedDatabase();
 
-export function getLeaders(): Leader[] {
+export async function getLeaders(): Promise<Leader[]> {
   try {
     const stmt = db.prepare('SELECT * FROM leaders');
     const rows = stmt.all() as any[];
@@ -218,7 +220,7 @@ export function getLeaders(): Leader[] {
   }
 }
 
-export function addLeader(leader: Omit<Leader, 'id' | 'rating' | 'reviewCount'>): void {
+export async function addLeader(leader: Omit<Leader, 'id' | 'rating' | 'reviewCount'>): Promise<void> {
   const newLeader: Leader = {
     ...leader,
     id: new Date().getTime().toString(),

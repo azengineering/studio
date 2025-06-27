@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const existingUser = findUserByEmail(email);
+    const existingUser = await findUserByEmail(email);
 
     if (!existingUser) {
       throw new Error("An account with this email does not exist. Please sign up first.");
@@ -59,12 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signup = async (email: string, password: string) => {
-    const existingUser = findUserByEmail(email);
+    const existingUser = await findUserByEmail(email);
     if (existingUser) {
         throw new Error('An account with this email already exists.');
     }
 
-    const newUser = addNewUser({ email, password });
+    const newUser = await addNewUser({ email, password });
 
     if (!newUser) {
         throw new Error('Failed to create account. Please try again.');

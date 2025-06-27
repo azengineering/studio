@@ -37,8 +37,8 @@ interface MyProfileDialogProps {
 
 const profileSchema = z.object({
   name: z.string().min(1, { message: "Name is required." }),
-  gender: z.enum(['male', 'female', 'other']).optional().or(z.literal('')),
-  age: z.coerce.number().int({ message: "Age must be a whole number." }).positive({ message: "Age must be positive." }).optional().or(z.literal('')),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  age: z.number().int({ message: "Age must be a whole number." }).positive({ message: "Age must be positive." }).optional(),
   state: z.string().optional(),
   mpConstituency: z.string().optional(),
   mlaConstituency: z.string().optional(),
@@ -55,12 +55,12 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: '',
-      gender: '',
-      age: '',
-      state: '',
-      mpConstituency: '',
-      mlaConstituency: '',
-      panchayat: '',
+      gender: undefined,
+      age: undefined,
+      state: undefined,
+      mpConstituency: undefined,
+      mlaConstituency: undefined,
+      panchayat: undefined,
     }
   });
 
@@ -68,12 +68,12 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
     if (user) {
       form.reset({
         name: user.name || '',
-        gender: user.gender || '',
-        age: user.age || '',
-        state: user.state || '',
-        mpConstituency: user.mpConstituency || '',
-        mlaConstituency: user.mlaConstituency || '',
-        panchayat: user.panchayat || '',
+        gender: user.gender || undefined,
+        age: user.age || undefined,
+        state: user.state || undefined,
+        mpConstituency: user.mpConstituency || undefined,
+        mlaConstituency: user.mlaConstituency || undefined,
+        panchayat: user.panchayat || undefined,
       });
     }
   }
@@ -93,11 +93,7 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
 
   async function onSubmit(values: z.infer<typeof profileSchema>) {
     try {
-      const dataToUpdate = {
-        ...values,
-        age: values.age ? Number(values.age) : undefined,
-      };
-      await updateUser(dataToUpdate);
+      await updateUser(values);
       toast({ title: t('myProfileDialog.successMessage') });
       setIsEditing(false);
     } catch (error) {
@@ -132,7 +128,7 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
                 <FormField control={form.control} name="gender" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('myProfileDialog.genderLabel')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value ?? ''}>
                         <FormControl><SelectTrigger><SelectValue placeholder={t('myProfileDialog.genderPlaceholder')} /></SelectTrigger></FormControl>
                         <SelectContent>
                           <SelectItem value="male">{t('myProfileDialog.genderMale')}</SelectItem>
@@ -147,7 +143,13 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
                  <FormField control={form.control} name="age" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('myProfileDialog.ageLabel')}</FormLabel>
-                      <FormControl><Input type="number" placeholder={t('myProfileDialog.agePlaceholder')} {...field} /></FormControl>
+                      <FormControl><Input
+                        type="number"
+                        placeholder={t('myProfileDialog.agePlaceholder')}
+                        {...field}
+                        onChange={event => field.onChange(event.target.value === '' ? undefined : +event.target.value)}
+                        value={field.value ?? ''}
+                      /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -159,7 +161,7 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
                  <FormField control={form.control} name="state" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('myProfileDialog.stateLabel')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value ?? ''}>
                         <FormControl><SelectTrigger><SelectValue placeholder={t('myProfileDialog.selectState')} /></SelectTrigger></FormControl>
                         <SelectContent>
                           {indianStates.map(state => (<SelectItem key={state} value={state}>{state}</SelectItem>))}
@@ -172,7 +174,7 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
                 <FormField control={form.control} name="mpConstituency" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('myProfileDialog.mpConstituencyLabel')}</FormLabel>
-                      <FormControl><Input placeholder={t('myProfileDialog.mpConstituencyPlaceholder')} {...field} /></FormControl>
+                      <FormControl><Input placeholder={t('myProfileDialog.mpConstituencyPlaceholder')} {...field} value={field.value ?? ''} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -180,7 +182,7 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
                 <FormField control={form.control} name="mlaConstituency" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('myProfileDialog.mlaConstituencyLabel')}</FormLabel>
-                      <FormControl><Input placeholder={t('myProfileDialog.mlaConstituencyPlaceholder')} {...field} /></FormControl>
+                      <FormControl><Input placeholder={t('myProfileDialog.mlaConstituencyPlaceholder')} {...field} value={field.value ?? ''} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -188,7 +190,7 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
                 <FormField control={form.control} name="panchayat" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('myProfileDialog.panchayatLabel')}</FormLabel>
-                      <FormControl><Input placeholder={t('myProfileDialog.panchayatPlaceholder')} {...field} /></FormControl>
+                      <FormControl><Input placeholder={t('myProfileDialog.panchayatPlaceholder')} {...field} value={field.value ?? ''} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

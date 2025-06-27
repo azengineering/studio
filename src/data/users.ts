@@ -68,45 +68,55 @@ export async function addUser(user: Omit<User, 'id' | 'name'>): Promise<User | n
 
 export async function updateUserProfile(userId: string, profileData: Partial<User>): Promise<User | null> {
     try {
-        const updatePayload: { [key: string]: any } = {};
-
-        // Define the keys that are allowed to be updated.
-        const allowedKeys: Array<keyof User> = ['name', 'gender', 'age', 'state', 'mpConstituency', 'mlaConstituency', 'panchayat'];
-        
-        allowedKeys.forEach(key => {
-            // Check if the key exists in the submitted data and is not undefined.
-            if (profileData[key] !== undefined) {
-                // If the value is an empty string, convert it to null for database consistency.
-                // Otherwise, use the provided value.
-                updatePayload[key] = profileData[key] === '' ? null : profileData[key];
-            }
-        });
-        
-        // The zod schema on the client pre-processes an empty age input to `undefined`, 
-        // so it's correctly skipped here and not included in updatePayload.
-
-        const fieldsToUpdate = Object.keys(updatePayload);
-
-        if (fieldsToUpdate.length === 0) {
-            // Nothing to update, return the current user data.
-            return findUserById(userId);
+        // Fetch the current user data to ensure we have a complete object to work with.
+        const currentUser = await findUserById(userId);
+        if (!currentUser) {
+            // This case should rarely happen if the user is authenticated.
+            throw new Error(`User with ID ${userId} not found for update.`);
         }
 
-        // Build the SET clause dynamically using named parameters for safety.
-        const setClauses = fieldsToUpdate.map(key => `${key} = @${key}`).join(', ');
+        // Merge the updates from the form onto the current user data.
+        // This ensures that any fields not present in the form are not accidentally cleared.
+        const dataToSave = {
+            ...currentUser,
+            ...profileData,
+        };
         
-        const sql = `UPDATE users SET ${setClauses} WHERE id = @id`;
-
-        // Combine the payload with the user ID for the query parameters.
-        const params = { ...updatePayload, id: userId };
+        const sql = `
+            UPDATE users SET
+                name = @name,
+                gender = @gender,
+                age = @age,
+                state = @state,
+                mpConstituency = @mpConstituency,
+                mlaConstituency = @mlaConstituency,
+                panchayat = @panchayat
+            WHERE
+                id = @id
+        `;
         
         const stmt = db.prepare(sql);
-        stmt.run(params);
 
-        const updatedUser = await findUserById(userId);
-        return updatedUser || null;
+        // Execute the update with named parameters for clarity and safety.
+        // Any empty strings or undefined values from the form are converted to NULL 
+        // for clean and consistent database storage.
+        stmt.run({
+            id: userId,
+            name: dataToSave.name || null,
+            gender: dataToSave.gender || null,
+            age: dataToSave.age || null,
+            state: dataToSave.state || null,
+            mpConstituency: dataToSave.mpConstituency || null,
+            mlaConstituency: dataToSave.mlaConstituency || null,
+            panchayat: dataToSave.panchayat || null,
+        });
+
+        // Re-fetch the user from the database to confirm the update and return fresh data.
+        return await findUserById(userId);
+
     } catch (error) {
         console.error("Database error in updateUserProfile:", error);
+        // Re-throw a specific error message to be displayed on the client side.
         throw new Error("Failed to update profile in database.");
     }
 }

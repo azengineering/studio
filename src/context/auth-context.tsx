@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem('politirate_user');
     setUser(null);
-    router.push('/login');
+    router.push('/');
   };
 
   const updateUser = async (profileData: Partial<User>) => {

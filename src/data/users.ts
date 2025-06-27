@@ -6,19 +6,42 @@ export interface User {
   password: string;
 }
 
-// Storing users in-memory. This will reset on page refresh.
-const users: User[] = [];
+// Helper to get users from localStorage
+function getStoredUsers(): User[] {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+  try {
+    const usersJson = localStorage.getItem('politirate_users');
+    return usersJson ? JSON.parse(usersJson) : [];
+  } catch (error) {
+    console.error("Failed to parse users from localStorage", error);
+    return [];
+  }
+}
+
+// Helper to set users in localStorage
+function setStoredUsers(users: User[]): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  localStorage.setItem('politirate_users', JSON.stringify(users));
+}
+
 
 export function getUsers(): User[] {
-  return users;
+  return getStoredUsers();
 }
 
 export function findUserByEmail(email: string): User | undefined {
+  const users = getStoredUsers();
   return users.find(user => user.email.toLowerCase() === email.toLowerCase());
 }
 
 export function addUser(user: Omit<User, 'id'>): User | null {
-  const existingUser = findUserByEmail(user.email);
+  const users = getStoredUsers();
+  const existingUser = users.find(u => u.email.toLowerCase() === user.email.toLowerCase());
+  
   if (existingUser) {
     return null;
   }
@@ -29,5 +52,6 @@ export function addUser(user: Omit<User, 'id'>): User | null {
   };
 
   users.push(newUser);
+  setStoredUsers(users);
   return newUser;
 }

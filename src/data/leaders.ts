@@ -23,7 +23,7 @@ export interface Leader {
   manifestoUrl?: string;
 }
 
-const leaders: Leader[] = [
+const defaultLeaders: Leader[] = [
   {
     id: '1',
     name: 'Aarav Sharma',
@@ -140,11 +140,41 @@ const leaders: Leader[] = [
   }
 ];
 
+// Helper to get leaders from localStorage
+function getStoredLeaders(): Leader[] {
+    if (typeof window === 'undefined') {
+        return defaultLeaders; // Return default for SSR
+    }
+    try {
+        const leadersJson = localStorage.getItem('politirate_leaders');
+        if (leadersJson) {
+            return JSON.parse(leadersJson);
+        } else {
+            // Initialize localStorage if it's empty
+            localStorage.setItem('politirate_leaders', JSON.stringify(defaultLeaders));
+            return defaultLeaders;
+        }
+    } catch (error) {
+        console.error("Failed to parse leaders from localStorage", error);
+        return defaultLeaders;
+    }
+}
+
+// Helper to set leaders in localStorage
+function setStoredLeaders(leaders: Leader[]): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+    localStorage.setItem('politirate_leaders', JSON.stringify(leaders));
+}
+
+
 export function getLeaders(): Leader[] {
-  return leaders;
+  return getStoredLeaders();
 }
 
 export function addLeader(leader: Omit<Leader, 'id' | 'rating' | 'reviewCount'>): void {
+  const leaders = getStoredLeaders();
   const newLeader: Leader = {
     ...leader,
     id: new Date().getTime().toString(),
@@ -153,4 +183,5 @@ export function addLeader(leader: Omit<Leader, 'id' | 'rating' | 'reviewCount'>)
   };
 
   leaders.push(newLeader);
+  setStoredLeaders(leaders);
 }

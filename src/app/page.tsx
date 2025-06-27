@@ -19,10 +19,10 @@ export default function Home() {
     const sortedLeaders = [...allLeaders].sort((a, b) => b.rating - a.rating).slice(0, 4);
     setTopRatedLeaders(sortedLeaders);
     
-    if (sessionStorage.getItem('hasVisitedPolitiRate')) {
+    if (localStorage.getItem('hasVisitedPolitiRate')) {
       setIsLoading(false);
     } else {
-      sessionStorage.setItem('hasVisitedPolitiRate', 'true');
+      localStorage.setItem('hasVisitedPolitiRate', 'true');
       const timer = setTimeout(() => {
         setIsLoading(false);
       }, 3000);

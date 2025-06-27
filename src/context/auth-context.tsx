@@ -2,11 +2,18 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { findUserByEmail, addUser as addNewUser } from '@/data/users';
+import { findUserByEmail, addUser as addNewUser, updateUserProfile } from '@/data/users';
 
 interface User {
+  id: string;
   name: string;
   email: string;
+  gender?: 'male' | 'female' | 'other';
+  age?: number;
+  state?: string;
+  mpConstituency?: string;
+  mlaConstituency?: string;
+  panchayat?: string;
 }
 
 interface AuthContextType {
@@ -15,6 +22,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUser: (profileData: Partial<Omit<User, 'id' | 'email'>>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,11 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Invalid email or password.');
     }
 
-    const name = email.split('@')[0];
-    const loggedInUser = { name: name.charAt(0).toUpperCase() + name.slice(1), email };
+    const loggedInUser: Partial<User> = { ...existingUser };
+    delete loggedInUser.password;
     
     localStorage.setItem('politirate_user', JSON.stringify(loggedInUser));
-    setUser(loggedInUser);
+    setUser(loggedInUser as User);
     router.push('/');
   };
 
@@ -81,7 +89,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login');
   };
 
-  const value = { user, loading, login, signup, logout };
+  const updateUser = async (profileData: Partial<Omit<User, 'id' | 'email'>>) => {
+    if (!user) throw new Error("User not authenticated");
+    
+    const updatedUser = await updateUserProfile(user.id, profileData);
+
+    if (updatedUser) {
+        setUser(updatedUser);
+        localStorage.setItem('politirate_user', JSON.stringify(updatedUser));
+    } else {
+        throw new Error("Failed to update profile.");
+    }
+  };
+
+
+  const value = { user, loading, login, signup, logout, updateUser };
 
   return (
     <AuthContext.Provider value={value}>

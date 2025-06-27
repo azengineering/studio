@@ -15,7 +15,14 @@ function initializeDb() {
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             email TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL
+            password TEXT NOT NULL,
+            name TEXT,
+            gender TEXT,
+            age INTEGER,
+            state TEXT,
+            mpConstituency TEXT,
+            mlaConstituency TEXT,
+            panchayat TEXT
         );
 
         CREATE TABLE IF NOT EXISTS leaders (

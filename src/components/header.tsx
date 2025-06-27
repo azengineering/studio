@@ -19,12 +19,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useLanguage, type Language } from '@/context/language-context';
 import { useAuth } from '@/context/auth-context';
+import MyProfileDialog from './my-profile-dialog';
 
 export default function Header() {
   const { t, language, setLanguage } = useLanguage();
   const { user, logout } = useAuth();
   const router = useRouter();
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isProfileDialogOpen, setProfileDialogOpen] = useState(false);
 
   const navLinks = [
     { href: '/', label: t('header.home') },
@@ -76,11 +78,9 @@ export default function Header() {
             <span>{t('header.myActivities')}</span>
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-           <Link href="/account-settings">
-            <Settings className="mr-2 h-4 w-4" />
-            <span>{t('header.accountSettings')}</span>
-          </Link>
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setProfileDialogOpen(true); }}>
+          <Settings className="mr-2 h-4 w-4" />
+          <span>{t('header.myProfile')}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={(e) => { e.preventDefault(); logout(); }}>
@@ -117,11 +117,15 @@ export default function Header() {
                     </SheetClose>
                 ))}
                 {user && (
-                    <SheetClose asChild>
-                        <Link href="/account-settings" className="text-lg font-medium hover:text-primary transition-colors">
-                           {t('header.accountSettings')}
-                        </Link>
-                    </SheetClose>
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setProfileDialogOpen(true);
+                      }}
+                      className="text-lg font-medium hover:text-primary transition-colors text-left"
+                    >
+                      {t('header.myProfile')}
+                    </button>
                 )}
                 </nav>
                 <div className="mt-8">
@@ -158,35 +162,38 @@ export default function Header() {
   );
 
   return (
-    <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 border-b">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2">
-            <Scale className="w-8 h-8 text-primary" />
-            <span className="text-2xl font-bold font-headline text-primary">PolitiRate</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-             {navLinks.map(link => (
-                <Link key={link.href} href={link.href} className="text-muted-foreground transition-colors hover:text-foreground">
-                    {link.label}
-                </Link>
-             ))}
-          </nav>
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2">
-                <LanguageSelector />
-                {user ? (
-                  <UserAccountNav />
-                ) : (
-                  <Link href="/login">
-                    <Button>{t('header.loginSignUp')}</Button>
+    <>
+      <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 border-b">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Link href="/" className="flex items-center gap-2">
+              <Scale className="w-8 h-8 text-primary" />
+              <span className="text-2xl font-bold font-headline text-primary">PolitiRate</span>
+            </Link>
+            <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+              {navLinks.map(link => (
+                  <Link key={link.href} href={link.href} className="text-muted-foreground transition-colors hover:text-foreground">
+                      {link.label}
                   </Link>
-                )}
+              ))}
+            </nav>
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex items-center gap-2">
+                  <LanguageSelector />
+                  {user ? (
+                    <UserAccountNav />
+                  ) : (
+                    <Link href="/login">
+                      <Button>{t('header.loginSignUp')}</Button>
+                    </Link>
+                  )}
+              </div>
+              <MobileNav />
             </div>
-            <MobileNav />
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+      {user && <MyProfileDialog open={isProfileDialogOpen} onOpenChange={setProfileDialogOpen} />}
+    </>
   );
 }

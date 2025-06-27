@@ -7,7 +7,14 @@ import { db } from '@/lib/db';
 export interface User {
   id: string;
   email: string;
-  password: string;
+  password?: string;
+  name?: string;
+  gender?: 'male' | 'female' | 'other';
+  age?: number;
+  state?: string;
+  mpConstituency?: string;
+  mlaConstituency?: string;
+  panchayat?: string;
 }
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
@@ -21,18 +28,45 @@ export async function findUserByEmail(email: string): Promise<User | undefined> 
   }
 }
 
-export async function addUser(user: Omit<User, 'id'>): Promise<User | null> {
+export async function addUser(user: Omit<User, 'id' | 'name'>): Promise<User | null> {
+  const name = user.email.split('@')[0];
+  const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
+
   const newUser: User = {
     ...user,
     id: new Date().getTime().toString(),
+    name: formattedName
   };
 
   try {
-    const stmt = db.prepare('INSERT INTO users (id, email, password) VALUES (?, ?, ?)');
-    stmt.run(newUser.id, newUser.email.toLowerCase(), newUser.password);
-    return newUser;
+    const stmt = db.prepare('INSERT INTO users (id, email, password, name) VALUES (?, ?, ?, ?)');
+    stmt.run(newUser.id, newUser.email.toLowerCase(), newUser.password!, newUser.name);
+    
+    const createdUser: Partial<User> = { ...newUser };
+    delete createdUser.password;
+
+    return createdUser as User;
   } catch (error) {
     console.error("Database error in addUser:", error);
     return null;
   }
+}
+
+export async function updateUserProfile(userId: string, profileData: Partial<Omit<User, 'id' | 'email' | 'password'>>): Promise<User | null> {
+    try {
+        const setClauses = Object.keys(profileData).map(key => `${key} = ?`).join(', ');
+        if (!setClauses) return null;
+
+        const values = Object.values(profileData);
+        const stmt = db.prepare(`UPDATE users SET ${setClauses} WHERE id = ?`);
+        stmt.run(...values, userId);
+
+        const updatedUserStmt = db.prepare('SELECT id, email, name, gender, age, state, mpConstituency, mlaConstituency, panchayat FROM users WHERE id = ?');
+        const user = updatedUserStmt.get(userId) as User | undefined;
+        
+        return user || null;
+    } catch (error) {
+        console.error("Database error in updateUserProfile:", error);
+        return null;
+    }
 }

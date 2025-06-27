@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/context/language-context';
 import { Label } from '@/components/ui/label';
+import { RotateCw, Search } from 'lucide-react';
 
 type ElectionType = 'national' | 'state' | 'panchayat' | '';
 
@@ -18,20 +20,15 @@ export default function SearchFilter({ onSearch }: SearchFilterProps) {
   const [candidateName, setCandidateName] = useState('');
   const { t } = useLanguage();
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      onSearch({ electionType, searchTerm, candidateName });
-    }, 300); // Debounce search by 300ms
+  const handleSearchClick = () => {
+    onSearch({ electionType, searchTerm, candidateName });
+  };
 
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [electionType, searchTerm, candidateName, onSearch]);
-
-  const handleElectionTypeChange = (value: string) => {
-    const newElectionType = value as ElectionType;
-    setElectionType(newElectionType);
-    setSearchTerm(''); // Reset search term for better UX
+  const handleResetClick = () => {
+    setElectionType('');
+    setSearchTerm('');
+    setCandidateName('');
+    onSearch({ electionType: '', searchTerm: '', candidateName: '' });
   };
 
   const getPlaceholder = () => {
@@ -41,7 +38,7 @@ export default function SearchFilter({ onSearch }: SearchFilterProps) {
 
   return (
     <div className="p-6 bg-secondary/50 rounded-lg mb-8 border border-border">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
         <div className="grid gap-2">
           <Label htmlFor="candidate-name" className="font-semibold">
             {t('searchFilter.candidateNameLabel')}
@@ -59,7 +56,7 @@ export default function SearchFilter({ onSearch }: SearchFilterProps) {
           <Label htmlFor="election-type" className="font-semibold">
             {t('searchFilter.electionTypeLabel')}
           </Label>
-          <Select value={electionType} onValueChange={handleElectionTypeChange}>
+          <Select value={electionType} onValueChange={(value) => setElectionType(value as ElectionType)}>
             <SelectTrigger id="election-type" className="bg-background">
               <SelectValue placeholder={t('searchFilter.electionTypePlaceholder')} />
             </SelectTrigger>
@@ -82,6 +79,17 @@ export default function SearchFilter({ onSearch }: SearchFilterProps) {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="bg-background"
           />
+        </div>
+        
+        <div className="flex gap-2">
+            <Button onClick={handleSearchClick} className="w-full">
+                <Search className="mr-2 h-4 w-4" />
+                {t('searchFilter.searchButton')}
+            </Button>
+            <Button onClick={handleResetClick} variant="outline" size="icon" aria-label={t('searchFilter.resetButton')}>
+                <RotateCw className="h-4 w-4" />
+                <span className="sr-only">{t('searchFilter.resetButton')}</span>
+            </Button>
         </div>
       </div>
     </div>

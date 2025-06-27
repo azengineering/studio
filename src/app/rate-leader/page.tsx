@@ -8,6 +8,7 @@ import { getLeaders, type Leader } from '@/data/leaders';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/context/language-context';
 import SearchFilter from '@/components/search-filter';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type ElectionType = 'national' | 'state' | 'panchayat' | '';
 
@@ -15,12 +16,15 @@ export default function RateLeaderPage() {
   const { t } = useLanguage();
   const [allLeaders, setAllLeaders] = useState<Leader[]>([]);
   const [filteredLeaders, setFilteredLeaders] = useState<Leader[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchLeaders = async () => {
+      setIsLoading(true);
       const leadersFromStorage = await getLeaders();
       setAllLeaders(leadersFromStorage);
       setFilteredLeaders(leadersFromStorage);
+      setIsLoading(false);
     };
     fetchLeaders();
   }, []);
@@ -57,6 +61,20 @@ export default function RateLeaderPage() {
     setFilteredLeaders(results);
   };
 
+  const LeaderListSkeleton = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {Array.from({ length: 8 }).map((_, index) => (
+        <div key={index} className="flex flex-col space-y-3">
+          <Skeleton className="h-[125px] w-full rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
@@ -71,7 +89,7 @@ export default function RateLeaderPage() {
         <SearchFilter onSearch={handleSearch} />
         
         <div className="mt-12">
-          {allLeaders.length > 0 && (
+          {filteredLeaders.length > 0 && !isLoading && (
             <>
               <h2 className="text-2xl font-bold font-headline mb-4">
                 {t('leaderList.resultsTitle')}
@@ -79,7 +97,7 @@ export default function RateLeaderPage() {
               <Separator className="mb-8" />
             </>
           )}
-          <LeaderList leaders={filteredLeaders} />
+          {isLoading ? <LeaderListSkeleton /> : <LeaderList leaders={filteredLeaders} />}
         </div>
       </main>
       <Footer />

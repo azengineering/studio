@@ -29,7 +29,6 @@ import { useAuth } from '@/context/auth-context';
 import { useLanguage } from '@/context/language-context';
 import { indianStates } from '@/data/locations';
 import { useToast } from "@/hooks/use-toast";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MyProfileDialogProps {
   open: boolean;
@@ -197,40 +196,24 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
               </div>
             </fieldset>
 
-            <DialogFooter className="!justify-end">
-              <div className="flex items-center gap-2">
-                <TooltipProvider delayDuration={100}>
-                  {!isEditing ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                         <Button type="button" variant="outline" size="icon" onClick={() => setIsEditing(true)}>
-                           <Pencil className="h-4 w-4" />
-                         </Button>
-                      </TooltipTrigger>
-                      <TooltipContent><p>{t('myProfileDialog.editButton')}</p></TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button type="button" variant="outline" size="icon" onClick={resetFormValues}>
-                            <RotateCw className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent><p>{t('myProfileDialog.resetButton')}</p></TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button type="submit" variant="default" size="icon">
-                            <Save className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent><p>{t('myProfileDialog.saveButton')}</p></TooltipContent>
-                      </Tooltip>
-                    </>
-                  )}
-                </TooltipProvider>
-              </div>
+            <DialogFooter className="sm:justify-end gap-2 pt-4">
+              {!isEditing ? (
+                <Button type="button" onClick={() => setIsEditing(true)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  {t('myProfileDialog.editButton')}
+                </Button>
+              ) : (
+                <>
+                  <Button type="button" variant="outline" onClick={resetFormValues}>
+                    <RotateCw className="mr-2 h-4 w-4" />
+                    {t('myProfileDialog.resetButton')}
+                  </Button>
+                  <Button type="submit">
+                    <Save className="mr-2 h-4 w-4" />
+                    {t('myProfileDialog.saveButton')}
+                  </Button>
+                </>
+              )}
             </DialogFooter>
           </form>
         </Form>

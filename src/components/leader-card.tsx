@@ -171,7 +171,7 @@ export default function LeaderCard({ leader: initialLeader }: LeaderCardProps) {
 
         <CardFooter className="p-2 bg-secondary/50 border-t">
             <Button size="sm" className="w-full transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-px" onClick={handleRateClick}>
-                <Star className="mr-2 h-4 w-4" /> {t('leaderCard.ratesAndComment')}
+                <Star className="mr-2 h-4 w-4" /> {t('leaderCard.submitRatingAndComment')}
             </Button>
         </CardFooter>
       </Card>

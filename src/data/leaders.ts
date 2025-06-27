@@ -284,7 +284,7 @@ export async function getLeaderById(id: string): Promise<Leader | null> {
     }
 }
 
-export async function updateLeaderRating(leaderId: string, userId: string, newRating: number): Promise<Leader | null> {
+export async function submitRatingAndComment(leaderId: string, userId: string, newRating: number, comment: string | null): Promise<Leader | null> {
     try {
         const leader = await getLeaderById(leaderId);
         if (!leader) {
@@ -292,6 +292,7 @@ export async function updateLeaderRating(leaderId: string, userId: string, newRa
         }
 
         const dbTransaction = db.transaction(() => {
+            // Handle Rating
             const existingRatingStmt = db.prepare('SELECT rating FROM ratings WHERE userId = ? AND leaderId = ?');
             const existingRatingResult = existingRatingStmt.get(userId, leaderId) as { rating: number } | undefined;
             
@@ -320,13 +321,25 @@ export async function updateLeaderRating(leaderId: string, userId: string, newRa
 
             const updateLeaderStmt = db.prepare('UPDATE leaders SET rating = ?, reviewCount = ? WHERE id = ?');
             updateLeaderStmt.run(newAverageRating, newReviewCount, leaderId);
+
+            // Handle Comment
+            if (comment && comment.trim().length > 0) {
+                 const upsertCommentStmt = db.prepare(`
+                    INSERT INTO comments (userId, leaderId, comment) 
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(userId, leaderId) DO UPDATE SET 
+                        comment = excluded.comment,
+                        updatedAt = CURRENT_TIMESTAMP;
+                `);
+                upsertCommentStmt.run(userId, leaderId, comment);
+            }
         });
 
         dbTransaction();
 
         return await getLeaderById(leaderId);
     } catch (error) {
-        console.error("Database error in updateLeaderRating:", error);
+        console.error("Database error in submitRatingAndComment:", error);
         return null;
     }
 }

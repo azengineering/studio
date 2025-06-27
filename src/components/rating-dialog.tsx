@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Star } from 'lucide-react';
 
 import {
@@ -15,10 +15,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { Leader } from '@/data/leaders';
-import { updateLeaderRating } from '@/data/leaders';
+import { submitRatingAndComment } from '@/data/leaders';
 import { useLanguage } from '@/context/language-context';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
+import { Textarea } from './ui/textarea';
+import { Label } from './ui/label';
 
 interface RatingDialogProps {
   leader: Leader;
@@ -30,10 +32,21 @@ interface RatingDialogProps {
 export default function RatingDialog({ leader, open, onOpenChange, onRatingSuccess }: RatingDialogProps) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
+  const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { t } = useLanguage();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (!open) {
+      setTimeout(() => {
+        setRating(0);
+        setHoverRating(0);
+        setComment('');
+      }, 200);
+    }
+  }, [open]);
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -54,7 +67,7 @@ export default function RatingDialog({ leader, open, onOpenChange, onRatingSucce
     }
     setIsSubmitting(true);
     try {
-      const updatedLeader = await updateLeaderRating(leader.id, user.id, rating);
+      const updatedLeader = await submitRatingAndComment(leader.id, user.id, rating, comment);
       if (updatedLeader) {
         toast({
           title: t('ratingDialog.successTitle'),
@@ -62,7 +75,6 @@ export default function RatingDialog({ leader, open, onOpenChange, onRatingSucce
         });
         onRatingSuccess(updatedLeader);
         onOpenChange(false);
-        setRating(0);
       } else {
         throw new Error('Failed to update leader rating.');
       }
@@ -86,22 +98,35 @@ export default function RatingDialog({ leader, open, onOpenChange, onRatingSucce
             {t('ratingDialog.description')}
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4">
-          <div className="flex justify-center gap-2">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                className={cn(
-                  'h-10 w-10 cursor-pointer transition-colors',
-                  (hoverRating >= star || rating >= star)
-                    ? 'text-amber-400 fill-amber-400'
-                    : 'text-muted-foreground'
-                )}
-                onMouseEnter={() => setHoverRating(star)}
-                onMouseLeave={() => setHoverRating(0)}
-                onClick={() => setRating(star)}
-              />
-            ))}
+        <div className="py-4 space-y-6">
+           <div className="space-y-2">
+              <Label>{t('ratingDialog.ratingLabel')}</Label>
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={cn(
+                      'h-10 w-10 cursor-pointer transition-colors',
+                      (hoverRating >= star || rating >= star)
+                        ? 'text-amber-400 fill-amber-400'
+                        : 'text-muted-foreground'
+                    )}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    onClick={() => setRating(star)}
+                  />
+                ))}
+              </div>
+           </div>
+           <div className="space-y-2">
+            <Label htmlFor="comment">{t('ratingDialog.commentLabel')}</Label>
+            <Textarea
+              id="comment"
+              placeholder={t('ratingDialog.commentPlaceholder')}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={4}
+            />
           </div>
         </div>
         <DialogFooter>

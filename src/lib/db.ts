@@ -48,6 +48,8 @@ function initializeDb() {
             userId TEXT NOT NULL,
             leaderId TEXT NOT NULL,
             rating INTEGER NOT NULL,
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (userId, leaderId),
             FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
             FOREIGN KEY (leaderId) REFERENCES leaders(id) ON DELETE CASCADE

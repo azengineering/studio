@@ -33,7 +33,7 @@ export interface Leader {
 export interface Review {
   userName: string;
   rating: number;
-  comment: string;
+  comment: string | null;
   updatedAt: string;
 }
 
@@ -309,7 +309,7 @@ export async function submitRatingAndComment(leaderId: string, userId: string, n
             if (existingRatingResult) {
                 const oldRating = existingRatingResult.rating;
                 
-                const updateRatingStmt = db.prepare('UPDATE ratings SET rating = ? WHERE userId = ? AND leaderId = ?');
+                const updateRatingStmt = db.prepare('UPDATE ratings SET rating = ?, updatedAt = CURRENT_TIMESTAMP WHERE userId = ? AND leaderId = ?');
                 updateRatingStmt.run(newRating, userId, leaderId);
 
                 newReviewCount = leader.reviewCount;
@@ -355,15 +355,15 @@ export async function getReviewsForLeader(leaderId: string): Promise<Review[]> {
     try {
         const stmt = db.prepare(`
             SELECT
-                c.comment,
-                c.updatedAt,
                 r.rating,
-                u.name as userName
-            FROM comments c
-            LEFT JOIN ratings r ON c.leaderId = r.leaderId AND c.userId = r.userId
-            LEFT JOIN users u ON c.userId = u.id
-            WHERE c.leaderId = ?
-            ORDER BY c.updatedAt DESC
+                r.updatedAt,
+                u.name as userName,
+                c.comment
+            FROM ratings r
+            JOIN users u ON r.userId = u.id
+            LEFT JOIN comments c ON r.userId = c.userId AND r.leaderId = c.leaderId
+            WHERE r.leaderId = ?
+            ORDER BY r.updatedAt DESC
         `);
         const rows = stmt.all(leaderId) as any[];
         return rows;

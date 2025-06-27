@@ -46,7 +46,7 @@ const ReviewItem = ({ review }: { review: Review }) => {
                     ))}
                 </div>
             </div>
-            <p className="text-muted-foreground text-sm pl-7">{review.comment}</p>
+            {review.comment && <p className="text-muted-foreground text-sm pl-7">{review.comment}</p>}
             <p className="text-xs text-muted-foreground/80 pl-7">{formatDistanceToNow(new Date(review.updatedAt), { addSuffix: true })}</p>
         </div>
     )

@@ -2,13 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { findUserByEmail, addUser as addNewUser } from '@/data/users';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+import { findUserByEmail, addUser as addNewUser, updateUserProfile, type User } from '@/data/users';
 
 interface AuthContextType {
   user: User | null;
@@ -16,6 +10,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUser: (profileData: Partial<User>) => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -82,7 +77,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login');
   };
 
-  const value = { user, loading, login, signup, logout };
+  const updateUser = async (profileData: Partial<User>) => {
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+    
+    const updatedUser = await updateUserProfile(user.id, profileData);
+
+    if (updatedUser) {
+      setUser(updatedUser);
+      localStorage.setItem('politirate_user', JSON.stringify(updatedUser));
+    }
+
+    return updatedUser;
+  };
+
+  const value = { user, loading, login, signup, logout, updateUser };
 
   return (
     <AuthContext.Provider value={value}>

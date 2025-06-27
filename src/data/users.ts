@@ -9,6 +9,12 @@ export interface User {
   email: string;
   password?: string;
   name?: string;
+  gender?: 'male' | 'female' | 'other';
+  age?: number;
+  state?: string;
+  mpConstituency?: string;
+  mlaConstituency?: string;
+  panchayat?: string;
 }
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
@@ -44,4 +50,36 @@ export async function addUser(user: Omit<User, 'id' | 'name'>): Promise<User | n
     console.error("Database error in addUser:", error);
     return null;
   }
+}
+
+export async function updateUserProfile(userId: string, profileData: Partial<User>): Promise<User | null> {
+    try {
+        const setClauses = Object.keys(profileData)
+            .filter(key => key !== 'id' && (profileData as any)[key] !== undefined)
+            .map(key => `${key} = ?`)
+            .join(', ');
+
+        if (!setClauses) {
+            // Nothing to update
+            const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as User;
+            delete user.password;
+            return user;
+        }
+
+        const values = Object.values(profileData).filter(value => value !== undefined);
+        values.push(userId);
+        
+        const stmt = db.prepare(`UPDATE users SET ${setClauses} WHERE id = ?`);
+        stmt.run(...values);
+
+        const updatedUser = db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as User | undefined;
+        if (updatedUser) {
+            delete updatedUser.password;
+            return updatedUser;
+        }
+        return null;
+    } catch (error) {
+        console.error("Database error in updateUserProfile:", error);
+        return null;
+    }
 }

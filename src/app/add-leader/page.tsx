@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from 'next/navigation';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, RotateCw } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,10 +28,11 @@ import { indianStates, districtsByState } from '@/data/locations';
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Name is required." }),
-  electionType: z.enum(['national', 'state', 'panchayat'], { required_error: "Please select an election type."}),
   partyName: z.string().min(1, { message: "Party name is required." }),
+  electionType: z.enum(['national', 'state', 'panchayat'], { required_error: "Please select an election type."}),
   constituency: z.string().min(1, { message: "Constituency is required." }),
   gender: z.enum(['male', 'female', 'other'], { required_error: "Please select a gender."}),
+  age: z.coerce.number().int({ message: "Age must be a whole number." }).positive({ message: "Age must be positive." }).min(25, { message: "Candidate must be at least 25 years old." }),
   nativeAddress: z.string().min(1, { message: "Native address is required." }),
   state: z.string().optional(),
   district: z.string().optional(),
@@ -44,6 +45,7 @@ const formSchema = z.object({
   })).optional(),
   photoUrl: z.string().url({ message: "Please enter a valid image URL." }).optional().or(z.literal('')),
   manifestoUrl: z.string().url({ message: "Please enter a valid PDF URL." }).optional().or(z.literal('')),
+  twitterUrl: z.string().url({ message: "Please enter a valid X/Twitter URL." }).optional().or(z.literal('')),
 }).refine(data => {
     if (data.electionType === 'state' || data.electionType === 'panchayat') {
         return !!data.state;
@@ -77,9 +79,11 @@ function AddLeaderPage() {
       nativeAddress: "",
       state: "",
       district: "",
+      age: undefined,
       previousElections: [],
       photoUrl: "",
       manifestoUrl: "",
+      twitterUrl: "",
     },
   });
 
@@ -90,6 +94,10 @@ function AddLeaderPage() {
 
   const electionType = form.watch('electionType');
   const selectedState = form.watch('state');
+  
+  const handleClear = () => {
+    form.reset();
+  };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     addLeader({
@@ -98,6 +106,7 @@ function AddLeaderPage() {
         constituency: values.constituency,
         electionType: values.electionType,
         gender: values.gender,
+        age: values.age,
         nativeAddress: values.nativeAddress,
         location: {
             state: values.state,
@@ -106,6 +115,7 @@ function AddLeaderPage() {
         previousElections: values.previousElections || [],
         photoUrl: values.photoUrl || 'https://placehold.co/400x400.png',
         manifestoUrl: values.manifestoUrl,
+        twitterUrl: values.twitterUrl,
     });
 
     toast({
@@ -146,6 +156,19 @@ function AddLeaderPage() {
                         />
                         <FormField
                             control={form.control}
+                            name="partyName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('addLeaderPage.partyNameLabel')}</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder={t('addLeaderPage.partyNamePlaceholder')} {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
                             name="electionType"
                             render={({ field }) => (
                                 <FormItem>
@@ -166,25 +189,12 @@ function AddLeaderPage() {
                                 </FormItem>
                             )}
                         />
-                         <FormField
-                            control={form.control}
-                            name="partyName"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('addLeaderPage.partyNameLabel')}</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder={t('addLeaderPage.partyNamePlaceholder')} {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
                     </div>
 
                     {/* --- Conditional location fields --- */}
-                     <div className="grid md:grid-cols-2 gap-6">
-                        {(electionType === 'state' || electionType === 'panchayat') && (
-                             <FormField
+                     {(electionType === 'state' || electionType === 'panchayat') && (
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <FormField
                                 control={form.control}
                                 name="state"
                                 render={({ field }) => (
@@ -206,46 +216,46 @@ function AddLeaderPage() {
                                     </FormItem>
                                 )}
                             />
-                        )}
-                        {electionType === 'panchayat' && (
-                            <FormField
-                                control={form.control}
-                                name="district"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('addLeaderPage.districtLabel')}</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedState}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('addLeaderPage.selectDistrict')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {selectedState && districtsByState[selectedState] ? (
-                                                    districtsByState[selectedState].map(district => (
-                                                        <SelectItem key={district} value={district}>{district}</SelectItem>
-                                                    ))
-                                                ) : (
-                                                    <SelectItem value="none" disabled>
-                                                        {selectedState ? t('filterDashboard.noDistricts') : t('filterDashboard.selectStateFirst')}
-                                                    </SelectItem>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        )}
-                    </div>
+                            {electionType === 'panchayat' && (
+                                <FormField
+                                    control={form.control}
+                                    name="district"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('addLeaderPage.districtLabel')}</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedState}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('addLeaderPage.selectDistrict')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {selectedState && districtsByState[selectedState] ? (
+                                                        districtsByState[selectedState].map(district => (
+                                                            <SelectItem key={district} value={district}>{district}</SelectItem>
+                                                        ))
+                                                    ) : (
+                                                        <SelectItem value="none" disabled>
+                                                            {selectedState ? t('filterDashboard.noDistricts') : t('filterDashboard.selectStateFirst')}
+                                                        </SelectItem>
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+                        </div>
+                     )}
 
                     {/* --- Row 2 --- */}
-                    <div className="grid md:grid-cols-3 gap-6">
+                    <div className="grid md:grid-cols-12 gap-6">
                         <FormField
                             control={form.control}
                             name="constituency"
                             render={({ field }) => (
-                                <FormItem className="md:col-span-1">
+                                <FormItem className="md:col-span-4">
                                     <FormLabel>{t('addLeaderPage.constituencyLabel')}</FormLabel>
                                     <FormControl>
                                         <Input placeholder={t('addLeaderPage.constituencyPlaceholder')} {...field} />
@@ -256,9 +266,22 @@ function AddLeaderPage() {
                         />
                          <FormField
                             control={form.control}
+                            name="nativeAddress"
+                            render={({ field }) => (
+                                <FormItem className="md:col-span-4">
+                                    <FormLabel>{t('addLeaderPage.nativeAddressLabel')}</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder={t('addLeaderPage.nativeAddressPlaceholder')} {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
                             name="gender"
                             render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="md:col-span-2">
                                 <FormLabel>{t('addLeaderPage.genderLabel')}</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
@@ -276,14 +299,14 @@ function AddLeaderPage() {
                             </FormItem>
                             )}
                         />
-                        <FormField
+                         <FormField
                             control={form.control}
-                            name="nativeAddress"
+                            name="age"
                             render={({ field }) => (
-                                <FormItem className="md:col-span-1">
-                                    <FormLabel>{t('addLeaderPage.nativeAddressLabel')}</FormLabel>
+                                <FormItem className="md:col-span-2">
+                                    <FormLabel>{t('addLeaderPage.ageLabel')}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder={t('addLeaderPage.nativeAddressPlaceholder')} {...field} />
+                                        <Input type="number" placeholder={t('addLeaderPage.agePlaceholder')} {...field} onChange={event => field.onChange(+event.target.value)} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -384,7 +407,7 @@ function AddLeaderPage() {
                     </div>
 
                     {/* --- Row 4: Files --- */}
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid md:grid-cols-3 gap-6">
                         <FormField
                             control={form.control}
                             name="photoUrl"
@@ -411,11 +434,30 @@ function AddLeaderPage() {
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                            control={form.control}
+                            name="twitterUrl"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('addLeaderPage.twitterUrlLabel')}</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder={t('addLeaderPage.twitterUrlPlaceholder')} {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
                     
-                    <Button type="submit" className="w-full py-6 text-lg">
-                       {t('addLeaderPage.submitButton')}
-                    </Button>
+                    <div className="flex justify-end gap-4 pt-4">
+                       <Button type="button" variant="outline" onClick={handleClear}>
+                            <RotateCw className="mr-2 h-4 w-4" />
+                            {t('addLeaderPage.clearButton')}
+                        </Button>
+                       <Button type="submit">
+                           {t('addLeaderPage.submitButton')}
+                        </Button>
+                    </div>
                 </form>
             </Form>
         </div>

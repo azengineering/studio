@@ -60,23 +60,19 @@ export default function LeaderCard({ leader }: LeaderCardProps) {
             </div>
         </div>
 
-        {/* --- Details part --- */}
-        <div className="space-y-2 text-sm border-t pt-4 mt-4 flex-grow">
-            <div className="flex">
-                <span className="w-28 font-medium text-muted-foreground">Election Type</span>
+        {/* --- Enhanced Details part --- */}
+        <div className="space-y-3 text-sm border-t pt-4 mt-4 flex-grow">
+            <div className="flex justify-between items-center">
+                <span className="text-foreground font-semibold text-base">{leader.partyName}</span>
                 <Badge variant="secondary" className="capitalize">{t(`filterDashboard.${leader.electionType}`)}</Badge>
             </div>
-            <div className="flex">
-                <span className="w-28 font-medium text-muted-foreground">Party</span>
-                <span className="text-foreground font-semibold">{leader.partyName}</span>
+            <div>
+                <span className="text-xs text-muted-foreground">State</span>
+                <p className="text-foreground font-semibold">{leader.location.state}</p>
             </div>
-            <div className="flex">
-                <span className="w-28 font-medium text-muted-foreground">State</span>
-                <span className="text-foreground font-semibold">{leader.location.state}</span>
-            </div>
-            <div className="flex">
-                <span className="w-28 font-medium text-muted-foreground">Constituency</span>
-                <span className="text-foreground font-semibold truncate">{leader.constituency}</span>
+            <div>
+                <span className="text-xs text-muted-foreground">Constituency</span>
+                <p className="text-foreground font-semibold truncate">{leader.constituency}</p>
             </div>
         </div>
         
@@ -84,7 +80,7 @@ export default function LeaderCard({ leader }: LeaderCardProps) {
 
         {/* --- Links part --- */}
         <div className="flex items-center justify-between text-sm">
-            <div className="flex gap-4">
+            <div className="flex items-center gap-4">
                  {leader.manifestoUrl && (
                     <a
                         href={leader.manifestoUrl}

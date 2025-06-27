@@ -46,7 +46,6 @@ export default function LeaderCard({ leader }: LeaderCardProps) {
                     <h2 className="font-headline text-xl font-bold">
                         {leader.name}
                     </h2>
-                    <Badge variant="secondary" className="capitalize">{t(`filterDashboard.${leader.electionType}`)}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
                     {genderText}, {leader.age} yrs old
@@ -60,21 +59,21 @@ export default function LeaderCard({ leader }: LeaderCardProps) {
         </div>
 
         <div className="space-y-3 text-sm border-t pt-4 flex-grow">
-            <div>
+            <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">Party Name</span>
-                <p className="font-medium">{leader.partyName}</p>
+                <p className="font-medium text-right">{leader.partyName}</p>
             </div>
-             <div>
+             <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">Election Type</span>
-                <p className="font-medium capitalize">{t(`filterDashboard.${leader.electionType}`)}</p>
+                <p className="font-medium capitalize text-right">{t(`filterDashboard.${leader.electionType}`)}</p>
             </div>
-            <div>
+            <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">State</span>
-                <p className="font-medium">{leader.location.state}</p>
+                <p className="font-medium text-right">{leader.location.state}</p>
             </div>
-            <div>
+            <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">Constituency</span>
-                <p className="font-medium">{leader.constituency}</p>
+                <p className="font-medium text-right">{leader.constituency}</p>
             </div>
         </div>
 

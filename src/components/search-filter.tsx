@@ -81,8 +81,8 @@ export default function SearchFilter({ onSearch }: SearchFilterProps) {
           />
         </div>
         
-        <div className="flex gap-2">
-            <Button onClick={handleSearchClick} className="w-full">
+        <div className="flex gap-2 justify-end">
+            <Button onClick={handleSearchClick}>
                 <Search className="mr-2 h-4 w-4" />
                 {t('searchFilter.searchButton')}
             </Button>

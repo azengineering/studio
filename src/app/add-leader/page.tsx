@@ -5,7 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from 'next/navigation';
-import { PlusCircle, Trash2, RotateCw } from 'lucide-react';
+import { PlusCircle, Trash2, RotateCw, ChevronsUpDown } from 'lucide-react';
+import { useState } from 'react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import withAuth from '@/components/with-auth';
@@ -70,6 +72,7 @@ function AddLeaderPage() {
   const { t } = useLanguage();
   const { toast } = useToast();
   const router = useRouter();
+  const [isPrevElectionsOpen, setIsPrevElectionsOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -194,7 +197,7 @@ function AddLeaderPage() {
 
                     {/* --- Row 2: Location Details --- */}
                     <div className="grid md:grid-cols-3 gap-6">
-                        <FormField
+                       <FormField
                             control={form.control}
                             name="state"
                             render={({ field }) => (
@@ -246,6 +249,36 @@ function AddLeaderPage() {
 
                     {/* --- Row 3: Personal Details --- */}
                     <div className="grid md:grid-cols-3 gap-6">
+                        {electionType === 'panchayat' && (
+                            <FormField
+                                control={form.control}
+                                name="district"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('addLeaderPage.districtLabel')}</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedState}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder={t('addLeaderPage.selectDistrict')} />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {selectedState && districtsByState[selectedState] ? (
+                                                    districtsByState[selectedState].map(district => (
+                                                        <SelectItem key={district} value={district}>{district}</SelectItem>
+                                                    ))
+                                                ) : (
+                                                    <SelectItem value="none" disabled>
+                                                        {selectedState ? t('filterDashboard.noDistricts') : t('filterDashboard.selectStateFirst')}
+                                                    </SelectItem>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
                          <FormField
                             control={form.control}
                             name="gender"
@@ -287,42 +320,24 @@ function AddLeaderPage() {
                                 </FormItem>
                             )}
                         />
-                         {electionType === 'panchayat' && (
-                            <FormField
-                                control={form.control}
-                                name="district"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('addLeaderPage.districtLabel')}</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedState}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('addLeaderPage.selectDistrict')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {selectedState && districtsByState[selectedState] ? (
-                                                    districtsByState[selectedState].map(district => (
-                                                        <SelectItem key={district} value={district}>{district}</SelectItem>
-                                                    ))
-                                                ) : (
-                                                    <SelectItem value="none" disabled>
-                                                        {selectedState ? t('filterDashboard.noDistricts') : t('filterDashboard.selectStateFirst')}
-                                                    </SelectItem>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        )}
                     </div>
                     
                     {/* --- Row 4: Previous Elections --- */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">{t('addLeaderPage.previousElectionsTitle')}</h3>
-                      <div className="space-y-4">
+                    <Collapsible
+                      open={isPrevElectionsOpen}
+                      onOpenChange={setIsPrevElectionsOpen}
+                      className="space-y-4"
+                    >
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h3 className="text-lg font-medium">{t('addLeaderPage.previousElectionsTitle')}</h3>
+                        <CollapsibleTrigger asChild>
+                           <Button variant="ghost" size="sm" className="w-9 p-0">
+                            <ChevronsUpDown className="h-4 w-4" />
+                            <span className="sr-only">Toggle</span>
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
+                      <CollapsibleContent className="space-y-4">
                         {fields.map((item, index) => (
                           <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-2 p-4 border rounded-md relative">
                             <FormField
@@ -331,7 +346,18 @@ function AddLeaderPage() {
                               render={({ field }) => (
                                 <FormItem className="col-span-12 md:col-span-3">
                                   <FormLabel className="text-xs">{t('addLeaderPage.electionTypeLabel')}</FormLabel>
-                                  <Input {...field} placeholder="e.g., State" />
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder={t('addLeaderPage.selectElectionType')} />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="national">{t('filterDashboard.national')}</SelectItem>
+                                      <SelectItem value="state">{t('filterDashboard.state')}</SelectItem>
+                                      <SelectItem value="panchayat">{t('filterDashboard.panchayat')}</SelectItem>
+                                    </SelectContent>
+                                  </Select>
                                    <FormMessage />
                                 </FormItem>
                               )}
@@ -401,15 +427,15 @@ function AddLeaderPage() {
                         ))}
                         <Button
                           type="button"
-                          variant="outline"
                           size="sm"
+                          className="bg-accent hover:bg-accent/90 text-accent-foreground"
                           onClick={() => append({ electionType: '', constituency: '', status: 'winner', electionYear: '', partyName: '' })}
                         >
                           <PlusCircle className="mr-2 h-4 w-4" />
                           {t('addLeaderPage.addMoreButton')}
                         </Button>
-                      </div>
-                    </div>
+                      </CollapsibleContent>
+                    </Collapsible>
 
                     {/* --- Row 5: Files --- */}
                     <div className="grid md:grid-cols-3 gap-6">

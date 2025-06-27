@@ -1,3 +1,4 @@
+
 const translations = {
   en: {
     header: {
@@ -159,8 +160,8 @@ const translations = {
       statusLabel: 'Status',
       winnerStatus: 'Winner',
       loserStatus: 'Loser',
-      electionYearLabel: 'Year',
-      addMoreButton: 'Add Record',
+      electionYearLabel: 'Election Year',
+      addMoreButton: 'Add More',
       removeButton: 'Remove'
     },
     auth: {
@@ -330,8 +331,8 @@ const translations = {
       statusLabel: 'स्थिति',
       winnerStatus: 'विजेता',
       loserStatus: 'हारने वाला',
-      electionYearLabel: 'वर्ष',
-      addMoreButton: 'रिकॉर्ड जोड़ें',
+      electionYearLabel: 'चुनाव वर्ष',
+      addMoreButton: 'और जोड़ें',
       removeButton: 'हटाएं'
     },
     auth: {

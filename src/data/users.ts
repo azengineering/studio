@@ -1,6 +1,5 @@
-'use server';
 
-import { db } from '@/lib/db';
+'use server';
 
 // For a real app, passwords should be securely hashed.
 // For this client-side prototype, we'll store them as-is.
@@ -17,32 +16,67 @@ export interface User {
   panchayat?: string;
 }
 
-export async function findUserByEmail(email: string): Promise<User | undefined> {
+// --- localStorage Helper Functions ---
+const isServer = typeof window === 'undefined';
+
+function getFromStorage<T>(key: string, defaultValue: T): T {
+  if (isServer) return defaultValue;
   try {
-    const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-    const user = stmt.get(email.toLowerCase()) as User | undefined;
-    return user;
+    const item = window.localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
   } catch (error) {
-    console.error("Database error in findUserByEmail:", error);
-    return undefined;
+    console.error(`Error reading from localStorage key “${key}”:`, error);
+    return defaultValue;
   }
+}
+
+function setToStorage<T>(key: string, value: T) {
+  if (isServer) return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Error writing to localStorage key “${key}”:`, error);
+  }
+}
+
+// --- Data Key ---
+const USERS_KEY = 'politirate_users';
+
+// --- Seeding Logic ---
+function seedUsers() {
+    if (isServer) return;
+    const users = getFromStorage<User[]>(USERS_KEY, []);
+    if (users.length === 0) {
+        // You can add default users here if needed, for example:
+        // const defaultUsers = [ ... ];
+        // setToStorage(USERS_KEY, defaultUsers);
+    }
+}
+seedUsers();
+
+// --- Public API ---
+
+export async function getUsers(): Promise<User[]> {
+    return Promise.resolve(getFromStorage<User[]>(USERS_KEY, []));
+}
+
+export async function findUserByEmail(email: string): Promise<User | undefined> {
+  const users = await getUsers();
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  return Promise.resolve(user);
 }
 
 export async function findUserById(id: string): Promise<User | undefined> {
-  try {
-    const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
-    const user = stmt.get(id) as User | undefined;
-    if (user) {
-      delete user.password;
-    }
-    return user;
-  } catch (error) {
-    console.error("Database error in findUserById:", error);
-    return undefined;
+  const users = await getUsers();
+  const user = users.find(u => u.id === id);
+  if (user) {
+    delete user.password;
   }
+  return Promise.resolve(user);
 }
 
 export async function addUser(user: Omit<User, 'id' | 'name'>): Promise<User | null> {
+  const users = await getUsers();
   const name = user.email.split('@')[0];
   const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
 
@@ -52,63 +86,41 @@ export async function addUser(user: Omit<User, 'id' | 'name'>): Promise<User | n
     name: formattedName
   };
 
-  try {
-    const stmt = db.prepare('INSERT INTO users (id, email, password, name) VALUES (?, ?, ?, ?)');
-    stmt.run(newUser.id, newUser.email.toLowerCase(), newUser.password!, newUser.name);
-    
-    const createdUser: Partial<User> = { ...newUser };
-    delete createdUser.password;
+  users.push(newUser);
+  setToStorage(USERS_KEY, users);
+  
+  const createdUser: Partial<User> = { ...newUser };
+  delete createdUser.password;
 
-    return createdUser as User;
-  } catch (error) {
-    console.error("Database error in addUser:", error);
-    return null;
-  }
+  return Promise.resolve(createdUser as User);
 }
 
 export async function updateUserProfile(userId: string, profileData: Partial<User>): Promise<User | null> {
-    try {
-        const fieldsToUpdate = Object.keys(profileData);
+    const users = await getUsers();
+    const userIndex = users.findIndex(u => u.id === userId);
 
-        if (fieldsToUpdate.length === 0) {
-            return await findUserById(userId); // Nothing to update
-        }
-        
-        const setClauses = fieldsToUpdate.map(key => `${key} = @${key}`).join(', ');
-        
-        const dataForDb: { [key: string]: any } = {};
-
-        fieldsToUpdate.forEach(key => {
-            // @ts-ignore
-            const value = profileData[key];
-            if (key === 'age') {
-                // For age, ensure it's a number or null.
-                const numValue = Number(value);
-                dataForDb[key] = (value === '' || value === null || value === undefined || isNaN(numValue)) ? null : numValue;
-            } else if (typeof value === 'string') {
-                // For strings, convert empty string to null.
-                dataForDb[key] = value === '' ? null : value;
-            } else {
-                // For other types (like gender which could be undefined), convert undefined to null.
-                dataForDb[key] = value === undefined ? null : value;
-            }
-        });
-
-        const sql = `UPDATE users SET ${setClauses} WHERE id = @id`;
-        
-        const stmt = db.prepare(sql);
-        
-        stmt.run({
-            ...dataForDb,
-            id: userId
-        });
-
-        // Re-fetch the user from the database to confirm the update and return fresh data.
-        return await findUserById(userId);
-
-    } catch (error) {
-        console.error("Database error in updateUserProfile:", error);
-        // Re-throw a specific error message to be displayed on the client side.
-        throw new Error("Failed to update profile in database.");
+    if (userIndex === -1) {
+        throw new Error("User not found.");
     }
+
+    // Update the user object
+    users[userIndex] = { ...users[userIndex], ...profileData };
+    
+    // Clean up empty string values to be stored as undefined or null
+    Object.keys(users[userIndex]).forEach(key => {
+        const k = key as keyof User;
+        if (users[userIndex][k] === '') {
+            // @ts-ignore
+            users[userIndex][k] = undefined;
+        }
+        if (k === 'age' && isNaN(Number(users[userIndex][k]))) {
+             users[userIndex][k] = undefined;
+        }
+    });
+
+
+    setToStorage(USERS_KEY, users);
+
+    const updatedUser = await findUserById(userId);
+    return Promise.resolve(updatedUser || null);
 }

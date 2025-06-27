@@ -1,7 +1,8 @@
 
 'use server';
 
-import { db } from '@/lib/db';
+import type { User } from './users';
+import { getUsers } from './users';
 
 export interface Leader {
   id: string;
@@ -37,6 +38,20 @@ export interface Review {
   updatedAt: string;
 }
 
+// Stored data structures
+interface StoredRating {
+  userId: string;
+  leaderId: string;
+  rating: number;
+  updatedAt: string;
+}
+interface StoredComment {
+  userId: string;
+  leaderId: string;
+  comment: string;
+  updatedAt: string;
+}
+
 const defaultLeaders: Leader[] = [
   {
     id: '1',
@@ -50,7 +65,7 @@ const defaultLeaders: Leader[] = [
     electionType: 'national',
     location: { state: 'Maharashtra' },
     rating: 4.5,
-    reviewCount: 120,
+    reviewCount: 1,
     previousElections: [
       { electionType: 'national', constituency: 'Mumbai South', status: 'winner', electionYear: '2019', partyName: 'Jan Vikas Party' }
     ],
@@ -68,7 +83,7 @@ const defaultLeaders: Leader[] = [
     electionType: 'national',
     location: { state: 'Karnataka' },
     rating: 4.2,
-    reviewCount: 95,
+    reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
   },
@@ -84,7 +99,7 @@ const defaultLeaders: Leader[] = [
     electionType: 'state',
     location: { state: 'Maharashtra' },
     rating: 3.8,
-    reviewCount: 75,
+    reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
   },
@@ -100,7 +115,7 @@ const defaultLeaders: Leader[] = [
     electionType: 'panchayat',
     location: { state: 'Tamil Nadu', district: 'Chennai' },
     rating: 4.8,
-    reviewCount: 210,
+    reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
   },
@@ -116,7 +131,7 @@ const defaultLeaders: Leader[] = [
     electionType: 'state',
     location: { state: 'Uttar Pradesh' },
     rating: 3.5,
-    reviewCount: 60,
+    reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
   },
@@ -132,7 +147,7 @@ const defaultLeaders: Leader[] = [
     electionType: 'panchayat',
     location: { state: 'Karnataka', district: 'Mysuru' },
     rating: 4.9,
-    reviewCount: 150,
+    reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
   },
@@ -148,7 +163,7 @@ const defaultLeaders: Leader[] = [
     electionType: 'national',
     location: { state: 'Delhi' },
     rating: 4.1,
-    reviewCount: 500,
+    reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
   },
@@ -164,211 +179,156 @@ const defaultLeaders: Leader[] = [
     electionType: 'state',
     location: { state: 'Tamil Nadu' },
     rating: 4.0,
-    reviewCount: 88,
+    reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
   }
 ];
 
-function seedDatabase() {
+// --- localStorage Helper Functions ---
+const isServer = typeof window === 'undefined';
+
+function getFromStorage<T>(key: string, defaultValue: T): T {
+  if (isServer) return defaultValue;
   try {
-    const countStmt = db.prepare('SELECT COUNT(*) as count FROM leaders');
-    const result = countStmt.get() as { count: number };
-
-    if (result.count === 0) {
-      const insertStmt = db.prepare(`
-        INSERT INTO leaders (
-          id, name, partyName, gender, age, photoUrl, constituency, nativeAddress,
-          electionType, state, district, rating, reviewCount, previousElections,
-          manifestoUrl, twitterUrl
-        ) VALUES (
-          @id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress,
-          @electionType, @state, @district, @rating, @reviewCount, @previousElections,
-          @manifestoUrl, @twitterUrl
-        )
-      `);
-
-      const insertMany = db.transaction((leaders: Leader[]) => {
-        for (const leader of leaders) {
-            const leaderForDb = {
-                ...leader,
-                state: leader.location.state,
-                district: leader.location.district,
-                previousElections: JSON.stringify(leader.previousElections || []),
-            };
-            insertStmt.run(leaderForDb);
-        }
-      });
-
-      insertMany(defaultLeaders);
-    }
+    const item = window.localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
   } catch (error) {
-    console.error("Database error during seeding:", error);
+    console.error(`Error reading from localStorage key “${key}”:`, error);
+    return defaultValue;
   }
 }
 
-seedDatabase();
+function setToStorage<T>(key: string, value: T) {
+  if (isServer) return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Error writing to localStorage key “${key}”:`, error);
+  }
+}
+
+// --- Data Keys ---
+const LEADERS_KEY = 'politirate_leaders';
+const RATINGS_KEY = 'politirate_ratings';
+const COMMENTS_KEY = 'politirate_comments';
+
+
+// --- Seeding Logic ---
+function seedStorage() {
+  if (isServer) return;
+  const leaders = getFromStorage<Leader[]>(LEADERS_KEY, []);
+  if (leaders.length === 0) {
+    setToStorage(LEADERS_KEY, defaultLeaders);
+    // You could pre-seed some ratings/comments here if desired
+    setToStorage(RATINGS_KEY, {});
+    setToStorage(COMMENTS_KEY, {});
+  }
+}
+seedStorage();
+
+
+// --- Public API ---
 
 export async function getLeaders(): Promise<Leader[]> {
-  try {
-    const stmt = db.prepare('SELECT * FROM leaders');
-    const rows = stmt.all() as any[];
-
-    return rows.map(row => ({
-      ...row,
-      location: {
-        state: row.state,
-        district: row.district,
-      },
-      previousElections: JSON.parse(row.previousElections || '[]'),
-    }));
-  } catch (error) {
-    console.error("Database error in getLeaders:", error);
-    return [];
-  }
+  return Promise.resolve(getFromStorage<Leader[]>(LEADERS_KEY, []));
 }
 
 export async function addLeader(leader: Omit<Leader, 'id' | 'rating' | 'reviewCount'>): Promise<void> {
-  const newLeader: Leader = {
-    ...leader,
-    id: new Date().getTime().toString(),
-    rating: 0,
-    reviewCount: 0,
-  };
-
-  try {
-    const stmt = db.prepare(`
-      INSERT INTO leaders (
-        id, name, partyName, gender, age, photoUrl, constituency, nativeAddress,
-        electionType, state, district, rating, reviewCount, previousElections,
-        manifestoUrl, twitterUrl
-      ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-      )
-    `);
-    
-    stmt.run(
-      newLeader.id,
-      newLeader.name,
-      newLeader.partyName,
-      newLeader.gender,
-      newLeader.age,
-      newLeader.photoUrl || '',
-      newLeader.constituency,
-      newLeader.nativeAddress,
-      newLeader.electionType,
-      newLeader.location.state || null,
-      newLeader.location.district || null,
-      newLeader.rating,
-      newLeader.reviewCount,
-      JSON.stringify(newLeader.previousElections || []),
-      newLeader.manifestoUrl || null,
-      newLeader.twitterUrl || null
-    );
-  } catch (error) {
-    console.error("Database error in addLeader:", error);
-  }
+    const allLeaders = await getLeaders();
+    const newLeader: Leader = {
+        ...leader,
+        id: new Date().getTime().toString(),
+        rating: 0,
+        reviewCount: 0,
+    };
+    allLeaders.push(newLeader);
+    setToStorage(LEADERS_KEY, allLeaders);
+    return Promise.resolve();
 }
 
 export async function getLeaderById(id: string): Promise<Leader | null> {
-    try {
-        const stmt = db.prepare('SELECT * FROM leaders WHERE id = ?');
-        const row = stmt.get(id) as any;
-
-        if (!row) return null;
-
-        return {
-            ...row,
-            location: {
-                state: row.state,
-                district: row.district,
-            },
-            previousElections: JSON.parse(row.previousElections || '[]'),
-        };
-    } catch (error) {
-        console.error("Database error in getLeaderById:", error);
-        return null;
-    }
+    const allLeaders = await getLeaders();
+    const leader = allLeaders.find(l => l.id === id) || null;
+    return Promise.resolve(leader);
 }
 
 export async function submitRatingAndComment(leaderId: string, userId: string, newRating: number, comment: string | null): Promise<Leader | null> {
-    try {
-        const leader = await getLeaderById(leaderId);
-        if (!leader) {
-            throw new Error("Leader not found");
+    const allLeaders = getFromStorage<Leader[]>(LEADERS_KEY, []);
+    const leaderIndex = allLeaders.findIndex(l => l.id === leaderId);
+    if (leaderIndex === -1) {
+        throw new Error("Leader not found");
+    }
+    
+    const leader = allLeaders[leaderIndex];
+
+    const allRatings = getFromStorage<Record<string, StoredRating>>(RATINGS_KEY, {});
+    const ratingKey = `${userId}_${leaderId}`;
+    const existingRating = allRatings[ratingKey];
+
+    const now = new Date().toISOString();
+
+    if (existingRating) {
+        // User is updating their rating
+        const oldRatingValue = existingRating.rating;
+        existingRating.rating = newRating;
+        existingRating.updatedAt = now;
+        
+        if (leader.reviewCount > 0) {
+            leader.rating = ((leader.rating * leader.reviewCount) - oldRatingValue + newRating) / leader.reviewCount;
+        } else {
+             leader.rating = newRating;
         }
 
-        const dbTransaction = db.transaction(() => {
-            // Handle Rating
-            const existingRatingStmt = db.prepare('SELECT rating FROM ratings WHERE userId = ? AND leaderId = ?');
-            const existingRatingResult = existingRatingStmt.get(userId, leaderId) as { rating: number } | undefined;
-            
-            let newAverageRating: number;
-            let newReviewCount: number;
-
-            if (existingRatingResult) {
-                const oldRating = existingRatingResult.rating;
-                
-                const updateRatingStmt = db.prepare('UPDATE ratings SET rating = ?, updatedAt = CURRENT_TIMESTAMP WHERE userId = ? AND leaderId = ?');
-                updateRatingStmt.run(newRating, userId, leaderId);
-
-                newReviewCount = leader.reviewCount;
-                if (newReviewCount > 0) {
-                     newAverageRating = ((leader.rating * newReviewCount) - oldRating + newRating) / newReviewCount;
-                } else {
-                    newAverageRating = newRating;
-                }
-            } else {
-                const insertRatingStmt = db.prepare('INSERT INTO ratings (userId, leaderId, rating) VALUES (?, ?, ?)');
-                insertRatingStmt.run(userId, leaderId, newRating);
-
-                newReviewCount = leader.reviewCount + 1;
-                newAverageRating = ((leader.rating * leader.reviewCount) + newRating) / newReviewCount;
-            }
-
-            const updateLeaderStmt = db.prepare('UPDATE leaders SET rating = ?, reviewCount = ? WHERE id = ?');
-            updateLeaderStmt.run(newAverageRating, newReviewCount, leaderId);
-
-            // Handle Comment
-            if (comment && comment.trim().length > 0) {
-                 const upsertCommentStmt = db.prepare(`
-                    INSERT INTO comments (userId, leaderId, comment) 
-                    VALUES (?, ?, ?)
-                    ON CONFLICT(userId, leaderId) DO UPDATE SET 
-                        comment = excluded.comment,
-                        updatedAt = CURRENT_TIMESTAMP;
-                `);
-                upsertCommentStmt.run(userId, leaderId, comment);
-            }
-        });
-
-        dbTransaction();
-
-        return await getLeaderById(leaderId);
-    } catch (error) {
-        console.error("Database error in submitRatingAndComment:", error);
-        return null;
+    } else {
+        // New rating from this user
+        allRatings[ratingKey] = { userId, leaderId, rating: newRating, updatedAt: now };
+        
+        const newReviewCount = leader.reviewCount + 1;
+        leader.rating = ((leader.rating * leader.reviewCount) + newRating) / newReviewCount;
+        leader.reviewCount = newReviewCount;
     }
+    
+    // Handle comment
+    if (comment && comment.trim().length > 0) {
+        const allComments = getFromStorage<Record<string, StoredComment>>(COMMENTS_KEY, {});
+        const commentKey = `${userId}_${leaderId}`;
+        allComments[commentKey] = { userId, leaderId, comment, updatedAt: now };
+        setToStorage(COMMENTS_KEY, allComments);
+    }
+    
+    // Save updated data
+    allLeaders[leaderIndex] = leader;
+    setToStorage(LEADERS_KEY, allLeaders);
+    setToStorage(RATINGS_KEY, allRatings);
+
+    return Promise.resolve(leader);
 }
 
 export async function getReviewsForLeader(leaderId: string): Promise<Review[]> {
-    try {
-        const stmt = db.prepare(`
-            SELECT
-                r.rating,
-                r.updatedAt,
-                u.name as userName,
-                c.comment
-            FROM ratings r
-            JOIN users u ON r.userId = u.id
-            LEFT JOIN comments c ON r.userId = c.userId AND r.leaderId = c.leaderId
-            WHERE r.leaderId = ?
-            ORDER BY r.updatedAt DESC
-        `);
-        const rows = stmt.all(leaderId) as any[];
-        return rows;
-    } catch (error) {
-        console.error("Database error in getReviewsForLeader:", error);
-        return [];
-    }
+    const allUsers = await getUsers();
+    const allRatings = getFromStorage<Record<string, StoredRating>>(RATINGS_KEY, {});
+    const allComments = getFromStorage<Record<string, StoredComment>>(COMMENTS_KEY, {});
+
+    const userMap = new Map<string, User>(allUsers.map(u => [u.id, u]));
+
+    const leaderRatings = Object.values(allRatings).filter(r => r.leaderId === leaderId);
+
+    const reviews: Review[] = leaderRatings.map(rating => {
+        const user = userMap.get(rating.userId);
+        const commentKey = `${rating.userId}_${leaderId}`;
+        const comment = allComments[commentKey]?.comment || null;
+
+        return {
+            userName: user?.name || 'Anonymous',
+            rating: rating.rating,
+            comment: comment,
+            updatedAt: rating.updatedAt,
+        };
+    });
+
+    // Sort by most recent first
+    reviews.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+    return Promise.resolve(reviews);
 }

@@ -177,7 +177,7 @@ function AddLeaderPage() {
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     {/* --- Row 1: Basic Info --- */}
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid md:grid-cols-3 gap-6">
                         <FormField
                             control={form.control}
                             name="name"
@@ -204,10 +204,6 @@ function AddLeaderPage() {
                                 </FormItem>
                             )}
                         />
-                    </div>
-
-                     {/* --- Row 2: Election & Location --- */}
-                    <div className="grid md:grid-cols-2 gap-6">
                          <FormField
                             control={form.control}
                             name="electionType"
@@ -232,7 +228,7 @@ function AddLeaderPage() {
                         />
                     </div>
 
-                    {/* --- Row 3: Personal & Location Details --- */}
+                    {/* --- Row 2: Location Details --- */}
                     <div className="grid md:grid-cols-3 gap-6">
                         <FormField
                             control={form.control}
@@ -283,7 +279,8 @@ function AddLeaderPage() {
                             )}
                         />
                     </div>
-
+                    
+                    {/* --- Row 3: Personal Details --- */}
                     <div className="grid md:grid-cols-3 gap-6">
                          {electionType === 'panchayat' && (
                             <FormField
@@ -359,119 +356,123 @@ function AddLeaderPage() {
                     </div>
 
                     
-                    {/* --- Row 4: Previous Elections --- */}
+                    {/* --- Previous Elections --- */}
                     <div className="space-y-4">
                       <div className="border-b pb-2">
                         <h3 className="text-lg font-medium">{t('addLeaderPage.previousElectionsTitle')}</h3>
                       </div>
                       <div className="space-y-4">
                         {fields.map((item, index) => (
-                          <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-2 p-4 border rounded-md relative">
-                            <FormField
-                              control={form.control}
-                              name={`previousElections.${index}.electionType`}
-                              render={({ field }) => (
-                                <FormItem className="col-span-12 md:col-span-2">
-                                  <FormLabel className="text-xs">{t('addLeaderPage.electionTypeLabel')}</FormLabel>
-                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder={t('addLeaderPage.selectElectionType')} />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="national">{t('filterDashboard.national')}</SelectItem>
-                                      <SelectItem value="state">{t('filterDashboard.state')}</SelectItem>
-                                      <SelectItem value="panchayat">{t('filterDashboard.panchayat')}</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                   <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                             <FormField
-                              control={form.control}
-                              name={`previousElections.${index}.state`}
-                              render={({ field }) => (
-                                <FormItem className="col-span-12 md:col-span-2">
-                                  <FormLabel className="text-xs">{t('addLeaderPage.stateLabel')}</FormLabel>
-                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder={t('addLeaderPage.selectState')} />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {indianStates.map(state => (
-                                          <SelectItem key={state} value={state}>{state}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                   <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                             <FormField
-                              control={form.control}
-                              name={`previousElections.${index}.constituency`}
-                              render={({ field }) => (
-                                <FormItem className="col-span-12 md:col-span-3">
-                                  <FormLabel className="text-xs">{t('addLeaderPage.previousConstituencyLabel')}</FormLabel>
-                                  <Input {...field} placeholder="e.g., Pune Assembly" />
-                                   <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name={`previousElections.${index}.status`}
-                              render={({ field }) => (
-                                <FormItem className="col-span-6 md:col-span-1">
-                                  <FormLabel className="text-xs">{t('addLeaderPage.statusLabel')}</FormLabel>
-                                   <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                      <FormControl>
-                                        <SelectTrigger><SelectValue/></SelectTrigger>
-                                      </FormControl>
-                                      <SelectContent>
-                                        <SelectItem value="winner">{t('addLeaderPage.winnerStatus')}</SelectItem>
-                                        <SelectItem value="loser">{t('addLeaderPage.loserStatus')}</SelectItem>
-                                      </SelectContent>
-                                  </Select>
-                                   <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name={`previousElections.${index}.electionYear`}
-                              render={({ field }) => (
-                                <FormItem className="col-span-6 md:col-span-1">
-                                  <FormLabel className="text-xs">{t('addLeaderPage.electionYearLabel')}</FormLabel>
-                                  <Input {...field} placeholder="YYYY" />
-                                   <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name={`previousElections.${index}.partyName`}
-                              render={({ field }) => (
-                                <FormItem className="col-span-10 md:col-span-1">
-                                  <FormLabel className="text-xs">{t('addLeaderPage.partyNameLabel')}</FormLabel>
-                                  <Input {...field} placeholder="e.g., ABC Party" />
-                                   <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                             <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="col-span-2 md:col-span-1 self-end"
-                                onClick={() => remove(index)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                          <div key={item.id} className="p-4 border rounded-md space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-2 items-end">
+                                <FormField
+                                control={form.control}
+                                name={`previousElections.${index}.electionType`}
+                                render={({ field }) => (
+                                    <FormItem className="col-span-12 md:col-span-2">
+                                    <FormLabel className="text-xs">{t('addLeaderPage.electionTypeLabel')}</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('addLeaderPage.selectElectionType')} />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                        <SelectItem value="national">{t('filterDashboard.national')}</SelectItem>
+                                        <SelectItem value="state">{t('filterDashboard.state')}</SelectItem>
+                                        <SelectItem value="panchayat">{t('filterDashboard.panchayat')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                <FormField
+                                control={form.control}
+                                name={`previousElections.${index}.state`}
+                                render={({ field }) => (
+                                    <FormItem className="col-span-12 md:col-span-2">
+                                    <FormLabel className="text-xs">{t('addLeaderPage.stateLabel')}</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('addLeaderPage.selectState')} />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                        {indianStates.map(state => (
+                                            <SelectItem key={state} value={state}>{state}</SelectItem>
+                                        ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                <FormField
+                                control={form.control}
+                                name={`previousElections.${index}.constituency`}
+                                render={({ field }) => (
+                                    <FormItem className="col-span-12 md:col-span-4">
+                                    <FormLabel className="text-xs">{t('addLeaderPage.previousConstituencyLabel')}</FormLabel>
+                                    <Input {...field} placeholder="e.g., Pune Assembly" />
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                <FormField
+                                control={form.control}
+                                name={`previousElections.${index}.partyName`}
+                                render={({ field }) => (
+                                    <FormItem className="col-span-12 md:col-span-3">
+                                    <FormLabel className="text-xs">{t('addLeaderPage.partyNameLabel')}</FormLabel>
+                                    <Input {...field} placeholder="e.g., ABC Party" />
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="col-span-12 md:col-span-1"
+                                    onClick={() => remove(index)}
+                                >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-2">
+                                <FormField
+                                control={form.control}
+                                name={`previousElections.${index}.status`}
+                                render={({ field }) => (
+                                    <FormItem className="col-span-6 md:col-span-2">
+                                    <FormLabel className="text-xs">{t('addLeaderPage.statusLabel')}</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue/></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="winner">{t('addLeaderPage.winnerStatus')}</SelectItem>
+                                            <SelectItem value="loser">{t('addLeaderPage.loserStatus')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                <FormField
+                                control={form.control}
+                                name={`previousElections.${index}.electionYear`}
+                                render={({ field }) => (
+                                    <FormItem className="col-span-6 md:col-span-2">
+                                    <FormLabel className="text-xs">{t('addLeaderPage.electionYearLabel')}</FormLabel>
+                                    <Input {...field} placeholder="YYYY" />
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            </div>
                           </div>
                         ))}
                         <Button

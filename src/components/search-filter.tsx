@@ -46,6 +46,19 @@ export default function SearchFilter({ onSearch }: SearchFilterProps) {
     <div className="p-6 bg-secondary/50 rounded-lg mb-8 border border-border">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
         <div className="grid gap-2">
+          <Label htmlFor="candidate-name" className="font-semibold">
+            {t('searchFilter.candidateNameLabel')}
+          </Label>
+          <Input
+            id="candidate-name"
+            placeholder={t('searchFilter.candidateNamePlaceholder')}
+            value={candidateName}
+            onChange={(e) => setCandidateName(e.target.value)}
+            className="bg-background"
+          />
+        </div>
+
+        <div className="grid gap-2">
           <Label htmlFor="election-type" className="font-semibold">
             {t('searchFilter.electionTypeLabel')}
           </Label>
@@ -70,19 +83,6 @@ export default function SearchFilter({ onSearch }: SearchFilterProps) {
             placeholder={getPlaceholder()}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-background"
-          />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="candidate-name" className="font-semibold">
-            {t('searchFilter.candidateNameLabel')}
-          </Label>
-          <Input
-            id="candidate-name"
-            placeholder={t('searchFilter.candidateNamePlaceholder')}
-            value={candidateName}
-            onChange={(e) => setCandidateName(e.target.value)}
             className="bg-background"
           />
         </div>

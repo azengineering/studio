@@ -37,7 +37,7 @@ export default function LeaderCard({ leader }: LeaderCardProps) {
                 alt={`Portrait of ${leader.name}`}
                 width={64}
                 height={64}
-                className="rounded-lg border-2 border-primary/50 object-cover"
+                className="rounded-full border-2 border-primary/50 object-cover"
                 data-ai-hint={`${leader.gender} indian politician`}
             />
             <div className="flex-1 space-y-2">
@@ -57,20 +57,34 @@ export default function LeaderCard({ leader }: LeaderCardProps) {
         </div>
 
         {/* Row 2 */}
-        <div className="flex flex-wrap items-center text-sm text-muted-foreground gap-x-2.5 pt-2">
-            <span>{leader.partyName}</span>
-            <span className="text-xs text-border">•</span>
-            <span className="capitalize">{t(`filterDashboard.${leader.electionType}`)}</span>
-            <span className="text-xs text-border">•</span>
-            <span>{leader.location.state}</span>
-            <span className="text-xs text-border">•</span>
-            <span className="truncate">{leader.constituency}</span>
+        <div className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1 pt-2 text-sm">
+            <span className="font-semibold text-muted-foreground">Party</span>
+            <span className="text-foreground">{leader.partyName}</span>
+
+            <span className="font-semibold text-muted-foreground">Type</span>
+            <span className="text-foreground capitalize">{t(`filterDashboard.${leader.electionType}`)}</span>
+            
+            <span className="font-semibold text-muted-foreground">State</span>
+            <span className="text-foreground">{leader.location.state}</span>
+
+            <span className="font-semibold text-muted-foreground">Constituency</span>
+            <span className="text-foreground truncate">{leader.constituency}</span>
         </div>
 
       </CardContent>
 
       <CardFooter className="p-4 bg-secondary/50 border-t flex-col items-stretch gap-3">
         {/* Row 3 */}
+        {leader.manifestoUrl && (
+            <a
+                href={leader.manifestoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm w-full text-left font-medium text-primary hover:underline"
+            >
+                View Manifesto
+            </a>
+        )}
         <AlertDialog>
             <AlertDialogTrigger asChild>
                 <button

@@ -1,8 +1,11 @@
 
 'use server';
 
+import { db } from '@/lib/db';
+import type { RunResult } from 'better-sqlite3';
+
 // For a real app, passwords should be securely hashed.
-// For this client-side prototype, we'll store them as-is.
+// For this prototype, we'll store them as-is.
 export interface User {
   id: string;
   email: string;
@@ -16,59 +19,24 @@ export interface User {
   panchayat?: string;
 }
 
-// --- localStorage Helper Functions ---
-const isServer = typeof window === 'undefined';
-
-function getFromStorage<T>(key: string, defaultValue: T): T {
-  if (isServer) return defaultValue;
-  try {
-    const item = window.localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
-  } catch (error) {
-    console.error(`Error reading from localStorage key “${key}”:`, error);
-    return defaultValue;
-  }
-}
-
-function setToStorage<T>(key: string, value: T) {
-  if (isServer) return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.error(`Error writing to localStorage key “${key}”:`, error);
-  }
-}
-
-// --- Data Key ---
-const USERS_KEY = 'politirate_users';
-
-// --- Seeding Logic ---
-function seedUsers() {
-    if (isServer) return;
-    const users = getFromStorage<User[]>(USERS_KEY, []);
-    if (users.length === 0) {
-        // You can add default users here if needed, for example:
-        // const defaultUsers = [ ... ];
-        // setToStorage(USERS_KEY, defaultUsers);
-    }
-}
-seedUsers();
-
-// --- Public API ---
-
 export async function getUsers(): Promise<User[]> {
-    return Promise.resolve(getFromStorage<User[]>(USERS_KEY, []));
+    const stmt = db.prepare('SELECT * FROM users');
+    const users = stmt.all() as User[];
+    return Promise.resolve(users.map(u => {
+        delete u.password;
+        return u;
+    }));
 }
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
-  const users = await getUsers();
-  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
+  const user = stmt.get(email.toLowerCase()) as User | undefined;
   return Promise.resolve(user);
 }
 
 export async function findUserById(id: string): Promise<User | undefined> {
-  const users = await getUsers();
-  const user = users.find(u => u.id === id);
+  const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
+  const user = stmt.get(id) as User | undefined;
   if (user) {
     delete user.password;
   }
@@ -76,51 +44,70 @@ export async function findUserById(id: string): Promise<User | undefined> {
 }
 
 export async function addUser(user: Omit<User, 'id' | 'name'>): Promise<User | null> {
-  const users = await getUsers();
   const name = user.email.split('@')[0];
   const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
-
+  const id = new Date().getTime().toString();
+  
   const newUser: User = {
     ...user,
-    id: new Date().getTime().toString(),
+    id,
     name: formattedName
   };
 
-  users.push(newUser);
-  setToStorage(USERS_KEY, users);
-  
-  const createdUser: Partial<User> = { ...newUser };
-  delete createdUser.password;
+  const stmt = db.prepare(`
+    INSERT INTO users (id, email, password, name)
+    VALUES (@id, @email, @password, @name)
+  `);
 
-  return Promise.resolve(createdUser as User);
+  try {
+    stmt.run({
+        id: newUser.id,
+        email: newUser.email.toLowerCase(),
+        password: newUser.password,
+        name: newUser.name
+    });
+    
+    const createdUser: Partial<User> = { ...newUser };
+    delete createdUser.password;
+    return Promise.resolve(createdUser as User);
+
+  } catch (error) {
+    console.error("Error adding user:", error);
+    return Promise.resolve(null);
+  }
 }
 
 export async function updateUserProfile(userId: string, profileData: Partial<User>): Promise<User | null> {
-    const users = await getUsers();
-    const userIndex = users.findIndex(u => u.id === userId);
+    const dataToUpdate = { ...profileData };
+    delete dataToUpdate.id; // Cannot update ID
+    delete dataToUpdate.email; // Cannot update email
+    delete dataToUpdate.password; // Password updated elsewhere
 
-    if (userIndex === -1) {
-        throw new Error("User not found.");
-    }
-
-    // Update the user object
-    users[userIndex] = { ...users[userIndex], ...profileData };
+    const setClauses = Object.keys(dataToUpdate).map(key => `${key} = @${key}`).join(', ');
     
-    // Clean up empty string values to be stored as undefined or null
-    Object.keys(users[userIndex]).forEach(key => {
-        const k = key as keyof User;
-        if (users[userIndex][k] === '') {
-            // @ts-ignore
-            users[userIndex][k] = undefined;
+    if (!setClauses) {
+        // Nothing to update
+        return findUserById(userId).then(user => user || null);
+    }
+    
+    const stmt = db.prepare(`UPDATE users SET ${setClauses} WHERE id = @id`);
+
+    try {
+        const params: { [key: string]: any } = { id: userId };
+        for (const [key, value] of Object.entries(dataToUpdate)) {
+            // Handle empty strings from form to be stored as null
+            params[key] = value === '' ? null : value;
+             if (key === 'age' && isNaN(Number(value))) {
+                 params[key] = null;
+             }
         }
-        if (k === 'age' && isNaN(Number(users[userIndex][k]))) {
-             users[userIndex][k] = undefined;
-        }
-    });
+        
+        stmt.run(params);
 
-
-    setToStorage(USERS_KEY, users);
-
-    const updatedUser = await findUserById(userId);
-    return Promise.resolve(updatedUser || null);
+        const updatedUser = await findUserById(userId);
+        return Promise.resolve(updatedUser || null);
+    } catch (error) {
+        console.error("Error updating user profile:", error);
+        return Promise.resolve(null);
+    }
 }

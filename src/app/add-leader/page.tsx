@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import withAuth from '@/components/with-auth';
@@ -96,149 +95,152 @@ function AddLeaderPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <main className="flex-grow container mx-auto px-4 py-12 flex justify-center items-start">
-         <Card className="w-full max-w-2xl shadow-lg border-border/20">
-             <CardHeader>
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary/10 rounded-full">
+      <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <div className="max-w-4xl mx-auto">
+            <div className="flex items-center gap-4 mb-2">
+                <div className="p-3 bg-primary/10 rounded-full">
                     <UserPlus className="w-8 h-8 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-3xl font-headline">{t('addLeaderPage.title')}</CardTitle>
-                    <CardDescription>{t('addLeaderPage.description')}</CardDescription>
-                  </div>
                 </div>
-            </CardHeader>
-            <CardContent>
+                <div>
+                    <h1 className="font-headline text-3xl font-extrabold text-primary">{t('addLeaderPage.title')}</h1>
+                    <p className="mt-1 text-muted-foreground">{t('addLeaderPage.description')}</p>
+                </div>
+            </div>
+            
+            <div className="mt-8 p-8 bg-card border rounded-lg shadow-sm">
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('addLeaderPage.nameLabel')}</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder={t('addLeaderPage.namePlaceholder')} {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="constituency"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('addLeaderPage.constituencyLabel')}</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder={t('addLeaderPage.constituencyPlaceholder')} {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
                         <div className="grid md:grid-cols-2 gap-6">
                             <FormField
                                 control={form.control}
-                                name="electionType"
+                                name="name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>{t('addLeaderPage.electionTypeLabel')}</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('addLeaderPage.selectElectionType')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="national">{t('filterDashboard.national')}</SelectItem>
-                                                <SelectItem value="state">{t('filterDashboard.state')}</SelectItem>
-                                                <SelectItem value="panchayat">{t('filterDashboard.panchayat')}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        <FormLabel>{t('addLeaderPage.nameLabel')}</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder={t('addLeaderPage.namePlaceholder')} {...field} />
+                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
                             <FormField
-                              control={form.control}
-                              name="imageUrl"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>{t('addLeaderPage.photoLabel')}</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder={t('addLeaderPage.photoPlaceholder')} {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
+                                control={form.control}
+                                name="constituency"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('addLeaderPage.constituencyLabel')}</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder={t('addLeaderPage.constituencyPlaceholder')} {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
                             />
                         </div>
+                        
+                        <FormField
+                            control={form.control}
+                            name="electionType"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('addLeaderPage.electionTypeLabel')}</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('addLeaderPage.selectElectionType')} />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="national">{t('filterDashboard.national')}</SelectItem>
+                                            <SelectItem value="state">{t('filterDashboard.state')}</SelectItem>
+                                            <SelectItem value="panchayat">{t('filterDashboard.panchayat')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        
+                        <div className="grid md:grid-cols-2 gap-6">
+                            {(electionType === 'state' || electionType === 'panchayat') && (
+                                 <FormField
+                                    control={form.control}
+                                    name="state"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('addLeaderPage.stateLabel')}</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('addLeaderPage.selectState')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {indianStates.map(state => (
+                                                        <SelectItem key={state} value={state}>{state}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
 
-                        {(electionType === 'state' || electionType === 'panchayat') && (
-                             <FormField
-                                control={form.control}
-                                name="state"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('addLeaderPage.stateLabel')}</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('addLeaderPage.selectState')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {indianStates.map(state => (
-                                                    <SelectItem key={state} value={state}>{state}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        )}
-
-                        {electionType === 'panchayat' && (
-                            <FormField
-                                control={form.control}
-                                name="district"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('addLeaderPage.districtLabel')}</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedState}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('addLeaderPage.selectDistrict')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {selectedState && districtsByState[selectedState] ? (
-                                                    districtsByState[selectedState].map(district => (
-                                                        <SelectItem key={district} value={district}>{district}</SelectItem>
-                                                    ))
-                                                ) : (
-                                                    <SelectItem value="none" disabled>
-                                                        {selectedState ? t('filterDashboard.noDistricts') : t('filterDashboard.selectStateFirst')}
-                                                    </SelectItem>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        )}
+                            {electionType === 'panchayat' && (
+                                <FormField
+                                    control={form.control}
+                                    name="district"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('addLeaderPage.districtLabel')}</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedState}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('addLeaderPage.selectDistrict')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {selectedState && districtsByState[selectedState] ? (
+                                                        districtsByState[selectedState].map(district => (
+                                                            <SelectItem key={district} value={district}>{district}</SelectItem>
+                                                        ))
+                                                    ) : (
+                                                        <SelectItem value="none" disabled>
+                                                            {selectedState ? t('filterDashboard.noDistricts') : t('filterDashboard.selectStateFirst')}
+                                                        </SelectItem>
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+                        </div>
+                        
+                        <FormField
+                            control={form.control}
+                            name="imageUrl"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('addLeaderPage.photoLabel')}</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder={t('addLeaderPage.photoPlaceholder')} {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
                         <Button type="submit" className="w-full py-6 text-lg">
                            {t('addLeaderPage.submitButton')}
                         </Button>
                     </form>
                 </Form>
-            </CardContent>
-         </Card>
+            </div>
+        </div>
       </main>
       <Footer />
     </div>

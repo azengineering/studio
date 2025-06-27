@@ -58,22 +58,22 @@ export default function LeaderCard({ leader }: LeaderCardProps) {
             </div>
         </div>
 
-        <div className="space-y-3 text-sm border-t pt-4 flex-grow">
-            <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">Party Name</span>
-                <p className="font-medium text-right">{leader.partyName}</p>
+        <div className="space-y-2 text-sm border-t pt-4 flex-grow">
+            <div className="flex items-baseline gap-2">
+                <span className="text-muted-foreground">Party Name:</span>
+                <p className="font-semibold text-foreground">{leader.partyName}</p>
             </div>
-             <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">Election Type</span>
-                <p className="font-medium capitalize text-right">{t(`filterDashboard.${leader.electionType}`)}</p>
+             <div className="flex items-baseline gap-2">
+                <span className="text-muted-foreground">Election Type:</span>
+                <p className="font-semibold capitalize text-foreground">{t(`filterDashboard.${leader.electionType}`)}</p>
             </div>
-            <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">State</span>
-                <p className="font-medium text-right">{leader.location.state}</p>
+            <div className="flex items-baseline gap-2">
+                <span className="text-muted-foreground">State:</span>
+                <p className="font-semibold text-foreground">{leader.location.state}</p>
             </div>
-            <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">Constituency</span>
-                <p className="font-medium text-right">{leader.constituency}</p>
+            <div className="flex items-baseline gap-2">
+                <span className="text-muted-foreground">Constituency:</span>
+                <p className="font-semibold text-foreground">{leader.constituency}</p>
             </div>
         </div>
 

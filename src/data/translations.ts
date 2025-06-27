@@ -1,4 +1,5 @@
 
+
 const translations = {
   en: {
     header: {
@@ -175,6 +176,7 @@ const translations = {
     auth: {
       requiredTitle: "Login Required",
       requiredDescription: "You need to be logged in to add a new leader. Please log in to continue.",
+      rateLoginRequired: "You must be logged in to rate a leader.",
       cancel: "Cancel",
       login: "Login"
     },
@@ -199,6 +201,18 @@ const translations = {
       successTitle: 'Profile Updated',
       successDescription: 'Your information has been saved successfully.',
       errorTitle: 'Update Failed',
+    },
+    ratingDialog: {
+      title: "Rate {leaderName}",
+      description: "Your feedback is valuable. Select a rating from 1 to 5 stars.",
+      errorTitle: "Rating Required",
+      errorDescription: "Please select a star rating before submitting.",
+      successTitle: "Rating Submitted!",
+      successDescription: "You've successfully rated {leaderName}.",
+      submitErrorTitle: "Submission Failed",
+      cancelButton: "Cancel",
+      submitButton: "Submit Rating",
+      submittingButton: "Submitting...",
     }
   },
   hi: {
@@ -376,6 +390,7 @@ const translations = {
     auth: {
       requiredTitle: "लॉगिन आवश्यक है",
       requiredDescription: "एक नया नेता जोड़ने के लिए आपको लॉग इन होना चाहिए। कृपया जारी रखने के लिए लॉग इन करें।",
+      rateLoginRequired: "किसी नेता को रेट करने के लिए आपको लॉग इन होना चाहिए।",
       cancel: "रद्द करें",
       login: "लॉग इन करें"
     },
@@ -400,6 +415,18 @@ const translations = {
       successTitle: 'प्रोफ़ाइल अपडेट की गई',
       successDescription: 'आपकी जानकारी सफलतापूर्वक सहेज ली गई है।',
       errorTitle: 'अपडेट विफल',
+    },
+     ratingDialog: {
+      title: "रेट करें {leaderName}",
+      description: "आपकी प्रतिक्रिया मूल्यवान है। 1 से 5 सितारों में से एक रेटिंग चुनें।",
+      errorTitle: "रेटिंग आवश्यक है",
+      errorDescription: "कृपया सबमिट करने से पहले एक स्टार रेटिंग चुनें।",
+      successTitle: "रेटिंग सबमिट की गई!",
+      successDescription: "आपने {leaderName} को सफलतापूर्वक रेट कर दिया है।",
+      submitErrorTitle: "सबमिशन विफल",
+      cancelButton: "रद्द करें",
+      submitButton: "रेटिंग सबमिट करें",
+      submittingButton: "सबमिट हो रहा है...",
     }
   },
 };

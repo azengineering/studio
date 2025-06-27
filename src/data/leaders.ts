@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/db';
@@ -260,4 +261,50 @@ export async function addLeader(leader: Omit<Leader, 'id' | 'rating' | 'reviewCo
   } catch (error) {
     console.error("Database error in addLeader:", error);
   }
+}
+
+export async function getLeaderById(id: string): Promise<Leader | null> {
+    try {
+        const stmt = db.prepare('SELECT * FROM leaders WHERE id = ?');
+        const row = stmt.get(id) as any;
+
+        if (!row) return null;
+
+        return {
+            ...row,
+            location: {
+                state: row.state,
+                district: row.district,
+            },
+            previousElections: JSON.parse(row.previousElections || '[]'),
+        };
+    } catch (error) {
+        console.error("Database error in getLeaderById:", error);
+        return null;
+    }
+}
+
+export async function updateLeaderRating(leaderId: string, newRating: number): Promise<Leader | null> {
+    try {
+        const leader = await getLeaderById(leaderId);
+        if (!leader) {
+            throw new Error("Leader not found");
+        }
+
+        const newReviewCount = leader.reviewCount + 1;
+        const newAverageRating = ((leader.rating * leader.reviewCount) + newRating) / newReviewCount;
+        
+        const stmt = db.prepare(`
+            UPDATE leaders
+            SET rating = ?, reviewCount = ?
+            WHERE id = ?
+        `);
+        
+        stmt.run(newAverageRating, newReviewCount, leaderId);
+        
+        return await getLeaderById(leaderId);
+    } catch (error) {
+        console.error("Database error in updateLeaderRating:", error);
+        return null;
+    }
 }

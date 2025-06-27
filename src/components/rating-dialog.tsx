@@ -1,0 +1,106 @@
+
+'use client';
+
+import { useState } from 'react';
+import { Star } from 'lucide-react';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import type { Leader } from '@/data/leaders';
+import { updateLeaderRating } from '@/data/leaders';
+import { useLanguage } from '@/context/language-context';
+import { cn } from '@/lib/utils';
+
+interface RatingDialogProps {
+  leader: Leader;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onRatingSuccess: (updatedLeader: Leader) => void;
+}
+
+export default function RatingDialog({ leader, open, onOpenChange, onRatingSuccess }: RatingDialogProps) {
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  const { t } = useLanguage();
+
+  const handleSubmit = async () => {
+    if (rating === 0) {
+      toast({
+        variant: 'destructive',
+        title: t('ratingDialog.errorTitle'),
+        description: t('ratingDialog.errorDescription'),
+      });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const updatedLeader = await updateLeaderRating(leader.id, rating);
+      if (updatedLeader) {
+        toast({
+          title: t('ratingDialog.successTitle'),
+          description: t('ratingDialog.successDescription').replace('{leaderName}', leader.name),
+        });
+        onRatingSuccess(updatedLeader);
+        onOpenChange(false);
+        setRating(0);
+      } else {
+        throw new Error('Failed to update leader rating.');
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t('ratingDialog.submitErrorTitle'),
+        description: error instanceof Error ? error.message : 'An unknown error occurred.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('ratingDialog.title').replace('{leaderName}', leader.name)}</DialogTitle>
+          <DialogDescription>
+            {t('ratingDialog.description')}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <div className="flex justify-center gap-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                className={cn(
+                  'h-10 w-10 cursor-pointer transition-colors',
+                  (hoverRating >= star || rating >= star)
+                    ? 'text-amber-400 fill-amber-400'
+                    : 'text-muted-foreground'
+                )}
+                onMouseEnter={() => setHoverRating(star)}
+                onMouseLeave={() => setHoverRating(0)}
+                onClick={() => setRating(star)}
+              />
+            ))}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t('ratingDialog.cancelButton')}</Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? t('ratingDialog.submittingButton') : t('ratingDialog.submitButton')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

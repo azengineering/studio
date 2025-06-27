@@ -1,8 +1,11 @@
 export interface Leader {
   id: string;
   name: string;
-  imageUrl: string;
+  partyName: string;
+  gender: 'male' | 'female' | 'other';
+  photoUrl: string;
   constituency: string;
+  nativeAddress: string;
   electionType: 'national' | 'state' | 'panchayat';
   location: {
     state?: string;
@@ -10,88 +13,130 @@ export interface Leader {
   };
   rating: number;
   reviewCount: number;
+  previousElections: Array<{
+    electionType: string;
+    constituency: string;
+    status: 'winner' | 'loser';
+    electionYear: string;
+    partyName: string;
+  }>;
+  manifestoUrl?: string;
 }
 
 export const initialLeaders: Leader[] = [
   {
     id: '1',
     name: 'Aarav Sharma',
-    imageUrl: 'https://placehold.co/400x400.png',
+    partyName: 'Jan Vikas Party',
+    gender: 'male',
+    photoUrl: 'https://placehold.co/400x400.png',
     constituency: 'Mumbai South',
+    nativeAddress: 'Mumbai, Maharashtra',
     electionType: 'national',
     location: { state: 'Maharashtra' },
     rating: 4.5,
     reviewCount: 120,
+    previousElections: [
+      { electionType: 'national', constituency: 'Mumbai South', status: 'winner', electionYear: '2019', partyName: 'Jan Vikas Party' }
+    ]
   },
   {
     id: '2',
     name: 'Priya Singh',
-    imageUrl: 'https://placehold.co/400x400.png',
+    partyName: 'Lok Satta Party',
+    gender: 'female',
+    photoUrl: 'https://placehold.co/400x400.png',
     constituency: 'Bangalore Central',
+    nativeAddress: 'Bengaluru, Karnataka',
     electionType: 'national',
     location: { state: 'Karnataka' },
     rating: 4.2,
     reviewCount: 95,
+    previousElections: []
   },
   {
     id: '3',
     name: 'Rohan Gupta',
-    imageUrl: 'https://placehold.co/400x400.png',
+    partyName: 'Swabhiman Party',
+    gender: 'male',
+    photoUrl: 'https://placehold.co/400x400.png',
     constituency: 'Pune Assembly',
+    nativeAddress: 'Pune, Maharashtra',
     electionType: 'state',
     location: { state: 'Maharashtra' },
     rating: 3.8,
     reviewCount: 75,
+    previousElections: []
   },
   {
     id: '4',
     name: 'Sneha Reddy',
-    imageUrl: 'https://placehold.co/400x400.png',
+    partyName: 'People\'s Front',
+    gender: 'female',
+    photoUrl: 'https://placehold.co/400x400.png',
     constituency: 'Chennai Corporation',
+    nativeAddress: 'Chennai, Tamil Nadu',
     electionType: 'panchayat',
     location: { state: 'Tamil Nadu', district: 'Chennai' },
     rating: 4.8,
     reviewCount: 210,
+    previousElections: []
   },
   {
     id: '5',
     name: 'Vikram Patel',
-    imageUrl: 'https://placehold.co/400x400.png',
+    partyName: 'Jan Vikas Party',
+    gender: 'male',
+    photoUrl: 'https://placehold.co/400x400.png',
     constituency: 'Lucknow East',
+    nativeAddress: 'Lucknow, Uttar Pradesh',
     electionType: 'state',
     location: { state: 'Uttar Pradesh' },
     rating: 3.5,
     reviewCount: 60,
+    previousElections: []
   },
   {
     id: '6',
     name: 'Anika Desai',
-    imageUrl: 'https://placehold.co/400x400.png',
+    partyName: 'Independent',
+    gender: 'female',
+    photoUrl: 'https://placehold.co/400x400.png',
     constituency: 'Mysuru Gram Panchayat',
+    nativeAddress: 'Mysuru, Karnataka',
     electionType: 'panchayat',
     location: { state: 'Karnataka', district: 'Mysuru' },
     rating: 4.9,
     reviewCount: 150,
+    previousElections: []
   },
    {
     id: '7',
     name: 'Ravi Kumar',
-    imageUrl: 'https://placehold.co/400x400.png',
+    partyName: 'Lok Satta Party',
+    gender: 'male',
+    photoUrl: 'https://placehold.co/400x400.png',
     constituency: 'New Delhi',
+    nativeAddress: 'New Delhi, Delhi',
     electionType: 'national',
     location: { state: 'Delhi' },
     rating: 4.1,
     reviewCount: 500,
+    previousElections: []
   },
   {
     id: '8',
     name: 'Meera Iyer',
-    imageUrl: 'https://placehold.co/400x400.png',
+    partyName: 'Swabhiman Party',
+    gender: 'female',
+    photoUrl: 'https://placehold.co/400x400.png',
     constituency: 'Madurai West',
+    nativeAddress: 'Madurai, Tamil Nadu',
     electionType: 'state',
     location: { state: 'Tamil Nadu' },
     rating: 4.0,
     reviewCount: 88,
+    previousElections: []
   }
 ];
 

@@ -12,21 +12,21 @@ interface LeaderCardProps {
 
 export default function LeaderCard({ leader }: LeaderCardProps) {
   const { t } = useLanguage();
-  const genderHint = ['Priya', 'Sneha', 'Anika', 'Meera'].includes(leader.name.split(' ')[0]) ? 'woman' : 'man';
-
+  
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
       <CardHeader className="flex-row gap-4 items-start p-4">
         <Image
-          src={leader.imageUrl}
+          src={leader.photoUrl}
           alt={`Portrait of ${leader.name}`}
           width={80}
           height={80}
           className="rounded-full border-2 border-primary/50 object-cover"
-          data-ai-hint={`${genderHint} indian politician`}
+          data-ai-hint={`${leader.gender} indian politician`}
         />
         <div className="flex-1">
           <CardTitle className="font-headline text-xl">{leader.name}</CardTitle>
+          <p className="text-sm text-muted-foreground">{leader.partyName}</p>
           <p className="text-sm text-muted-foreground">{leader.constituency}</p>
           <div className="flex items-center flex-wrap gap-2 mt-2">
             <Badge variant="secondary" className="capitalize">{t(`filterDashboard.${leader.electionType}`)}</Badge>

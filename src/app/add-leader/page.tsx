@@ -5,8 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from 'next/navigation';
-import { PlusCircle, Trash2, RotateCw, ChevronsUpDown } from 'lucide-react';
-import { useState } from 'react';
+import { PlusCircle, Trash2, RotateCw } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +18,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import withAuth from '@/components/with-auth';
@@ -42,12 +40,13 @@ const formSchema = z.object({
   previousElections: z.array(z.object({
     electionType: z.string().min(1, { message: "Required" }),
     constituency: z.string().min(1, { message: "Required" }),
+    state: z.string().optional(),
     status: z.enum(['winner', 'loser']),
     electionYear: z.string().min(4, { message: "Invalid year" }).max(4, { message: "Invalid year" }),
     partyName: z.string().min(1, { message: "Required" }),
   })).optional(),
-  photoUrl: z.string().url({ message: "Please enter a valid image URL." }).optional().or(z.literal('')),
-  manifestoUrl: z.string().url({ message: "Please enter a valid PDF URL." }).optional().or(z.literal('')),
+  photoUrl: z.any().optional(),
+  manifestoUrl: z.any().optional(),
   twitterUrl: z.string().url({ message: "Please enter a valid X/Twitter URL." }).optional().or(z.literal('')),
 }).refine(data => {
     if (data.electionType === 'state' || data.electionType === 'panchayat') {
@@ -72,7 +71,6 @@ function AddLeaderPage() {
   const { t } = useLanguage();
   const { toast } = useToast();
   const router = useRouter();
-  const [isPrevElectionsOpen, setIsPrevElectionsOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -85,8 +83,8 @@ function AddLeaderPage() {
       district: "",
       age: undefined,
       previousElections: [],
-      photoUrl: "",
-      manifestoUrl: "",
+      photoUrl: undefined,
+      manifestoUrl: undefined,
       twitterUrl: "",
     },
   });
@@ -104,6 +102,41 @@ function AddLeaderPage() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    const fileToDataUri = (file: File) => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            if (event.target?.result) {
+                resolve(event.target.result as string);
+            } else {
+                reject(new Error("Failed to read file."));
+            }
+        };
+        reader.onerror = (error) => reject(error);
+        reader.readAsDataURL(file);
+    });
+
+    let photoDataUrl = '';
+    if (values.photoUrl && values.photoUrl.length > 0) {
+        try {
+            photoDataUrl = await fileToDataUri(values.photoUrl[0]);
+        } catch (error) {
+            console.error("Error converting photo to data URI:", error);
+            toast({ variant: 'destructive', title: 'Error uploading photo.' });
+            return;
+        }
+    }
+
+    let manifestoDataUrl = '';
+    if (values.manifestoUrl && values.manifestoUrl.length > 0) {
+        try {
+            manifestoDataUrl = await fileToDataUri(values.manifestoUrl[0]);
+        } catch (error) {
+            console.error("Error converting manifesto to data URI:", error);
+            toast({ variant: 'destructive', title: 'Error uploading manifesto.' });
+            return;
+        }
+    }
+    
     await addLeader({
         name: values.name,
         partyName: values.partyName,
@@ -117,8 +150,8 @@ function AddLeaderPage() {
             district: values.district,
         },
         previousElections: values.previousElections || [],
-        photoUrl: values.photoUrl,
-        manifestoUrl: values.manifestoUrl,
+        photoUrl: photoDataUrl,
+        manifestoUrl: manifestoDataUrl,
         twitterUrl: values.twitterUrl,
     });
 
@@ -144,7 +177,7 @@ function AddLeaderPage() {
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     {/* --- Row 1: Basic Info --- */}
-                    <div className="grid md:grid-cols-3 gap-6">
+                    <div className="grid md:grid-cols-2 gap-6">
                         <FormField
                             control={form.control}
                             name="name"
@@ -171,7 +204,11 @@ function AddLeaderPage() {
                                 </FormItem>
                             )}
                         />
-                        <FormField
+                    </div>
+
+                     {/* --- Row 2: Election & Location --- */}
+                    <div className="grid md:grid-cols-3 gap-6">
+                         <FormField
                             control={form.control}
                             name="electionType"
                             render={({ field }) => (
@@ -193,11 +230,37 @@ function AddLeaderPage() {
                                 </FormItem>
                             )}
                         />
+                         <FormField
+                            control={form.control}
+                            name="constituency"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('addLeaderPage.constituencyLabel')}</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder={t('addLeaderPage.constituencyPlaceholder')} {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="nativeAddress"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('addLeaderPage.nativeAddressLabel')}</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder={t('addLeaderPage.nativeAddressPlaceholder')} {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
 
-                    {/* --- Row 2: Location Details --- */}
+                    {/* --- Row 3: Personal & Location Details --- */}
                     <div className="grid md:grid-cols-3 gap-6">
-                       <FormField
+                        <FormField
                             control={form.control}
                             name="state"
                             render={({ field }) => (
@@ -219,37 +282,7 @@ function AddLeaderPage() {
                                 </FormItem>
                             )}
                         />
-                        <FormField
-                            control={form.control}
-                            name="constituency"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('addLeaderPage.constituencyLabel')}</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder={t('addLeaderPage.constituencyPlaceholder')} {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="nativeAddress"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('addLeaderPage.nativeAddressLabel')}</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder={t('addLeaderPage.nativeAddressPlaceholder')} {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-
-                    {/* --- Row 3: Personal Details --- */}
-                    <div className="grid md:grid-cols-3 gap-6">
-                        {electionType === 'panchayat' && (
+                         {electionType === 'panchayat' && (
                             <FormField
                                 control={form.control}
                                 name="district"
@@ -279,7 +312,7 @@ function AddLeaderPage() {
                                 )}
                             />
                         )}
-                         <FormField
+                        <FormField
                             control={form.control}
                             name="gender"
                             render={({ field }) => (
@@ -323,28 +356,18 @@ function AddLeaderPage() {
                     </div>
                     
                     {/* --- Row 4: Previous Elections --- */}
-                    <Collapsible
-                      open={isPrevElectionsOpen}
-                      onOpenChange={setIsPrevElectionsOpen}
-                      className="space-y-4"
-                    >
-                      <div className="flex items-center justify-between border-b pb-2">
+                    <div className="space-y-4">
+                      <div className="border-b pb-2">
                         <h3 className="text-lg font-medium">{t('addLeaderPage.previousElectionsTitle')}</h3>
-                        <CollapsibleTrigger asChild>
-                           <Button variant="ghost" size="sm" className="w-9 p-0">
-                            <ChevronsUpDown className="h-4 w-4" />
-                            <span className="sr-only">Toggle</span>
-                          </Button>
-                        </CollapsibleTrigger>
                       </div>
-                      <CollapsibleContent className="space-y-4">
+                      <div className="space-y-4">
                         {fields.map((item, index) => (
                           <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-2 p-4 border rounded-md relative">
                             <FormField
                               control={form.control}
                               name={`previousElections.${index}.electionType`}
                               render={({ field }) => (
-                                <FormItem className="col-span-12 md:col-span-3">
+                                <FormItem className="col-span-12 md:col-span-2">
                                   <FormLabel className="text-xs">{t('addLeaderPage.electionTypeLabel')}</FormLabel>
                                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
@@ -356,6 +379,28 @@ function AddLeaderPage() {
                                       <SelectItem value="national">{t('filterDashboard.national')}</SelectItem>
                                       <SelectItem value="state">{t('filterDashboard.state')}</SelectItem>
                                       <SelectItem value="panchayat">{t('filterDashboard.panchayat')}</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                   <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                             <FormField
+                              control={form.control}
+                              name={`previousElections.${index}.state`}
+                              render={({ field }) => (
+                                <FormItem className="col-span-12 md:col-span-2">
+                                  <FormLabel className="text-xs">{t('addLeaderPage.stateLabel')}</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder={t('addLeaderPage.selectState')} />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {indianStates.map(state => (
+                                          <SelectItem key={state} value={state}>{state}</SelectItem>
+                                      ))}
                                     </SelectContent>
                                   </Select>
                                    <FormMessage />
@@ -377,7 +422,7 @@ function AddLeaderPage() {
                               control={form.control}
                               name={`previousElections.${index}.status`}
                               render={({ field }) => (
-                                <FormItem className="col-span-6 md:col-span-2">
+                                <FormItem className="col-span-6 md:col-span-1">
                                   <FormLabel className="text-xs">{t('addLeaderPage.statusLabel')}</FormLabel>
                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                                       <FormControl>
@@ -407,7 +452,7 @@ function AddLeaderPage() {
                               control={form.control}
                               name={`previousElections.${index}.partyName`}
                               render={({ field }) => (
-                                <FormItem className="col-span-10 md:col-span-2">
+                                <FormItem className="col-span-10 md:col-span-1">
                                   <FormLabel className="text-xs">{t('addLeaderPage.partyNameLabel')}</FormLabel>
                                   <Input {...field} placeholder="e.g., ABC Party" />
                                    <FormMessage />
@@ -429,24 +474,29 @@ function AddLeaderPage() {
                           type="button"
                           size="sm"
                           className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                          onClick={() => append({ electionType: '', constituency: '', status: 'winner', electionYear: '', partyName: '' })}
+                          onClick={() => append({ electionType: '', state: '', constituency: '', status: 'winner', electionYear: '', partyName: '' })}
                         >
                           <PlusCircle className="mr-2 h-4 w-4" />
-                          {t('addLeaderPage.addMoreButton')}
+                          {fields.length === 0 ? t('addLeaderPage.addRecordsButton') : t('addLeaderPage.addMoreButton')}
                         </Button>
-                      </CollapsibleContent>
-                    </Collapsible>
+                      </div>
+                    </div>
 
                     {/* --- Row 5: Files --- */}
                     <div className="grid md:grid-cols-3 gap-6">
                         <FormField
                             control={form.control}
                             name="photoUrl"
-                            render={({ field }) => (
+                            render={({ field: { onChange, value, ...rest } }) => (
                                 <FormItem>
                                     <FormLabel>{t('addLeaderPage.photoUrlLabel')}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder={t('addLeaderPage.photoUrlPlaceholder')} {...field} />
+                                        <Input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => onChange(e.target.files)}
+                                            {...rest}
+                                         />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -455,11 +505,16 @@ function AddLeaderPage() {
                         <FormField
                             control={form.control}
                             name="manifestoUrl"
-                            render={({ field }) => (
+                            render={({ field: { onChange, value, ...rest } }) => (
                                 <FormItem>
                                     <FormLabel>{t('addLeaderPage.manifestoUrlLabel')}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder={t('addLeaderPage.manifestoUrlPlaceholder')} {...field} />
+                                        <Input
+                                            type="file"
+                                            accept="application/pdf"
+                                            onChange={(e) => onChange(e.target.files)}
+                                            {...rest}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

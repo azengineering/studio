@@ -146,9 +146,9 @@ const translations = {
       selectState: 'Select a state',
       districtLabel: 'District',
       selectDistrict: 'Select a district',
-      photoUrlLabel: "Candidate's Photo URL",
+      photoUrlLabel: "Candidate's Photo",
       photoUrlPlaceholder: 'https://example.com/image.png',
-      manifestoUrlLabel: 'Manifesto/Brochure URL (PDF)',
+      manifestoUrlLabel: 'Manifesto/Brochure (PDF)',
       manifestoUrlPlaceholder: 'https://example.com/manifesto.pdf',
       twitterUrlLabel: "Candidate's X/Twitter URL",
       twitterUrlPlaceholder: 'https://x.com/username',
@@ -162,6 +162,7 @@ const translations = {
       loserStatus: 'Loser',
       electionYearLabel: 'Election Year',
       addMoreButton: 'Add More',
+      addRecordsButton: 'Add Records',
       removeButton: 'Remove'
     },
     auth: {
@@ -317,9 +318,9 @@ const translations = {
       selectState: 'एक राज्य चुनें',
       districtLabel: 'जिला',
       selectDistrict: 'एक जिला चुनें',
-      photoUrlLabel: 'उम्मीदवार का फोटो यूआरएल',
+      photoUrlLabel: 'उम्मीदवार का फोटो',
       photoUrlPlaceholder: 'https://example.com/image.png',
-      manifestoUrlLabel: 'घोषणापत्र/विवरणिका यूआरएल (पीडीएफ)',
+      manifestoUrlLabel: 'घोषणापत्र/विवरणिका (पीडीएफ)',
       manifestoUrlPlaceholder: 'https://example.com/manifesto.pdf',
       twitterUrlLabel: 'उम्मीदवार का एक्स/ट्विटर यूआरएल',
       twitterUrlPlaceholder: 'https://x.com/username',
@@ -333,6 +334,7 @@ const translations = {
       loserStatus: 'हारने वाला',
       electionYearLabel: 'चुनाव वर्ष',
       addMoreButton: 'और जोड़ें',
+      addRecordsButton: 'रिकॉर्ड जोड़ें',
       removeButton: 'हटाएं'
     },
     auth: {

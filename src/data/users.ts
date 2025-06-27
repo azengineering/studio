@@ -68,47 +68,39 @@ export async function addUser(user: Omit<User, 'id' | 'name'>): Promise<User | n
 
 export async function updateUserProfile(userId: string, profileData: Partial<User>): Promise<User | null> {
     try {
-        // Fetch the current user data to ensure we have a complete object to work with.
-        const currentUser = await findUserById(userId);
-        if (!currentUser) {
-            // This case should rarely happen if the user is authenticated.
-            throw new Error(`User with ID ${userId} not found for update.`);
-        }
+        const fieldsToUpdate = Object.keys(profileData);
 
-        // Merge the updates from the form onto the current user data.
-        // This ensures that any fields not present in the form are not accidentally cleared.
-        const dataToSave = {
-            ...currentUser,
-            ...profileData,
-        };
+        if (fieldsToUpdate.length === 0) {
+            return await findUserById(userId); // Nothing to update
+        }
         
-        const sql = `
-            UPDATE users SET
-                name = @name,
-                gender = @gender,
-                age = @age,
-                state = @state,
-                mpConstituency = @mpConstituency,
-                mlaConstituency = @mlaConstituency,
-                panchayat = @panchayat
-            WHERE
-                id = @id
-        `;
+        const setClauses = fieldsToUpdate.map(key => `${key} = @${key}`).join(', ');
+        
+        const dataForDb: { [key: string]: any } = {};
+
+        fieldsToUpdate.forEach(key => {
+            // @ts-ignore
+            const value = profileData[key];
+            if (key === 'age') {
+                // For age, ensure it's a number or null.
+                const numValue = Number(value);
+                dataForDb[key] = (value === '' || value === null || value === undefined || isNaN(numValue)) ? null : numValue;
+            } else if (typeof value === 'string') {
+                // For strings, convert empty string to null.
+                dataForDb[key] = value === '' ? null : value;
+            } else {
+                // For other types (like gender which could be undefined), convert undefined to null.
+                dataForDb[key] = value === undefined ? null : value;
+            }
+        });
+
+        const sql = `UPDATE users SET ${setClauses} WHERE id = @id`;
         
         const stmt = db.prepare(sql);
-
-        // Execute the update with named parameters for clarity and safety.
-        // Any empty strings or undefined values from the form are converted to NULL 
-        // for clean and consistent database storage.
+        
         stmt.run({
-            id: userId,
-            name: dataToSave.name || null,
-            gender: dataToSave.gender || null,
-            age: dataToSave.age || null,
-            state: dataToSave.state || null,
-            mpConstituency: dataToSave.mpConstituency || null,
-            mlaConstituency: dataToSave.mlaConstituency || null,
-            panchayat: dataToSave.panchayat || null,
+            ...dataForDb,
+            id: userId
         });
 
         // Re-fetch the user from the database to confirm the update and return fresh data.

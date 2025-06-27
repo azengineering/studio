@@ -9,12 +9,6 @@ export interface User {
   email: string;
   password?: string;
   name?: string;
-  gender?: 'male' | 'female' | 'other';
-  age?: number;
-  state?: string;
-  mpConstituency?: string;
-  mlaConstituency?: string;
-  panchayat?: string;
 }
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
@@ -50,40 +44,4 @@ export async function addUser(user: Omit<User, 'id' | 'name'>): Promise<User | n
     console.error("Database error in addUser:", error);
     return null;
   }
-}
-
-export async function updateUserProfile(userId: string, profileData: Partial<Omit<User, 'id' | 'email' | 'password'>>): Promise<User | null> {
-    try {
-        const updates: { [key: string]: any } = {};
-        const allowedKeys: (keyof typeof profileData)[] = ['name', 'gender', 'age', 'state', 'mpConstituency', 'mlaConstituency', 'panchayat'];
-
-        allowedKeys.forEach(key => {
-            if (profileData.hasOwnProperty(key)) {
-                const value = profileData[key];
-                // Store empty strings as null, but keep other "falsy" values like 0 for age
-                updates[key] = value === '' || value === undefined ? null : value;
-            }
-        });
-
-        const setClauses = Object.keys(updates).map(key => `${key} = ?`).join(', ');
-
-        // If there's nothing to update, just return the current user data
-        if (!setClauses) {
-            const currentUserStmt = db.prepare('SELECT id, email, name, gender, age, state, mpConstituency, mlaConstituency, panchayat FROM users WHERE id = ?');
-            const currentUser = currentUserStmt.get(userId) as User | undefined;
-            return currentUser || null;
-        }
-
-        const values = Object.values(updates);
-        const stmt = db.prepare(`UPDATE users SET ${setClauses} WHERE id = ?`);
-        stmt.run(...values, userId);
-
-        const updatedUserStmt = db.prepare('SELECT id, email, name, gender, age, state, mpConstituency, mlaConstituency, panchayat FROM users WHERE id = ?');
-        const user = updatedUserStmt.get(userId) as User | undefined;
-        
-        return user || null;
-    } catch (error) {
-        console.error("Database error in updateUserProfile:", error);
-        return null;
-    }
 }

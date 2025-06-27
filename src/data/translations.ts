@@ -5,7 +5,6 @@ const translations = {
       home: 'Home',
       about: 'About',
       myActivities: 'My Activities',
-      myProfile: 'My Profile',
       logout: 'Log out',
       login: 'Login',
       loginSignUp: 'Login / Sign Up',
@@ -128,35 +127,6 @@ const translations = {
       title: 'Account Settings',
       description: 'Manage your account details and preferences. This feature is coming soon.',
     },
-    myProfileDialog: {
-        title: 'My Profile',
-        description: 'Update your profile information. Changes are saved automatically.',
-        nameLabel: 'Full Name',
-        namePlaceholder: 'Enter your full name',
-        genderLabel: 'Gender',
-        genderPlaceholder: 'Select your gender',
-        genderMale: 'Male',
-        genderFemale: 'Female',
-        genderOther: 'Other',
-        ageLabel: 'Age',
-        agePlaceholder: 'Enter your age',
-        stateLabel: 'State',
-        selectState: 'Select your state',
-        mpConstituencyLabel: 'MP Constituency',
-        mpConstituencyPlaceholder: 'e.g., Mumbai South',
-        mlaConstituencyLabel: 'MLA Constituency',
-        mlaConstituencyPlaceholder: 'e.g., Malabar Hill',
-        panchayatLabel: 'Panchayat Name',
-        panchayatPlaceholder: 'e.g., Ward A',
-        editButton: 'Edit Profile',
-        saveButton: 'Save Changes',
-        resetButton: 'Reset',
-        cancelButton: 'Cancel',
-        submitButton: 'Submit',
-        successMessage: 'Profile updated successfully!',
-        errorMessage: 'Failed to update profile.',
-        autoSaveSuccess: 'Profile auto-saved.',
-    },
     addLeaderPage: {
       title: 'Add a New Leader',
       description: 'Submit the details of a political leader to add them to our database.',
@@ -205,13 +175,6 @@ const translations = {
       requiredDescription: "You need to be logged in to add a new leader. Please log in to continue.",
       cancel: "Cancel",
       login: "Login"
-    },
-    notifications: {
-      completeProfile: {
-        title: "Complete Your Profile",
-        description: "Provide your location details for a better and more personalized experience.",
-        action: "Complete Profile"
-      }
     }
   },
   hi: {
@@ -219,7 +182,6 @@ const translations = {
       home: 'होम',
       about: 'हमारे बारे में',
       myActivities: 'मेरी गतिविधियाँ',
-      myProfile: 'मेरी प्रोफाइल',
       logout: 'लॉग आउट',
       login: 'लॉग इन करें',
       loginSignUp: 'लॉग इन / साइन अप',
@@ -342,35 +304,6 @@ const translations = {
       title: 'अकाउंट सेटिंग',
       description: 'अपने खाते का विवरण और प्राथमिकताएं प्रबंधित करें। यह सुविधा जल्द ही आ रही है।',
     },
-    myProfileDialog: {
-        title: 'मेरी प्रोफाइल',
-        description: 'अपनी प्रोफ़ाइल जानकारी अपडेट करें। परिवर्तन स्वचालित रूप से सहेजे जाते हैं।',
-        nameLabel: 'पूरा नाम',
-        namePlaceholder: 'अपना पूरा नाम दर्ज करें',
-        genderLabel: 'लिंग',
-        genderPlaceholder: 'अपना लिंग चुनें',
-        genderMale: 'पुरुष',
-        genderFemale: 'महिला',
-        genderOther: 'अन्य',
-        ageLabel: 'आयु',
-        agePlaceholder: 'अपनी आयु दर्ज करें',
-        stateLabel: 'राज्य',
-        selectState: 'अपना राज्य चुनें',
-        mpConstituencyLabel: 'सांसद निर्वाचन क्षेत्र',
-        mpConstituencyPlaceholder: 'जैसे, मुंबई दक्षिण',
-        mlaConstituencyLabel: 'विधायक निर्वाचन क्षेत्र',
-        mlaConstituencyPlaceholder: 'जैसे, मालाबार हिल',
-        panchayatLabel: 'पंचायत का नाम',
-        panchayatPlaceholder: 'जैसे, वार्ड ए',
-        editButton: 'प्रोफ़ाइल संपादित करें',
-        saveButton: 'बदलाव सहेजें',
-        resetButton: 'रीसेट',
-        cancelButton: 'रद्द करें',
-        submitButton: 'प्रस्तुत करें',
-        successMessage: 'प्रोफ़ाइल सफलतापूर्वक अपडेट की गई!',
-        errorMessage: 'प्रोफ़ाइल अपडेट करने में विफल।',
-        autoSaveSuccess: 'प्रोफ़ाइल ऑटो-सेव हो गई।',
-    },
     addLeaderPage: {
       title: 'एक नया नेता जोड़ें',
       description: 'हमारे डेटाबेस में जोड़ने के लिए एक राजनीतिक नेता का विवरण जमा करें।',
@@ -419,13 +352,6 @@ const translations = {
       requiredDescription: "एक नया नेता जोड़ने के लिए आपको लॉग इन होना चाहिए। कृपया जारी रखने के लिए लॉग इन करें।",
       cancel: "रद्द करें",
       login: "लॉग इन करें"
-    },
-    notifications: {
-      completeProfile: {
-        title: "अपनी प्रोफ़ाइल पूरी करें",
-        description: "बेहतर और अधिक व्यक्तिगत अनुभव के लिए कृपया अपने स्थान का विवरण प्रदान करें।",
-        action: "प्रोफ़ाइल पूरी करें"
-      }
     }
   },
 };

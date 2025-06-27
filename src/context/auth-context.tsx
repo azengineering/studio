@@ -2,18 +2,12 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { findUserByEmail, addUser as addNewUser, updateUserProfile } from '@/data/users';
+import { findUserByEmail, addUser as addNewUser } from '@/data/users';
 
 interface User {
   id: string;
   name: string;
   email: string;
-  gender?: 'male' | 'female' | 'other';
-  age?: number;
-  state?: string;
-  mpConstituency?: string;
-  mlaConstituency?: string;
-  panchayat?: string;
 }
 
 interface AuthContextType {
@@ -22,7 +16,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  updateUser: (profileData: Partial<Omit<User, 'id' | 'email'>>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Invalid email or password.');
     }
 
-    const loggedInUser: Partial<User> = { ...existingUser };
+    const loggedInUser: Partial<User & { password?: string }> = { ...existingUser };
     delete loggedInUser.password;
     
     localStorage.setItem('politirate_user', JSON.stringify(loggedInUser));
@@ -89,21 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login');
   };
 
-  const updateUser = async (profileData: Partial<Omit<User, 'id' | 'email'>>) => {
-    if (!user) throw new Error("User not authenticated");
-    
-    const updatedUser = await updateUserProfile(user.id, profileData);
-
-    if (updatedUser) {
-        setUser(updatedUser);
-        localStorage.setItem('politirate_user', JSON.stringify(updatedUser));
-    } else {
-        throw new Error("Failed to update profile.");
-    }
-  };
-
-
-  const value = { user, loading, login, signup, logout, updateUser };
+  const value = { user, loading, login, signup, logout };
 
   return (
     <AuthContext.Provider value={value}>

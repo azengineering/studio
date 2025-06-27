@@ -1,8 +1,7 @@
 'use client';
 
-import { Scale, Menu, Globe, User, Settings, LogOut } from 'lucide-react';
+import { Scale, Menu, Globe, User, LogOut } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,45 +13,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/components/ui/sheet';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useLanguage, type Language } from '@/context/language-context';
 import { useAuth } from '@/context/auth-context';
-import MyProfileDialog from './my-profile-dialog';
-import { useToast } from '@/hooks/use-toast';
 
 export default function Header() {
   const { t, language, setLanguage } = useLanguage();
   const { user, logout } = useAuth();
-  const router = useRouter();
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isProfileDialogOpen, setProfileDialogOpen] = useState(false);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    if (user && !user.state && !sessionStorage.getItem('profileNotificationShown')) {
-      const { dismiss } = toast({
-        title: t('notifications.completeProfile.title'),
-        description: t('notifications.completeProfile.description'),
-        duration: Infinity,
-        action: (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setProfileDialogOpen(true);
-              dismiss();
-            }}
-          >
-            {t('notifications.completeProfile.action')}
-          </Button>
-        ),
-      });
-
-      sessionStorage.setItem('profileNotificationShown', 'true');
-    }
-  }, [user, t, toast]);
 
   const navLinks = [
     { href: '/', label: t('header.home') },
@@ -104,10 +74,6 @@ export default function Header() {
             <span>{t('header.myActivities')}</span>
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setProfileDialogOpen(true); }}>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>{t('header.myProfile')}</span>
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={(e) => { e.preventDefault(); logout(); }}>
           <LogOut className="mr-2 h-4 w-4" />
@@ -142,17 +108,6 @@ export default function Header() {
                         </Link>
                     </SheetClose>
                 ))}
-                {user && (
-                    <button
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        setProfileDialogOpen(true);
-                      }}
-                      className="text-lg font-medium hover:text-primary transition-colors text-left"
-                    >
-                      {t('header.myProfile')}
-                    </button>
-                )}
                 </nav>
                 <div className="mt-8">
                     {user ? (
@@ -219,7 +174,6 @@ export default function Header() {
           </div>
         </div>
       </header>
-      {user && <MyProfileDialog open={isProfileDialogOpen} onOpenChange={setProfileDialogOpen} />}
     </>
   );
 }

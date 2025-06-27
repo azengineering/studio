@@ -81,14 +81,14 @@ export default function SearchFilter({ onSearch }: SearchFilterProps) {
           />
         </div>
         
-        <div className="flex gap-2 justify-end">
+        <div className="flex gap-2">
+            <Button onClick={handleResetClick} variant="outline">
+                <RotateCw className="mr-2 h-4 w-4" />
+                {t('searchFilter.resetButton')}
+            </Button>
             <Button onClick={handleSearchClick}>
                 <Search className="mr-2 h-4 w-4" />
                 {t('searchFilter.searchButton')}
-            </Button>
-            <Button onClick={handleResetClick} variant="outline" size="icon" aria-label={t('searchFilter.resetButton')}>
-                <RotateCw className="h-4 w-4" />
-                <span className="sr-only">{t('searchFilter.resetButton')}</span>
             </Button>
         </div>
       </div>

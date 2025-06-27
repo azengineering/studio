@@ -84,7 +84,8 @@ const translations = {
     leaderList: {
       noLeaders: 'No Leaders Found',
       noLeadersDesc: 'Try adjusting your filters to find political leaders.',
-      resultsTitle: 'Matching Leaders'
+      resultsTitle: 'Matching Leaders',
+      addLeaderPrompt: "Can't find who you're looking for? Add them to our database.",
     },
     leaderCard: {
       reviews: 'reviews',
@@ -256,7 +257,8 @@ const translations = {
     leaderList: {
       noLeaders: 'कोई नेता नहीं मिला',
       noLeadersDesc: 'राजनीतिक नेताओं को खोजने के लिए अपने फ़िल्टर समायोजित करने का प्रयास करें।',
-      resultsTitle: 'मिलते-जुलते नेता'
+      resultsTitle: 'मिलते-जुलते नेता',
+      addLeaderPrompt: "जिसे आप ढूंढ रहे हैं वह नहीं मिल रहा है? उन्हें हमारे डेटाबेस में जोड़ें।",
     },
     leaderCard: {
       reviews: 'समीक्षाएं',

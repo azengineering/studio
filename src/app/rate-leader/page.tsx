@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import LeaderList from '@/components/leader-list';
@@ -9,6 +10,19 @@ import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/context/language-context';
 import SearchFilter from '@/components/search-filter';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/auth-context';
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type ElectionType = 'national' | 'state' | 'panchayat' | '';
 
@@ -17,6 +31,10 @@ export default function RateLeaderPage() {
   const [allLeaders, setAllLeaders] = useState<Leader[]>([]);
   const [filteredLeaders, setFilteredLeaders] = useState<Leader[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const { user } = useAuth();
+  const router = useRouter();
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   useEffect(() => {
     const fetchLeaders = async () => {
@@ -29,22 +47,33 @@ export default function RateLeaderPage() {
     fetchLeaders();
   }, []);
 
-  const handleSearch = (filters: { electionType: ElectionType; searchTerm: string; candidateName: string; }) => {
+  const handleAddLeaderClick = () => {
+    if (user) {
+      router.push('/add-leader');
+    } else {
+      setShowLoginDialog(true);
+    }
+  };
+
+  const handleSearch = async (filters: { electionType: ElectionType; searchTerm: string; candidateName: string; }) => {
+    setIsLoading(true);
     const { electionType, searchTerm, candidateName } = filters;
+
+    // Use a temporary array for all leaders to ensure we have the latest data
+    const currentLeaders = await getLeaders();
+    setAllLeaders(currentLeaders);
 
     const trimmedCandidateName = candidateName.trim().toLowerCase();
     const trimmedSearchTerm = searchTerm.trim().toLowerCase();
 
-    let results = allLeaders;
+    let results = currentLeaders;
 
     if (trimmedCandidateName) {
-      // If candidate name is provided, use it as the primary filter.
-      results = allLeaders.filter(leader => 
+      results = currentLeaders.filter(leader => 
         leader.name.toLowerCase().includes(trimmedCandidateName)
       );
     } else {
-      // Otherwise, filter by election type and constituency.
-      let locationFiltered = allLeaders;
+      let locationFiltered = currentLeaders;
 
       if (electionType) {
         locationFiltered = locationFiltered.filter(leader => leader.electionType === electionType);
@@ -59,6 +88,7 @@ export default function RateLeaderPage() {
     }
 
     setFilteredLeaders(results);
+    setIsLoading(false);
   };
 
   const LeaderListSkeleton = () => (
@@ -79,11 +109,17 @@ export default function RateLeaderPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        <div className="mb-8 max-w-3xl">
-          <h1 className="font-headline text-3xl font-extrabold text-primary">{t('findAndRate.heading')}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {t('findAndRate.subheading')}
-          </p>
+        <div className="mb-8 flex justify-between items-start gap-4">
+          <div className="max-w-3xl">
+            <h1 className="font-headline text-3xl font-extrabold text-primary">{t('findAndRate.heading')}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {t('findAndRate.subheading')}
+            </p>
+          </div>
+          <Button onClick={handleAddLeaderClick} className="hidden sm:inline-flex">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            {t('hero.addNewLeader')}
+          </Button>
         </div>
 
         <SearchFilter onSearch={handleSearch} />
@@ -99,6 +135,23 @@ export default function RateLeaderPage() {
           )}
           {isLoading ? <LeaderListSkeleton /> : <LeaderList leaders={filteredLeaders} />}
         </div>
+        
+        <AlertDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('auth.requiredTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('auth.requiredDescription')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('auth.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={() => router.push('/login')}>
+                {t('auth.login')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
       <Footer />
     </div>

@@ -5,6 +5,7 @@ const translations = {
       home: 'Home',
       about: 'About',
       myActivities: 'My Activities',
+      accountSettings: 'Account Settings',
       logout: 'Log out',
       login: 'Login',
       loginSignUp: 'Login / Sign Up',
@@ -123,6 +124,10 @@ const translations = {
         title: 'My Activities',
         welcome: 'Welcome back, {name}! This is your personal dashboard.'
     },
+    accountSettingsPage: {
+      title: 'Account Settings',
+      description: 'Manage your account details and preferences. This feature is coming soon.',
+    },
     addLeaderPage: {
       title: 'Add a New Leader',
       description: 'Submit the details of a political leader to add them to our database.',
@@ -178,6 +183,7 @@ const translations = {
       home: 'होम',
       about: 'हमारे बारे में',
       myActivities: 'मेरी गतिविधियाँ',
+      accountSettings: 'अकाउंट सेटिंग',
       logout: 'लॉग आउट',
       login: 'लॉग इन करें',
       loginSignUp: 'लॉग इन / साइन अप',
@@ -295,6 +301,10 @@ const translations = {
     myActivitiesPage: {
         title: 'मेरी गतिविधियाँ',
         welcome: 'वापस स्वागत है, {name}! यह आपका व्यक्तिगत डैशबोर्ड है।'
+    },
+    accountSettingsPage: {
+      title: 'अकाउंट सेटिंग',
+      description: 'अपने खाते का विवरण और प्राथमिकताएं प्रबंधित करें। यह सुविधा जल्द ही आ रही है।',
     },
     addLeaderPage: {
       title: 'एक नया नेता जोड़ें',

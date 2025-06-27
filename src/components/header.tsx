@@ -1,6 +1,6 @@
 "use client";
 
-import { Scale, Menu, Globe } from 'lucide-react';
+import { Scale, Menu, Globe, User, Settings, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/components/ui/sheet';
 import { useState } from 'react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -48,6 +51,46 @@ export default function Header() {
     </DropdownMenu>
   );
 
+  const UserAccountNav = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback>{user?.name?.[0].toUpperCase()}</AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">{user?.name}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user?.email}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/my-activities">
+            <User className="mr-2 h-4 w-4" />
+            <span>{t('header.myActivities')}</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+           <Link href="/account-settings">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>{t('header.accountSettings')}</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); logout(); }}>
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>{t('header.logout')}</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   const MobileNav = () => (
       <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetTrigger asChild>
@@ -73,6 +116,13 @@ export default function Header() {
                         </Link>
                     </SheetClose>
                 ))}
+                {user && (
+                    <SheetClose asChild>
+                        <Link href="/account-settings" className="text-lg font-medium hover:text-primary transition-colors">
+                           {t('header.accountSettings')}
+                        </Link>
+                    </SheetClose>
+                )}
                 </nav>
                 <div className="mt-8">
                     {user ? (
@@ -126,7 +176,7 @@ export default function Header() {
             <div className="hidden md:flex items-center gap-2">
                 <LanguageSelector />
                 {user ? (
-                  <Button onClick={logout}>{t('header.logout')}</Button>
+                  <UserAccountNav />
                 ) : (
                   <Link href="/login">
                     <Button>{t('header.loginSignUp')}</Button>

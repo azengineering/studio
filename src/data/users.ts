@@ -54,10 +54,27 @@ export async function addUser(user: Omit<User, 'id' | 'name'>): Promise<User | n
 
 export async function updateUserProfile(userId: string, profileData: Partial<Omit<User, 'id' | 'email' | 'password'>>): Promise<User | null> {
     try {
-        const setClauses = Object.keys(profileData).map(key => `${key} = ?`).join(', ');
-        if (!setClauses) return null;
+        const updates: { [key: string]: any } = {};
+        const allowedKeys: (keyof typeof profileData)[] = ['name', 'gender', 'age', 'state', 'mpConstituency', 'mlaConstituency', 'panchayat'];
 
-        const values = Object.values(profileData);
+        allowedKeys.forEach(key => {
+            if (profileData.hasOwnProperty(key)) {
+                const value = profileData[key];
+                // Store empty strings as null, but keep other "falsy" values like 0 for age
+                updates[key] = value === '' || value === undefined ? null : value;
+            }
+        });
+
+        const setClauses = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+
+        // If there's nothing to update, just return the current user data
+        if (!setClauses) {
+            const currentUserStmt = db.prepare('SELECT id, email, name, gender, age, state, mpConstituency, mlaConstituency, panchayat FROM users WHERE id = ?');
+            const currentUser = currentUserStmt.get(userId) as User | undefined;
+            return currentUser || null;
+        }
+
+        const values = Object.values(updates);
         const stmt = db.prepare(`UPDATE users SET ${setClauses} WHERE id = ?`);
         stmt.run(...values, userId);
 

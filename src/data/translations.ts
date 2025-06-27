@@ -130,7 +130,7 @@ const translations = {
     },
     myProfileDialog: {
         title: 'My Profile',
-        description: 'View and update your personal information.',
+        description: 'Update your profile information. Changes are saved automatically.',
         nameLabel: 'Full Name',
         namePlaceholder: 'Enter your full name',
         genderLabel: 'Gender',
@@ -154,7 +154,8 @@ const translations = {
         cancelButton: 'Cancel',
         submitButton: 'Submit',
         successMessage: 'Profile updated successfully!',
-        errorMessage: 'Failed to update profile.'
+        errorMessage: 'Failed to update profile.',
+        autoSaveSuccess: 'Profile auto-saved.',
     },
     addLeaderPage: {
       title: 'Add a New Leader',
@@ -343,7 +344,7 @@ const translations = {
     },
     myProfileDialog: {
         title: 'मेरी प्रोफाइल',
-        description: 'अपनी व्यक्तिगत जानकारी देखें और अपडेट करें।',
+        description: 'अपनी प्रोफ़ाइल जानकारी अपडेट करें। परिवर्तन स्वचालित रूप से सहेजे जाते हैं।',
         nameLabel: 'पूरा नाम',
         namePlaceholder: 'अपना पूरा नाम दर्ज करें',
         genderLabel: 'लिंग',
@@ -367,7 +368,8 @@ const translations = {
         cancelButton: 'रद्द करें',
         submitButton: 'प्रस्तुत करें',
         successMessage: 'प्रोफ़ाइल सफलतापूर्वक अपडेट की गई!',
-        errorMessage: 'प्रोफ़ाइल अपडेट करने में विफल।'
+        errorMessage: 'प्रोफ़ाइल अपडेट करने में विफल।',
+        autoSaveSuccess: 'प्रोफ़ाइल ऑटो-सेव हो गई।',
     },
     addLeaderPage: {
       title: 'एक नया नेता जोड़ें',

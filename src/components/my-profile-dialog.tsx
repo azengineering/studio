@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -37,13 +37,17 @@ interface MyProfileDialogProps {
 
 const profileSchema = z.object({
   name: z.string().min(1, { message: "Name is required." }),
-  gender: z.enum(['male', 'female', 'other']).optional(),
-  age: z.number().int({ message: "Age must be a whole number." }).positive({ message: "Age must be positive." }).optional(),
-  state: z.string().optional(),
-  mpConstituency: z.string().optional(),
-  mlaConstituency: z.string().optional(),
-  panchayat: z.string().optional(),
+  gender: z.preprocess((val) => val === '' ? undefined : val, z.enum(['male', 'female', 'other']).optional()),
+  age: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+    z.coerce.number().int().positive().optional().nullable()
+  ),
+  state: z.preprocess((val) => val === '' ? undefined : val, z.string().optional()),
+  mpConstituency: z.preprocess((val) => val === '' ? undefined : val, z.string().optional()),
+  mlaConstituency: z.preprocess((val) => val === '' ? undefined : val, z.string().optional()),
+  panchayat: z.preprocess((val) => val === '' ? undefined : val, z.string().optional()),
 });
+
 
 export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogProps) {
   const { user, updateUser } = useAuth();
@@ -64,7 +68,9 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
     }
   });
 
-  const resetFormValues = () => {
+  const { watch, getValues, formState: { isDirty } } = form;
+
+  const resetFormValues = useCallback(() => {
     if (user) {
       form.reset({
         name: user.name || '',
@@ -76,13 +82,13 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
         panchayat: user.panchayat || undefined,
       });
     }
-  }
+  }, [user, form]);
 
   useEffect(() => {
     if (user && open) {
       resetFormValues();
     }
-  }, [user, open]);
+  }, [user, open, resetFormValues]);
   
   useEffect(() => {
     if (!open) {
@@ -90,12 +96,16 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
     }
   }, [open]);
 
-
-  async function onSubmit(values: z.infer<typeof profileSchema>) {
+  const handleUpdateProfile = useCallback(async (values: z.infer<typeof profileSchema>, isManualSave = false) => {
     try {
       await updateUser(values);
-      toast({ title: t('myProfileDialog.successMessage') });
-      setIsEditing(false);
+      if (isManualSave) {
+        toast({ title: t('myProfileDialog.successMessage') });
+        setIsEditing(false);
+      } else {
+        toast({ title: t('myProfileDialog.autoSaveSuccess') });
+      }
+      form.reset(values); // Sync form state after successful save
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -103,7 +113,31 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
         description: error instanceof Error ? error.message : "An unknown error occurred.",
       });
     }
-  }
+  }, [updateUser, toast, t, form]);
+
+  // Auto-save effect
+  useEffect(() => {
+    if (!isEditing || !isDirty) {
+      return;
+    }
+    
+    const subscription = watch(async (value, { name, type }) => {
+      if (type === 'change') {
+         const debouncedSave = setTimeout(async () => {
+          const isValid = await form.trigger();
+          if (isValid) {
+            handleUpdateProfile(getValues(), false);
+          }
+        }, 1500); // Debounce time: 1.5 seconds
+
+        return () => clearTimeout(debouncedSave);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [isEditing, isDirty, watch, getValues, form, handleUpdateProfile]);
+  
+  const handleManualSave = form.handleSubmit((data) => handleUpdateProfile(data, true));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -113,7 +147,7 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
           <DialogDescription>{t('myProfileDialog.description')}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-6 pt-4">
             <fieldset disabled={!isEditing} className="space-y-6 group">
               {/* Row 1 */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -210,7 +244,7 @@ export default function MyProfileDialog({ open, onOpenChange }: MyProfileDialogP
                     <RotateCw className="mr-2 h-4 w-4" />
                     {t('myProfileDialog.resetButton')}
                   </Button>
-                  <Button type="submit">
+                  <Button type="button" onClick={handleManualSave}>
                     <Save className="mr-2 h-4 w-4" />
                     {t('myProfileDialog.saveButton')}
                   </Button>

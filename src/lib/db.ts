@@ -1,3 +1,4 @@
+
 import Database from 'better-sqlite3';
 import type { Leader } from '@/data/leaders';
 
@@ -208,6 +209,18 @@ const schema = `
 `;
 
 db.exec(schema);
+
+// --- Simple migration script to add missing column ---
+try {
+    const tableInfo = db.prepare("PRAGMA table_info(leaders)").all();
+    if (!tableInfo.some((col: any) => col.name === 'addedByUserId')) {
+        db.prepare('ALTER TABLE leaders ADD COLUMN addedByUserId TEXT').run();
+        console.log("Database migration: Added 'addedByUserId' to 'leaders' table.");
+    }
+} catch (error) {
+    // This might fail if the table doesn't exist yet, which is fine on first run.
+}
+
 
 // --- Seeding Logic ---
 const seedLeaders = () => {

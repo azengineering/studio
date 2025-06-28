@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import type { Leader as LeaderType } from '@/data/leaders';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,7 @@ export default function LeaderCard({ leader: initialLeader }: LeaderCardProps) {
   const { t } = useLanguage();
   const { user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const [leader, setLeader] = useState(initialLeader);
   const [isRatingDialogOpen, setRatingDialogOpen] = useState(false);
@@ -211,7 +212,7 @@ export default function LeaderCard({ leader: initialLeader }: LeaderCardProps) {
               </AlertDialogHeader>
               <AlertDialogFooter>
               <AlertDialogCancel>{t('auth.cancel')}</AlertDialogCancel>
-              <AlertDialogAction onClick={() => router.push('/login')}>
+              <AlertDialogAction onClick={() => router.push(`/login?redirect=${pathname}`)}>
                   {t('auth.login')}
               </AlertDialogAction>
               </AlertDialogFooter>

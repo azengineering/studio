@@ -76,7 +76,7 @@ export default function Hero() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('auth.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => router.push('/login')}>
+            <AlertDialogAction onClick={() => router.push('/login?redirect=/add-leader')}>
               {t('auth.login')}
             </AlertDialogAction>
           </AlertDialogFooter>

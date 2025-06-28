@@ -194,7 +194,9 @@ const translations = {
       electionYearLabel: 'Election Year',
       addMoreButton: 'Add More',
       addRecordsButton: 'Add Records',
-      removeButton: 'Remove'
+      removeButton: 'Remove',
+      leadersInYourAreaTitle: 'Leaders in Your Area',
+      leadersInYourAreaDescription: 'Check if the leader already exists before adding a new one.',
     },
     auth: {
       requiredTitle: "Login Required",
@@ -466,7 +468,9 @@ const translations = {
       electionYearLabel: 'चुनाव वर्ष',
       addMoreButton: 'और जोड़ें',
       addRecordsButton: 'रिकॉर्ड जोड़ें',
-      removeButton: 'हटाएं'
+      removeButton: 'हटाएं',
+      leadersInYourAreaTitle: 'आपके क्षेत्र के नेता',
+      leadersInYourAreaDescription: 'नया नेता जोड़ने से पहले जांच लें कि क्या नेता पहले से मौजूद है।',
     },
     auth: {
       requiredTitle: "लॉगिन आवश्यक है",

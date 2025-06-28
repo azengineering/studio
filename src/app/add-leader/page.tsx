@@ -710,8 +710,8 @@ function AddLeaderPage() {
             <div className="lg:col-span-1">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-primary">Leaders in Your Area</CardTitle>
-                        <CardDescription>Check if the leader already exists before adding a new one.</CardDescription>
+                        <CardTitle className="text-primary">{t('addLeaderPage.leadersInYourAreaTitle')}</CardTitle>
+                        <CardDescription>{t('addLeaderPage.leadersInYourAreaDescription')}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {isMatchingLeadersLoading ? (

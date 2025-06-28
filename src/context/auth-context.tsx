@@ -1,3 +1,4 @@
+
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -93,7 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem('politirate_user');
     setUser(null);
-    router.push('/');
+    // Force a full page reload to the homepage to ensure a clean state
+    // and prevent race conditions with protected routes.
+    window.location.href = '/';
   };
 
   const updateUser = async (profileData: Partial<User>) => {

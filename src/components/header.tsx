@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Scale, Menu, Globe, User, LogOut, UserCog, Settings } from 'lucide-react';
+import { Scale, Menu, Globe, User, LogOut, UserCog, Settings, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { useLanguage, type Language } from '@/context/language-context';
 import { useAuth } from '@/context/auth-context';
 import ProfileDialog from './profile-dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export default function Header() {
   const { t, language, setLanguage } = useLanguage();
@@ -121,17 +122,34 @@ export default function Header() {
           
           <div className="flex-grow overflow-y-auto">
               {user && (
-                <div className="p-4 border-b">
-                    <div className="flex items-center gap-3">
-                        <Avatar>
-                            <AvatarFallback>{user.name?.[0].toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                            <span className="font-semibold">{user.name}</span>
-                            <span className="text-sm text-muted-foreground">{user.email}</span>
-                        </div>
-                    </div>
-                </div>
+                <Collapsible className="border-b">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between p-4 hover:bg-secondary/50 [&[data-state=open]>svg]:rotate-180">
+                      <div className="flex items-center gap-3">
+                          <Avatar>
+                              <AvatarFallback>{user.name?.[0].toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col text-left">
+                              <span className="font-semibold">{user.name}</span>
+                              <span className="text-sm text-muted-foreground">{user.email}</span>
+                          </div>
+                      </div>
+                      <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-1 bg-secondary/30 pb-4">
+                        <SheetClose asChild>
+                            <button onClick={() => setProfileDialogOpen(true)} className="flex w-full items-center gap-2 py-2 px-4 pl-12 text-left text-base font-medium hover:text-primary transition-colors hover:bg-secondary">
+                                <UserCog className="h-4 w-4" />
+                                <span>{t('header.myProfile')}</span>
+                            </button>
+                        </SheetClose>
+                        <SheetClose asChild>
+                            <Link href="/account-settings" className="flex w-full items-center gap-2 py-2 px-4 pl-12 text-base font-medium hover:text-primary transition-colors hover:bg-secondary">
+                               <Settings className="h-4 w-4" />
+                               <span>{t('header.accountSettings')}</span>
+                            </Link>
+                        </SheetClose>
+                  </CollapsibleContent>
+                </Collapsible>
               )}
               
               <nav className="flex flex-col gap-1 p-4">
@@ -142,22 +160,6 @@ export default function Header() {
                           </Link>
                       </SheetClose>
                   ))}
-                  {user && (
-                      <>
-                          <SheetClose asChild>
-                              <button onClick={() => setProfileDialogOpen(true)} className="flex items-center gap-2 text-left text-base font-medium hover:text-primary transition-colors p-2 rounded-md hover:bg-secondary w-full">
-                                  <UserCog className="h-4 w-4" />
-                                  <span>{t('header.myProfile')}</span>
-                              </button>
-                          </SheetClose>
-                          <SheetClose asChild>
-                              <Link href="/account-settings" className="flex items-center gap-2 text-base font-medium hover:text-primary transition-colors p-2 rounded-md hover:bg-secondary">
-                                 <Settings className="h-4 w-4" />
-                                 <span>{t('header.accountSettings')}</span>
-                              </Link>
-                          </SheetClose>
-                      </>
-                  )}
               </nav>
           </div>
 

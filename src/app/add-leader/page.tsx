@@ -8,7 +8,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PlusCircle, Trash2, RotateCw } from 'lucide-react';
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import Link from 'next/link';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -38,7 +37,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import LeaderCard from "@/components/leader-card";
 
 const MAX_PHOTO_SIZE_MB = 1;
 const MAX_MANIFESTO_SIZE_MB = 5;
@@ -309,14 +308,24 @@ function AddLeaderPage() {
   );
 
   const MatchingLeadersSkeleton = () => (
-    <div className="space-y-4">
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex items-center gap-4">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-3 w-24" />
+    <div className="space-y-6">
+      {[...Array(2)].map((_, i) => (
+        <div key={i} className="border rounded-xl p-4 space-y-3">
+          <div className="flex items-start gap-4">
+            <Skeleton className="h-16 w-16 rounded-full" />
+            <div className="flex-1 space-y-2 mt-1">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-4 w-1/4" />
+            </div>
           </div>
+          <div className="border-t pt-3 space-y-2">
+              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-4 w-full" />
+          </div>
+           <div className="border-t pt-3 flex justify-center">
+              <Skeleton className="h-9 w-48 rounded-md" />
+           </div>
         </div>
       ))}
     </div>
@@ -701,30 +710,19 @@ function AddLeaderPage() {
             <div className="lg:col-span-1">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Leaders in Your Area</CardTitle>
+                        <CardTitle className="text-primary">Leaders in Your Area</CardTitle>
                         <CardDescription>Check if the leader already exists before adding a new one.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {isMatchingLeadersLoading ? (
                             <MatchingLeadersSkeleton />
                         ) : matchingLeaders.length > 0 ? (
-                            <ScrollArea className="h-[500px] pr-4">
-                                <ul className="space-y-6">
+                            <ScrollArea className="h-[calc(100vh-280px)] pr-4">
+                                <div className="space-y-6">
                                     {matchingLeaders.map(leader => (
-                                        <li key={leader.id}>
-                                            <Link href="/rate-leader" className="flex items-center gap-4 p-2 rounded-md hover:bg-secondary">
-                                                <Avatar>
-                                                    <AvatarImage src={leader.photoUrl || 'https://placehold.co/400x400.png'} alt={leader.name} />
-                                                    <AvatarFallback>{leader.name.charAt(0)}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <p className="font-semibold text-sm">{leader.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{leader.partyName}</p>
-                                                </div>
-                                            </Link>
-                                        </li>
+                                        <LeaderCard key={leader.id} leader={leader} />
                                     ))}
-                                </ul>
+                                </div>
                             </ScrollArea>
                         ) : (
                             <p className="text-sm text-muted-foreground text-center py-8">No matching leaders found in your profile's constituencies.</p>

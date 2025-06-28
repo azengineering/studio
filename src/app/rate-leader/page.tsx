@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -37,15 +38,26 @@ export default function RateLeaderPage() {
   const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   useEffect(() => {
-    const fetchLeaders = async () => {
+    const fetchAndFilterLeaders = async () => {
       setIsLoading(true);
       const leadersFromStorage = await getLeaders();
-      setAllLeaders(leadersFromStorage);
-      setFilteredLeaders(leadersFromStorage);
+      setAllLeaders(leadersFromStorage); // Keep the full list for searching
+      
+      // Default to filtering by user's location if available
+      if (user && user.state) {
+        const locationBasedLeaders = leadersFromStorage.filter(leader => 
+          leader.location.state === user.state
+        );
+        setFilteredLeaders(locationBasedLeaders);
+      } else {
+        // If user is not logged in or has no state set, show all leaders.
+        setFilteredLeaders(leadersFromStorage);
+      }
+
       setIsLoading(false);
     };
-    fetchLeaders();
-  }, []);
+    fetchAndFilterLeaders();
+  }, [user]); // Re-run when user data becomes available
 
   const handleAddLeaderClick = () => {
     if (user) {

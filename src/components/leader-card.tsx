@@ -5,9 +5,9 @@ import Image from 'next/image';
 import React, { useState, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import type { Leader as LeaderType } from '@/data/leaders';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Star, Twitter, Eye, Edit } from 'lucide-react';
+import { Star, Twitter, Eye, Edit, ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/context/language-context';
 import {
@@ -27,6 +27,7 @@ import RatingDialog from './rating-dialog';
 import ReviewsDialog from './reviews-dialog';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Separator } from './ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 
 interface LeaderCardProps {
   leader: LeaderType;
@@ -166,49 +167,6 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
                                       This table shows the past election participation records available for this leader.
                                   </AlertDialogDescription>
                               </AlertDialogHeader>
-
-                              {electionPerformance && (
-                                <div className="my-6">
-                                  <h3 className="text-lg font-semibold mb-4 text-center">Performance Analysis</h3>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 rounded-lg bg-secondary/50">
-                                      <div className="w-full h-52">
-                                          <ResponsiveContainer width="100%" height="100%">
-                                              <PieChart>
-                                                  <Pie
-                                                      data={electionPerformance.data}
-                                                      dataKey="value"
-                                                      nameKey="name"
-                                                      cx="50%"
-                                                      cy="50%"
-                                                      outerRadius={80}
-                                                      label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-                                                  >
-                                                      {electionPerformance.data.map((entry) => (
-                                                          <Cell key={`cell-${entry.name}`} fill={entry.color} />
-                                                      ))}
-                                                  </Pie>
-                                                  <Tooltip
-                                                      cursor={{ fill: 'hsla(var(--muted))' }}
-                                                      contentStyle={{
-                                                          background: 'hsl(var(--background))',
-                                                          borderRadius: 'var(--radius)',
-                                                          border: '1px solid hsl(var(--border))'
-                                                      }}
-                                                  />
-                                                  <Legend iconType="circle" />
-                                              </PieChart>
-                                          </ResponsiveContainer>
-                                      </div>
-                                      <div className="space-y-4 text-center md:text-left">
-                                          <p className="text-lg font-bold">Total Elections Fought: {electionPerformance.total}</p>
-                                          <Separator />
-                                          <p className="flex items-center justify-center md:justify-start gap-2 text-lg"><span className="w-3 h-3 rounded-full bg-green-500"></span> <span className="font-bold">{electionPerformance.wins}</span> Wins</p>
-                                          <p className="flex items-center justify-center md:justify-start gap-2 text-lg"><span className="w-3 h-3 rounded-full bg-red-500"></span> <span className="font-bold">{electionPerformance.losses}</span> Losses</p>
-                                      </div>
-                                  </div>
-                                  <Separator className="my-6" />
-                                </div>
-                              )}
                               
                               <div className="max-h-[40vh] overflow-y-auto">
                                   <Table>
@@ -244,6 +202,63 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
                                       </TableBody>
                                   </Table>
                               </div>
+
+                              {electionPerformance && (
+                                <Collapsible className="mt-4">
+                                  <CollapsibleTrigger asChild>
+                                      <Button variant="link" className="text-primary p-0 h-auto flex items-center gap-1 data-[state=open]:font-bold text-sm">
+                                          View Performance Analysis
+                                          <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
+                                      </Button>
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent className="mt-4 animate-in fade-in-0 zoom-in-95">
+                                      <Card className="bg-secondary/30">
+                                          <CardHeader>
+                                              <CardTitle className="text-center text-xl font-headline">Performance Analysis</CardTitle>
+                                          </CardHeader>
+                                          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                                              <div className="w-full h-52">
+                                                  <ResponsiveContainer width="100%" height="100%">
+                                                      <PieChart>
+                                                          <Pie
+                                                              data={electionPerformance.data}
+                                                              dataKey="value"
+                                                              nameKey="name"
+                                                              cx="50%"
+                                                              cy="50%"
+                                                              outerRadius={80}
+                                                              label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                                                          >
+                                                              {electionPerformance.data.map((entry) => (
+                                                                  <Cell key={`cell-${entry.name}`} fill={entry.color} />
+                                                              ))}
+                                                          </Pie>
+                                                          <Tooltip
+                                                              cursor={{ fill: 'hsla(var(--muted))' }}
+                                                              contentStyle={{
+                                                                  background: 'hsl(var(--background))',
+                                                                  borderRadius: 'var(--radius)',
+                                                                  border: '1px solid hsl(var(--border))'
+                                                              }}
+                                                          />
+                                                          <Legend iconType="circle" />
+                                                      </PieChart>
+                                                  </ResponsiveContainer>
+                                              </div>
+                                              <div className="space-y-4">
+                                                  <p className="text-lg font-bold text-center md:text-left">Total Elections Fought: {electionPerformance.total}</p>
+                                                  <Separator />
+                                                  <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
+                                                    <p className="flex items-center gap-2 text-lg"><span className="w-3 h-3 rounded-full bg-green-500"></span> <span className="font-bold">{electionPerformance.wins}</span> Wins</p>
+                                                    <p className="flex items-center gap-2 text-lg"><span className="w-3 h-3 rounded-full bg-red-500"></span> <span className="font-bold">{electionPerformance.losses}</span> Losses</p>
+                                                  </div>
+                                              </div>
+                                          </CardContent>
+                                      </Card>
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              )}
+
                               <AlertDialogFooter>
                                   <AlertDialogCancel>Close</AlertDialogCancel>
                               </AlertDialogFooter>

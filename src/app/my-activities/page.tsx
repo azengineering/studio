@@ -104,7 +104,7 @@ function MyActivitiesPage() {
         <main className="flex-grow container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-5xl mx-auto">
             <div className="mb-8">
-                <h1 className="text-2xl md:text-3xl font-bold font-headline">{t('myActivitiesPage.title')}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold font-headline text-primary">{t('myActivitiesPage.title')}</h1>
                 <p className="text-sm text-muted-foreground mt-1">
                 {t('myActivitiesPage.dashboardDescription')}
                 </p>

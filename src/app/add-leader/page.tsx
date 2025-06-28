@@ -24,7 +24,8 @@ import withAuth from '@/components/with-auth';
 import { useLanguage } from '@/context/language-context';
 import { useToast } from "@/hooks/use-toast";
 import { addLeader } from '@/data/leaders';
-import { indianStates, districtsByState } from '@/data/locations';
+import { indianStates } from '@/data/locations';
+import { useAuth } from "@/context/auth-context";
 
 
 const formSchema = z.object({
@@ -63,6 +64,7 @@ function AddLeaderPage() {
   const { t } = useLanguage();
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -94,6 +96,11 @@ function AddLeaderPage() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) {
+        toast({ variant: 'destructive', title: 'You must be logged in to add a leader.' });
+        return;
+    }
+
     const fileToDataUri = (file: File) => new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (event) => {
@@ -145,7 +152,7 @@ function AddLeaderPage() {
         photoUrl: photoDataUrl,
         manifestoUrl: manifestoDataUrl,
         twitterUrl: values.twitterUrl,
-    });
+    }, user.id);
 
     toast({
         title: t('addLeaderPage.successMessage'),

@@ -27,26 +27,32 @@ interface RatingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRatingSuccess: (updatedLeader: Leader) => void;
+  initialRating?: number | null;
+  initialComment?: string | null;
 }
 
-export default function RatingDialog({ leader, open, onOpenChange, onRatingSuccess }: RatingDialogProps) {
-  const [rating, setRating] = useState(0);
+export default function RatingDialog({ leader, open, onOpenChange, onRatingSuccess, initialRating = 0, initialComment = '' }: RatingDialogProps) {
+  const [rating, setRating] = useState(initialRating || 0);
   const [hoverRating, setHoverRating] = useState(0);
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState(initialComment || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { t } = useLanguage();
   const { user } = useAuth();
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setRating(initialRating || 0);
+      setComment(initialComment || '');
+    } else {
+      // Reset after a short delay to allow the dialog to close smoothly
       setTimeout(() => {
         setRating(0);
         setHoverRating(0);
         setComment('');
       }, 200);
     }
-  }, [open]);
+  }, [open, initialRating, initialComment]);
 
   const handleSubmit = async () => {
     if (rating === 0) {

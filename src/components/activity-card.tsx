@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Star } from 'lucide-react';
+import { Star, Edit } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 import type { UserActivity } from '@/data/leaders';
@@ -12,9 +12,10 @@ import { useLanguage } from '@/context/language-context';
 
 interface ActivityCardProps {
   activity: UserActivity;
+  onEdit: () => void;
 }
 
-export default function ActivityCard({ activity }: ActivityCardProps) {
+export default function ActivityCard({ activity, onEdit }: ActivityCardProps) {
   const { t } = useLanguage();
 
   return (
@@ -54,8 +55,9 @@ export default function ActivityCard({ activity }: ActivityCardProps) {
         )}
       </CardContent>
        <CardFooter className="bg-secondary/50 p-2 flex justify-end">
-            <Button asChild variant="ghost" size="sm">
-                <Link href="/rate-leader">{t('myActivitiesPage.findAnotherLeader')}</Link>
+            <Button onClick={onEdit} variant="ghost" size="sm">
+                <Edit className="mr-2 h-4 w-4" />
+                {t('myActivitiesPage.editRatingButton')}
             </Button>
       </CardFooter>
     </Card>

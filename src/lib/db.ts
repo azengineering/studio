@@ -3,7 +3,7 @@ import type { Leader } from '@/data/leaders';
 
 // For this prototype, we'll use a simple file-based SQLite database.
 // In a production app, you'd use a more robust database solution.
-export const db = new Database('politirate.db');
+export const db = new Database('/tmp/politirate.db');
 
 // Enable WAL mode for better concurrency.
 db.pragma('journal_mode = WAL');
@@ -27,6 +27,7 @@ const defaultLeaders: Leader[] = [
       { electionType: 'national', constituency: 'Mumbai South', status: 'winner', electionYear: '2019', partyName: 'Jan Vikas Party' }
     ],
     twitterUrl: 'https://x.com/example',
+    addedByUserId: null,
   },
   {
     id: '2',
@@ -43,6 +44,7 @@ const defaultLeaders: Leader[] = [
     reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
+    addedByUserId: null,
   },
   {
     id: '3',
@@ -59,6 +61,7 @@ const defaultLeaders: Leader[] = [
     reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
+    addedByUserId: null,
   },
   {
     id: '4',
@@ -75,6 +78,7 @@ const defaultLeaders: Leader[] = [
     reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
+    addedByUserId: null,
   },
   {
     id: '5',
@@ -91,6 +95,7 @@ const defaultLeaders: Leader[] = [
     reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
+    addedByUserId: null,
   },
   {
     id: '6',
@@ -107,6 +112,7 @@ const defaultLeaders: Leader[] = [
     reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
+    addedByUserId: null,
   },
    {
     id: '7',
@@ -123,6 +129,7 @@ const defaultLeaders: Leader[] = [
     reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
+    addedByUserId: null,
   },
   {
     id: '8',
@@ -139,6 +146,7 @@ const defaultLeaders: Leader[] = [
     reviewCount: 0,
     previousElections: [],
     twitterUrl: 'https://x.com/example',
+    addedByUserId: null,
   }
 ];
 
@@ -173,7 +181,9 @@ const schema = `
     reviewCount INTEGER DEFAULT 0,
     previousElections TEXT,
     manifestoUrl TEXT,
-    twitterUrl TEXT
+    twitterUrl TEXT,
+    addedByUserId TEXT,
+    FOREIGN KEY(addedByUserId) REFERENCES users(id)
   );
   
   CREATE TABLE IF NOT EXISTS ratings (
@@ -207,8 +217,8 @@ const seedLeaders = () => {
   }
 
   const insertStmt = db.prepare(`
-    INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl)
-    VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl)
+    INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId)
+    VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId)
   `);
 
   const insertMany = db.transaction((leaders: Leader[]) => {
@@ -230,6 +240,7 @@ const seedLeaders = () => {
         previousElections: JSON.stringify(leader.previousElections),
         manifestoUrl: leader.manifestoUrl,
         twitterUrl: leader.twitterUrl,
+        addedByUserId: leader.addedByUserId,
       });
     }
   });

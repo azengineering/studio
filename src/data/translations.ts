@@ -122,18 +122,32 @@ const translations = {
         loginLink: 'Login'
     },
     myActivitiesPage: {
-        title: 'My Activities',
+        title: 'My Dashboard',
         description: "Here's a summary of all the ratings and comments you've submitted.",
+        dashboardDescription: 'Manage your profile, view your submitted ratings, and see the leaders you have added.',
         noActivitiesTitle: "You haven't rated any leaders yet.",
         noActivitiesDescription: "Your feedback is important. Find a leader and share your opinion to see your activity here.",
         yourRating: "Your Rating",
         yourComment: "Your Comment",
         reviewedOn: "Reviewed",
-        findAnotherLeader: "Find Another Leader to Rate"
+        findAnotherLeader: "Find Another Leader to Rate",
+        editRatingButton: 'Edit Rating',
+        ratingsTab: 'My Ratings & Reviews',
+        addedLeadersTab: 'My Added Leaders',
+        profileTab: 'My Profile',
+        ratingsTabTitle: 'Your Submitted Ratings & Reviews',
+        ratingsTabDescription: 'Here is a list of all leaders you have rated. You can edit your rating at any time.',
+        addedLeadersTabTitle: 'Leaders You Have Added',
+        addedLeadersTabDescription: 'This is a list of all the leaders you have personally added to the PolitiRate database.',
+        noAddedLeadersTitle: 'You have not added any leaders.',
+        noAddedLeadersDescription: 'Help expand our database by adding leaders from your constituencies.',
+        profileTabTitle: 'Your Profile Information',
+        profileTabDescription: 'View and manage your personal details and location settings.'
     },
     accountSettingsPage: {
       title: 'Account Settings',
       description: 'Manage your account details and preferences. This feature is coming soon.',
+      welcome: 'Welcome, {name}!',
     },
     addLeaderPage: {
       title: 'Add a New Leader',
@@ -354,18 +368,32 @@ const translations = {
         loginLink: 'लॉग इन करें'
     },
     myActivitiesPage: {
-        title: 'मेरी गतिविधियाँ',
+        title: 'मेरा डैशबोर्ड',
         description: "यहां आपके द्वारा सबमिट की गई सभी रेटिंग और टिप्पणियों का सारांश है।",
+        dashboardDescription: 'अपनी प्रोफ़ाइल प्रबंधित करें, अपनी प्रस्तुत रेटिंग देखें, और आपके द्वारा जोड़े गए नेताओं को देखें।',
         noActivitiesTitle: "आपने अभी तक किसी भी नेता को रेट नहीं किया है।",
         noActivitiesDescription: "आपकी प्रतिक्रिया महत्वपूर्ण है। अपनी गतिविधि यहां देखने के लिए एक नेता खोजें और अपनी राय साझा करें।",
         yourRating: "आपकी रेटिंग",
         yourComment: "आपकी टिप्पणी",
         reviewedOn: "समीक्षा की गई",
-        findAnotherLeader: "रेट करने के लिए दूसरा नेता खोजें"
+        findAnotherLeader: "रेट करने के लिए दूसरा नेता खोजें",
+        editRatingButton: 'रेटिंग संपादित करें',
+        ratingsTab: 'मेरी रेटिंग और समीक्षाएं',
+        addedLeadersTab: 'मेरे द्वारा जोड़े गए नेता',
+        profileTab: 'मेरी प्रोफाइल',
+        ratingsTabTitle: 'आपकी प्रस्तुत रेटिंग और समीक्षाएं',
+        ratingsTabDescription: 'यहां आपके द्वारा रेट किए गए सभी नेताओं की सूची है। आप किसी भी समय अपनी रेटिंग संपादित कर सकते हैं।',
+        addedLeadersTabTitle: 'आपके द्वारा जोड़े गए नेता',
+        addedLeadersTabDescription: 'यह उन सभी नेताओं की सूची है जिन्हें आपने व्यक्तिगत रूप से पॉलिटीरेट डेटाबेस में जोड़ा है।',
+        noAddedLeadersTitle: 'आपने कोई नेता नहीं जोड़ा है।',
+        noAddedLeadersDescription: 'अपने निर्वाचन क्षेत्रों से नेताओं को जोड़कर हमारे डेटाबेस का विस्तार करने में मदद करें।',
+        profileTabTitle: 'आपकी प्रोफ़ाइल जानकारी',
+        profileTabDescription: 'अपने व्यक्तिगत विवरण और स्थान सेटिंग्स देखें और प्रबंधित करें।'
     },
     accountSettingsPage: {
       title: 'अकाउंट सेटिंग',
       description: 'अपने खाते का विवरण और प्राथमिकताएं प्रबंधित करें। यह सुविधा जल्द ही आ रही है।',
+      welcome: 'स्वागत है, {name}!',
     },
     addLeaderPage: {
       title: 'एक नया नेता जोड़ें',

@@ -2,7 +2,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import type { Leader as LeaderType } from '@/data/leaders';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -25,6 +25,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useAuth } from '@/context/auth-context';
 import RatingDialog from './rating-dialog';
 import ReviewsDialog from './reviews-dialog';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Separator } from './ui/separator';
 
 interface LeaderCardProps {
   leader: LeaderType;
@@ -56,6 +58,24 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
   const handleRatingSuccess = (updatedLeader: LeaderType) => {
     setLeader(updatedLeader);
   };
+  
+  const electionPerformance = useMemo(() => {
+    if (!leader.previousElections || leader.previousElections.length === 0) {
+      return null;
+    }
+    const total = leader.previousElections.length;
+    const wins = leader.previousElections.filter(e => e.status === 'winner').length;
+    const losses = total - wins;
+    return {
+      total,
+      wins,
+      losses,
+      data: [
+        { name: 'Wins', value: wins, color: '#22c55e' }, // green-500
+        { name: 'Losses', value: losses, color: '#ef4444' }, // red-500
+      ],
+    };
+  }, [leader.previousElections]);
 
   return (
     <>
@@ -137,14 +157,60 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
                                   Election Records
                               </button>
                           </AlertDialogTrigger>
-                           <AlertDialogContent>
+                           <AlertDialogContent className="sm:max-w-3xl">
                               <AlertDialogHeader>
-                                  <AlertDialogTitle>Election History for {leader.name}</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    Election History for <span className="text-primary font-bold">{leader.name}</span>
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
                                       This table shows the past election participation records available for this leader.
                                   </AlertDialogDescription>
                               </AlertDialogHeader>
-                              <div className="max-h-[60vh] overflow-y-auto">
+
+                              {electionPerformance && (
+                                <div className="my-6">
+                                  <h3 className="text-lg font-semibold mb-4 text-center">Performance Analysis</h3>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 rounded-lg bg-secondary/50">
+                                      <div className="w-full h-52">
+                                          <ResponsiveContainer width="100%" height="100%">
+                                              <PieChart>
+                                                  <Pie
+                                                      data={electionPerformance.data}
+                                                      dataKey="value"
+                                                      nameKey="name"
+                                                      cx="50%"
+                                                      cy="50%"
+                                                      outerRadius={80}
+                                                      label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                                                  >
+                                                      {electionPerformance.data.map((entry) => (
+                                                          <Cell key={`cell-${entry.name}`} fill={entry.color} />
+                                                      ))}
+                                                  </Pie>
+                                                  <Tooltip
+                                                      cursor={{ fill: 'hsla(var(--muted))' }}
+                                                      contentStyle={{
+                                                          background: 'hsl(var(--background))',
+                                                          borderRadius: 'var(--radius)',
+                                                          border: '1px solid hsl(var(--border))'
+                                                      }}
+                                                  />
+                                                  <Legend iconType="circle" />
+                                              </PieChart>
+                                          </ResponsiveContainer>
+                                      </div>
+                                      <div className="space-y-4 text-center md:text-left">
+                                          <p className="text-lg font-bold">Total Elections Fought: {electionPerformance.total}</p>
+                                          <Separator />
+                                          <p className="flex items-center justify-center md:justify-start gap-2 text-lg"><span className="w-3 h-3 rounded-full bg-green-500"></span> <span className="font-bold">{electionPerformance.wins}</span> Wins</p>
+                                          <p className="flex items-center justify-center md:justify-start gap-2 text-lg"><span className="w-3 h-3 rounded-full bg-red-500"></span> <span className="font-bold">{electionPerformance.losses}</span> Losses</p>
+                                      </div>
+                                  </div>
+                                  <Separator className="my-6" />
+                                </div>
+                              )}
+                              
+                              <div className="max-h-[40vh] overflow-y-auto">
                                   <Table>
                                       <TableHeader>
                                           <TableRow>
@@ -163,9 +229,15 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
                                                   <TableCell>{election.partyName}</TableCell>
                                                   <TableCell>{election.constituency}</TableCell>
                                                   <TableCell>
-                                                      <Badge variant={election.status === 'winner' ? 'default' : 'destructive'} className="capitalize">
-                                                          {election.status}
-                                                      </Badge>
+                                                    {election.status === 'winner' ? (
+                                                        <Badge className="capitalize bg-green-600 hover:bg-green-700 text-primary-foreground border-transparent">
+                                                            {election.status}
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="destructive" className="capitalize">
+                                                            {election.status}
+                                                        </Badge>
+                                                    )}
                                                   </TableCell>
                                               </TableRow>
                                           ))}
@@ -173,7 +245,7 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
                                   </Table>
                               </div>
                               <AlertDialogFooter>
-                                  <AlertDialogAction>Close</AlertDialogAction>
+                                  <AlertDialogCancel>Close</AlertDialogCancel>
                               </AlertDialogFooter>
                           </AlertDialogContent>
                       </AlertDialog>

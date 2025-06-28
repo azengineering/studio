@@ -184,8 +184,8 @@ export default function ReviewsDialog({ leader, open, onOpenChange, onAddReview 
             </div>
         </div>
         <TooltipProvider>
-            <ScrollArea className="h-96 pr-4 -mr-4">
-              <div className="space-y-6">
+            <ScrollArea className="h-96">
+              <div className="space-y-6 pr-6">
                 {isLoading ? (
                   <ReviewSkeleton />
                 ) : sortedReviews.length > 0 ? (

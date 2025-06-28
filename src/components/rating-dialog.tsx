@@ -115,14 +115,17 @@ export default function RatingDialog({ leader, open, onOpenChange, onRatingSucce
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t('ratingDialog.title').replace('{leaderName}', leader.name)}</DialogTitle>
+          <DialogTitle>
+            {t('ratingDialog.title').replace('{leaderName}', '')}
+            <span className="font-bold text-primary">{leader.name}</span>
+          </DialogTitle>
           <DialogDescription>
             {t('ratingDialog.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-6">
            <div className="space-y-2">
-              <Label>{t('ratingDialog.ratingLabel')}</Label>
+              <Label className="font-bold text-foreground">{t('ratingDialog.ratingLabel')}</Label>
               <div className="flex justify-center gap-2">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
@@ -141,7 +144,7 @@ export default function RatingDialog({ leader, open, onOpenChange, onRatingSucce
               </div>
            </div>
            <div className="space-y-2">
-            <Label htmlFor="social-behaviour">{t('ratingDialog.socialBehaviourLabel')}</Label>
+            <Label htmlFor="social-behaviour" className="font-bold text-foreground">{t('ratingDialog.socialBehaviourLabel')}</Label>
             <Select value={socialBehaviour ?? ''} onValueChange={(value) => setSocialBehaviour(value === '' ? null : value)}>
               <SelectTrigger id="social-behaviour">
                 <SelectValue placeholder={t('ratingDialog.socialBehaviourPlaceholder')} />
@@ -154,7 +157,7 @@ export default function RatingDialog({ leader, open, onOpenChange, onRatingSucce
             </Select>
           </div>
            <div className="space-y-2">
-            <Label htmlFor="comment">{t('ratingDialog.commentLabel')}</Label>
+            <Label htmlFor="comment" className="font-bold text-foreground">{t('ratingDialog.commentLabel')}</Label>
             <Textarea
               id="comment"
               placeholder={t('ratingDialog.commentPlaceholder')}

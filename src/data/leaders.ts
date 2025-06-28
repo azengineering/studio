@@ -40,6 +40,16 @@ export interface Review {
   updatedAt: string;
 }
 
+export interface UserActivity {
+  leaderId: string;
+  leaderName: string;
+  leaderPhotoUrl: string;
+  rating: number;
+  comment: string | null;
+  updatedAt: string;
+}
+
+
 // --- DB data transformation ---
 function dbToLeader(dbLeader: any): Leader {
     return {
@@ -199,4 +209,31 @@ export async function getReviewsForLeader(leaderId: string): Promise<Review[]> {
     
     const reviews = stmt.all(leaderId) as Review[];
     return Promise.resolve(reviews);
+}
+
+export async function getActivitiesForUser(userId: string): Promise<UserActivity[]> {
+    const stmt = db.prepare(`
+        SELECT
+            r.leaderId,
+            l.name as leaderName,
+            l.photoUrl as leaderPhotoUrl,
+            r.rating,
+            r.updatedAt,
+            c.comment
+        FROM ratings r
+        JOIN leaders l ON r.leaderId = l.id
+        LEFT JOIN comments c ON r.userId = c.userId AND r.leaderId = c.leaderId
+        WHERE r.userId = ?
+        ORDER BY r.updatedAt DESC
+    `);
+    
+    const activities = stmt.all(userId) as any[];
+    return Promise.resolve(activities.map(activity => ({
+        leaderId: activity.leaderId,
+        leaderName: activity.leaderName,
+        leaderPhotoUrl: activity.leaderPhotoUrl,
+        rating: activity.rating,
+        comment: activity.comment,
+        updatedAt: activity.updatedAt,
+    })));
 }

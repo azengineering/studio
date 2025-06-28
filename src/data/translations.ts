@@ -123,7 +123,13 @@ const translations = {
     },
     myActivitiesPage: {
         title: 'My Activities',
-        welcome: 'Welcome back, {name}! This is your personal dashboard.'
+        description: "Here's a summary of all the ratings and comments you've submitted.",
+        noActivitiesTitle: "You haven't rated any leaders yet.",
+        noActivitiesDescription: "Your feedback is important. Find a leader and share your opinion to see your activity here.",
+        yourRating: "Your Rating",
+        yourComment: "Your Comment",
+        reviewedOn: "Reviewed",
+        findAnotherLeader: "Find Another Leader to Rate"
     },
     accountSettingsPage: {
       title: 'Account Settings',
@@ -349,7 +355,13 @@ const translations = {
     },
     myActivitiesPage: {
         title: 'मेरी गतिविधियाँ',
-        welcome: 'वापस स्वागत है, {name}! यह आपका व्यक्तिगत डैशबोर्ड है।'
+        description: "यहां आपके द्वारा सबमिट की गई सभी रेटिंग और टिप्पणियों का सारांश है।",
+        noActivitiesTitle: "आपने अभी तक किसी भी नेता को रेट नहीं किया है।",
+        noActivitiesDescription: "आपकी प्रतिक्रिया महत्वपूर्ण है। अपनी गतिविधि यहां देखने के लिए एक नेता खोजें और अपनी राय साझा करें।",
+        yourRating: "आपकी रेटिंग",
+        yourComment: "आपकी टिप्पणी",
+        reviewedOn: "समीक्षा की गई",
+        findAnotherLeader: "रेट करने के लिए दूसरा नेता खोजें"
     },
     accountSettingsPage: {
       title: 'अकाउंट सेटिंग',

@@ -77,8 +77,8 @@ function MyActivitiesPage() {
   );
 
   const LeaderListSkeleton = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {Array.from({ length: 3 }).map((_, index) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {Array.from({ length: 4 }).map((_, index) => (
         <div key={index} className="flex flex-col space-y-3">
           <Skeleton className="h-[125px] w-full rounded-xl" />
           <div className="space-y-2">
@@ -101,8 +101,7 @@ function MyActivitiesPage() {
     <>
       <div className="flex flex-col min-h-screen bg-secondary/50">
         <Header />
-        <main className="flex-grow container mx-auto px-4 py-8 md:py-12">
-          <div className="max-w-5xl mx-auto">
+        <main className="flex-grow px-4 sm:px-6 lg:px-8 py-8 md:py-12">
             <div className="mb-8">
                 <h1 className="text-2xl md:text-3xl font-bold font-headline text-primary">{t('myActivitiesPage.title')}</h1>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -158,7 +157,7 @@ function MyActivitiesPage() {
                     {isLoadingLeaders ? (
                       <LeaderListSkeleton />
                     ) : addedLeaders.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                         {addedLeaders.map((leader) => (
                           <LeaderCard key={leader.id} leader={leader} />
                         ))}
@@ -210,7 +209,6 @@ function MyActivitiesPage() {
                 </Card>
               </TabsContent>
             </Tabs>
-          </div>
         </main>
         <Footer />
       </div>

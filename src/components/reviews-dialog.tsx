@@ -21,6 +21,7 @@ import { getReviewsForLeader, type Leader, type Review } from '@/data/leaders';
 import { useLanguage } from '@/context/language-context';
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const LinkRenderer = ({ text }: { text: string | null }) => {
   if (!text) return null;
@@ -49,44 +50,36 @@ const LinkRenderer = ({ text }: { text: string | null }) => {
 };
 
 const ReviewItem = ({ review }: { review: Review }) => {
-    const { t } = useLanguage();
-    const [isNameVisible, setIsNameVisible] = useState(false);
-
     return (
         <div className="flex flex-col gap-2">
-            {/* User row */}
-            {isNameVisible ? (
-                <p className="font-semibold text-sm flex items-center gap-2">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    {review.userName}
-                </p>
-            ) : (
-                <button onClick={() => setIsNameVisible(true)} className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors w-fit">
-                    <User className="h-5 w-5" />
-                    <span className="text-sm font-semibold hover:underline">{t('reviewsDialog.anonymous')}</span>
-                </button>
-            )}
-            
-            {/* Main content row (social, rating, time) */}
-            <div className="flex items-center justify-between flex-wrap gap-2">
-                 <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center justify-between flex-wrap gap-x-4 gap-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Tooltip>
+                        <TooltipTrigger>
+                           <User className="h-5 w-5 text-primary cursor-pointer" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{review.userName}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    
                     {review.socialBehaviour && (
-                      <Badge variant="secondary" className="capitalize">{review.socialBehaviour.replace('-', ' ')}</Badge>
+                        <Badge variant="secondary" className="capitalize">{review.socialBehaviour.replace('-', ' ')}</Badge>
                     )}
+                    
                     <div className="flex items-center gap-0.5">
                         {[...Array(5)].map((_, i) => (
                             <Star key={i} className={cn('h-4 w-4', i < review.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30')} />
                         ))}
                     </div>
                 </div>
-                 <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(review.updatedAt), { addSuffix: true })}</p>
+                <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(review.updatedAt), { addSuffix: true })}</p>
             </div>
             
-            {/* Comment */}
             {review.comment && (
-              <p className="text-sm text-muted-foreground break-words pt-1">
-                <LinkRenderer text={review.comment} />
-              </p>
+                <blockquote className="text-sm italic text-muted-foreground break-words pt-1 pl-7">
+                  “<LinkRenderer text={review.comment} />”
+                </blockquote>
             )}
         </div>
     )
@@ -190,23 +183,24 @@ export default function ReviewsDialog({ leader, open, onOpenChange, onAddReview 
                 <SortButton value="oldest" label={t('reviewsDialog.oldest')} />
             </div>
         </div>
-
-        <ScrollArea className="h-96 pr-4 -mr-4">
-          <div className="space-y-6">
-            {isLoading ? (
-              <ReviewSkeleton />
-            ) : sortedReviews.length > 0 ? (
-              sortedReviews.map((review, index) => (
-                <div key={`${review.userName}-${review.updatedAt}-${index}`}>
-                  <ReviewItem review={review} />
-                  {index < sortedReviews.length - 1 && <Separator className="my-4" />}
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-muted-foreground py-16">{t('reviewsDialog.noReviews')}</p>
-            )}
-          </div>
-        </ScrollArea>
+        <TooltipProvider>
+            <ScrollArea className="h-96 pr-4 -mr-4">
+              <div className="space-y-6">
+                {isLoading ? (
+                  <ReviewSkeleton />
+                ) : sortedReviews.length > 0 ? (
+                  sortedReviews.map((review, index) => (
+                    <div key={`${review.userName}-${review.updatedAt}-${index}`}>
+                      <ReviewItem review={review} />
+                      {index < sortedReviews.length - 1 && <Separator className="my-4" />}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground py-16">{t('reviewsDialog.noReviews')}</p>
+                )}
+              </div>
+            </ScrollArea>
+        </TooltipProvider>
         <DialogFooter>
             <Button onClick={onAddReview}>
                 {t('reviewsDialog.addYourReview')}

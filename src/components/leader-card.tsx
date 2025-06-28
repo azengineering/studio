@@ -28,14 +28,16 @@ import ReviewsDialog from './reviews-dialog';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Separator } from './ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
+import { cn } from '@/lib/utils';
 
 interface LeaderCardProps {
   leader: LeaderType;
   isEditable?: boolean;
   onEdit?: () => void;
+  variant?: 'default' | 'compact';
 }
 
-export default function LeaderCard({ leader: initialLeader, isEditable = false, onEdit }: LeaderCardProps) {
+export default function LeaderCard({ leader: initialLeader, isEditable = false, onEdit, variant = 'default' }: LeaderCardProps) {
   const { t } = useLanguage();
   const { user } = useAuth();
   const router = useRouter();
@@ -47,6 +49,7 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
   const [isLoginAlertOpen, setLoginAlertOpen] = useState(false);
 
   const genderText = leader.gender.charAt(0).toUpperCase() + leader.gender.slice(1);
+  const isCompact = variant === 'compact';
 
   const handleRateClick = () => {
     if (user) {
@@ -81,54 +84,54 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
   return (
     <>
       <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg rounded-xl border">
-        <CardContent className="p-4 flex-grow flex flex-col">
+        <CardContent className={cn("p-4 flex-grow flex flex-col", isCompact && "p-3")}>
           <div className="flex gap-4 items-start mb-4">
               <Image
                   src={leader.photoUrl || 'https://placehold.co/400x400.png'}
                   alt={`Portrait of ${leader.name}`}
-                  width={64}
-                  height={64}
+                  width={isCompact ? 48 : 64}
+                  height={isCompact ? 48 : 64}
                   className="rounded-full border-2 border-primary/50 object-cover"
                   data-ai-hint={`${leader.gender} indian politician`}
               />
               <div className="flex-1">
                   <div className="flex justify-between items-start">
-                      <h2 className="font-headline text-xl font-bold">
+                      <h2 className={cn("font-headline font-bold text-xl", isCompact && "text-base")}>
                           {leader.name}
                       </h2>
                       {isEditable && onEdit && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
+                        <Button variant="ghost" size="icon" className={cn("h-8 w-8", isCompact && "h-7 w-7")} onClick={onEdit}>
                             <Edit className="h-4 w-4 text-primary" />
                             <span className="sr-only">Edit Leader</span>
                         </Button>
                       )}
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className={cn("text-sm text-muted-foreground", isCompact && "text-xs")}>
                       {genderText}, {leader.age} yrs old
                   </p>
                   <div className="flex items-center gap-1 text-amber-500 mt-1">
                       <Star className="w-4 h-4 fill-current" />
-                      <span className="font-bold text-foreground text-sm">{leader.rating.toFixed(1)}</span>
+                      <span className={cn("font-bold text-foreground text-sm", isCompact && "text-xs")}>{leader.rating.toFixed(1)}</span>
                        <button
-                          onClick={() => leader.reviewCount > 0 && setReviewsDialogOpen(true)}
-                          className="flex items-center gap-1 text-muted-foreground text-xs ml-1 hover:underline hover:text-primary disabled:no-underline disabled:cursor-default"
+                          onClick={() => !isCompact && leader.reviewCount > 0 && setReviewsDialogOpen(true)}
+                          className={cn("flex items-center gap-1 text-muted-foreground text-xs ml-1 hover:underline hover:text-primary disabled:no-underline disabled:cursor-default", isCompact && "pointer-events-none")}
                           disabled={leader.reviewCount === 0}
                           aria-label={`View ${leader.reviewCount} reviews`}
                         >
                           <span>({leader.reviewCount} {t('leaderCard.reviews')})</span>
-                          {leader.reviewCount > 0 && <Eye className="h-3 w-3" />}
+                          {!isCompact && leader.reviewCount > 0 && <Eye className="h-3 w-3" />}
                         </button>
                   </div>
               </div>
           </div>
 
-          <div className="space-y-2 text-sm border-t pt-4 flex-grow">
+          <div className={cn("space-y-2 text-sm border-t pt-4 flex-grow", isCompact && "space-y-1 text-xs pt-2")}>
               <div className="flex items-baseline gap-2">
-                  <span className="text-muted-foreground">Party Name:</span>
-                  <p className="font-semibold text-foreground">{leader.partyName}</p>
+                  <span className="text-muted-foreground">Party:</span>
+                  <p className="font-semibold text-foreground truncate">{leader.partyName}</p>
               </div>
                <div className="flex items-baseline gap-2">
-                  <span className="text-muted-foreground">Election Type:</span>
+                  <span className="text-muted-foreground">Type:</span>
                   <p className="font-semibold capitalize text-foreground">{t(`filterDashboard.${leader.electionType}`)}</p>
               </div>
               <div className="flex items-baseline gap-2">
@@ -137,27 +140,28 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
               </div>
               <div className="flex items-baseline gap-2">
                   <span className="text-muted-foreground">Constituency:</span>
-                  <p className="font-semibold text-foreground">{leader.constituency}</p>
+                  <p className="font-semibold text-foreground truncate">{leader.constituency}</p>
               </div>
           </div>
 
-          <div className="border-t pt-4 mt-auto">
-              <div className="flex justify-between items-center text-sm">
-                  <div className="flex items-center gap-4">
-                      {leader.manifestoUrl && (
-                          <a href={leader.manifestoUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
-                              Manifesto
-                          </a>
-                      )}
-                      <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                              <button
-                                  disabled={!leader.previousElections || leader.previousElections.length === 0}
-                                  className="font-medium text-primary hover:underline disabled:text-muted-foreground disabled:no-underline cursor-pointer disabled:cursor-not-allowed"
-                              >
-                                  Election Records
-                              </button>
-                          </AlertDialogTrigger>
+          {!isCompact && (
+            <div className="border-t pt-4 mt-auto">
+                <div className="flex justify-between items-center text-sm">
+                    <div className="flex items-center gap-4">
+                        {leader.manifestoUrl && (
+                            <a href={leader.manifestoUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
+                                Manifesto
+                            </a>
+                        )}
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <button
+                                    disabled={!leader.previousElections || leader.previousElections.length === 0}
+                                    className="font-medium text-primary hover:underline disabled:text-muted-foreground disabled:no-underline cursor-pointer disabled:cursor-not-allowed"
+                                >
+                                    Election Records
+                                </button>
+                            </AlertDialogTrigger>
                            <AlertDialogContent className="sm:max-w-3xl">
                               <AlertDialogHeader>
                                   <AlertDialogTitle>
@@ -263,26 +267,29 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
                                   <AlertDialogCancel>Close</AlertDialogCancel>
                               </AlertDialogFooter>
                           </AlertDialogContent>
-                      </AlertDialog>
-                  </div>
-                   {leader.twitterUrl && (
-                      <a href={leader.twitterUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
-                          <Twitter className="h-4 w-4" />
-                          <span className="sr-only">X/Twitter Profile</span>
-                      </a>
-                  )}
-              </div>
-          </div>
+                        </AlertDialog>
+                    </div>
+                     {leader.twitterUrl && (
+                        <a href={leader.twitterUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                            <Twitter className="h-4 w-4" />
+                            <span className="sr-only">X/Twitter Profile</span>
+                        </a>
+                    )}
+                </div>
+            </div>
+          )}
         </CardContent>
 
+        {!isCompact && (
         <CardFooter className="p-2 bg-secondary/50 border-t flex justify-center">
             <Button size="sm" className="transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-px" onClick={handleRateClick}>
                 <Star className="mr-2 h-4 w-4" /> {t('leaderCard.addRatingAndComment')}
             </Button>
         </CardFooter>
+        )}
       </Card>
 
-      {user && (
+      {!isCompact && user && (
           <RatingDialog
               leader={leader}
               open={isRatingDialogOpen}
@@ -291,32 +298,36 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
           />
       )}
 
-      <ReviewsDialog 
-        leader={leader} 
-        open={isReviewsDialogOpen} 
-        onOpenChange={setReviewsDialogOpen}
-        onAddReview={() => {
-            setReviewsDialogOpen(false);
-            setRatingDialogOpen(true);
-        }}
-      />
+      {!isCompact && (
+        <ReviewsDialog 
+          leader={leader} 
+          open={isReviewsDialogOpen} 
+          onOpenChange={setReviewsDialogOpen}
+          onAddReview={() => {
+              setReviewsDialogOpen(false);
+              setRatingDialogOpen(true);
+          }}
+        />
+      )}
 
-      <AlertDialog open={isLoginAlertOpen} onOpenChange={setLoginAlertOpen}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-              <AlertDialogTitle>{t('auth.requiredTitle')}</AlertDialogTitle>
-              <AlertDialogDescription>
-                  {t('auth.rateLoginRequired')}
-              </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-              <AlertDialogCancel>{t('auth.cancel')}</AlertDialogCancel>
-              <AlertDialogAction onClick={() => router.push(`/login?redirect=${pathname}`)}>
-                  {t('auth.login')}
-              </AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
+      {!isCompact && (
+        <AlertDialog open={isLoginAlertOpen} onOpenChange={setLoginAlertOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>{t('auth.requiredTitle')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                    {t('auth.rateLoginRequired')}
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel>{t('auth.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={() => router.push(`/login?redirect=${pathname}`)}>
+                    {t('auth.login')}
+                </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+      )}
     </>
   );
 }

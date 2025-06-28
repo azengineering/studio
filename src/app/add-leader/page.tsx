@@ -718,9 +718,9 @@ function AddLeaderPage() {
                             <MatchingLeadersSkeleton />
                         ) : matchingLeaders.length > 0 ? (
                             <ScrollArea className="h-[calc(100vh-280px)] pr-4">
-                                <div className="space-y-6">
+                                <div className="space-y-4">
                                     {matchingLeaders.map(leader => (
-                                        <LeaderCard key={leader.id} leader={leader} />
+                                        <LeaderCard key={leader.id} leader={leader} variant="compact" />
                                     ))}
                                 </div>
                             </ScrollArea>

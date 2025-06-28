@@ -18,7 +18,8 @@ export default function withAuth<P extends object>(WrappedComponent: ComponentTy
     }, [user, loading, router, pathname]);
 
     if (loading || !user) {
-      return <LoadingScreen />;
+      // Return null or a minimal loader to avoid showing the full welcome screen on every refresh.
+      return null;
     }
 
     return <WrappedComponent {...props} />;

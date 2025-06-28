@@ -12,9 +12,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/components/ui/sheet';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useLanguage, type Language } from '@/context/language-context';
@@ -25,8 +36,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 export default function Header() {
   const { t, language, setLanguage } = useLanguage();
   const { user, logout } = useAuth();
+  const router = useRouter();
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isProfileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
 
 
   const navLinks = [
@@ -34,6 +47,15 @@ export default function Header() {
     { href: '/about', label: t('header.about') },
     { href: '/my-activities', label: t('header.myActivities') },
   ];
+
+  const handleActivitiesClick = () => {
+    if (user) {
+        router.push('/my-activities');
+    } else {
+        setMobileMenuOpen(false); // Close mobile menu if it's open
+        setShowLoginDialog(true);
+    }
+  };
 
   const LanguageSelector = () => (
     <DropdownMenu>
@@ -154,11 +176,17 @@ export default function Header() {
               
               <nav className="flex flex-col gap-1 p-4">
                   {navLinks.map(link => (
-                      <SheetClose asChild key={link.href}>
-                          <Link href={link.href} className="text-base font-medium hover:text-primary transition-colors p-2 rounded-md hover:bg-secondary">
+                    <SheetClose asChild key={link.href}>
+                      {link.href === '/my-activities' ? (
+                          <button onClick={handleActivitiesClick} className="w-full text-left text-base font-medium hover:text-primary transition-colors p-2 rounded-md hover:bg-secondary">
+                              {link.label}
+                          </button>
+                      ) : (
+                          <Link href={link.href} className="block text-base font-medium hover:text-primary transition-colors p-2 rounded-md hover:bg-secondary">
                              {link.label}
                           </Link>
-                      </SheetClose>
+                      )}
+                    </SheetClose>
                   ))}
               </nav>
           </div>
@@ -210,9 +238,19 @@ export default function Header() {
             </Link>
             <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
               {navLinks.map(link => (
-                  <Link key={link.href} href={link.href} className="text-muted-foreground transition-colors hover:text-foreground">
-                      {link.label}
-                  </Link>
+                  link.href === '/my-activities' ? (
+                      <button
+                          key={link.href}
+                          onClick={handleActivitiesClick}
+                          className="text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                          {link.label}
+                      </button>
+                  ) : (
+                      <Link key={link.href} href={link.href} className="text-muted-foreground transition-colors hover:text-foreground">
+                          {link.label}
+                      </Link>
+                  )
               ))}
             </nav>
             <div className="flex items-center gap-4">
@@ -231,6 +269,23 @@ export default function Header() {
           </div>
         </div>
       </header>
+      
+      <AlertDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('auth.requiredTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('auth.activitiesLoginRequired')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('auth.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => router.push('/login?redirect=/my-activities')}>
+              {t('auth.login')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

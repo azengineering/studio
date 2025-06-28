@@ -32,7 +32,7 @@ export default function Header() {
   const navLinks = [
     { href: '/', label: t('header.home') },
     { href: '/about', label: t('header.about') },
-    ...(user ? [{ href: '/my-activities', label: t('header.myActivities') }] : []),
+    { href: '/my-activities', label: t('header.myActivities') },
   ];
 
   const LanguageSelector = () => (

@@ -9,11 +9,33 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/language-context';
+import { Badge } from '@/components/ui/badge';
 
-interface ActivityCardProps {
-  activity: UserActivity;
-  onEdit: () => void;
-}
+const LinkRenderer = ({ text }: { text: string | null }) => {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+
+  return (
+    <>
+      {parts.map((part, index) =>
+        urlRegex.test(part) ? (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline break-all"
+          >
+            {part}
+          </a>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+};
 
 export default function ActivityCard({ activity, onEdit }: ActivityCardProps) {
   const { t } = useLanguage();
@@ -35,23 +57,28 @@ export default function ActivityCard({ activity, onEdit }: ActivityCardProps) {
       
       {activity.comment && (
         <CardContent className="p-4 pt-0">
-          <blockquote className="border-l-2 pl-3 text-sm italic text-foreground">
-            “{activity.comment}”
+          <blockquote className="border-l-2 pl-3 text-sm italic text-foreground break-words">
+            “<LinkRenderer text={activity.comment} />”
           </blockquote>
         </CardContent>
       )}
 
       <CardFooter className="bg-secondary/50 p-3 flex justify-between items-center">
-        <div className="flex items-center gap-1">
-          {[...Array(5)].map((_, i) => (
-            <Star
-              key={i}
-              className={cn(
-                'h-5 w-5',
-                i < activity.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30'
-              )}
-            />
-          ))}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1">
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                className={cn(
+                  'h-5 w-5',
+                  i < activity.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30'
+                )}
+              />
+            ))}
+          </div>
+          {activity.socialBehaviour && (
+            <Badge variant="secondary" className="capitalize">{activity.socialBehaviour.replace('-', ' ')}</Badge>
+          )}
         </div>
         <Button onClick={onEdit} variant="ghost" size="sm">
           <Edit className="mr-2 h-4 w-4" />

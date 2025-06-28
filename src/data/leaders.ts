@@ -39,6 +39,7 @@ export interface Review {
   rating: number;
   comment: string | null;
   updatedAt: string;
+  socialBehaviour: string | null;
 }
 
 export interface UserActivity {
@@ -49,6 +50,7 @@ export interface UserActivity {
   comment: string | null;
   updatedAt: string;
   leader: Leader;
+  socialBehaviour: string | null;
 }
 
 
@@ -180,7 +182,7 @@ export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'i
     return getLeaderById(leaderId);
 }
 
-export async function submitRatingAndComment(leaderId: string, userId: string, newRating: number, comment: string | null): Promise<Leader | null> {
+export async function submitRatingAndComment(leaderId: string, userId: string, newRating: number, comment: string | null, socialBehaviour: string | null): Promise<Leader | null> {
     const transaction = db.transaction(() => {
         const now = new Date().toISOString();
 
@@ -190,13 +192,14 @@ export async function submitRatingAndComment(leaderId: string, userId: string, n
         
         // 2. Insert or update rating
         const upsertRatingStmt = db.prepare(`
-            INSERT INTO ratings (userId, leaderId, rating, updatedAt)
-            VALUES (@userId, @leaderId, @rating, @updatedAt)
+            INSERT INTO ratings (userId, leaderId, rating, updatedAt, socialBehaviour)
+            VALUES (@userId, @leaderId, @rating, @updatedAt, @socialBehaviour)
             ON CONFLICT(userId, leaderId) DO UPDATE SET
             rating = excluded.rating,
-            updatedAt = excluded.updatedAt
+            updatedAt = excluded.updatedAt,
+            socialBehaviour = excluded.socialBehaviour
         `);
-        upsertRatingStmt.run({ userId, leaderId, rating: newRating, updatedAt: now });
+        upsertRatingStmt.run({ userId, leaderId, rating: newRating, updatedAt: now, socialBehaviour });
 
         // 3. Handle comment
         if (comment && comment.trim().length > 0) {
@@ -252,6 +255,7 @@ export async function getReviewsForLeader(leaderId: string): Promise<Review[]> {
         SELECT
             r.rating,
             r.updatedAt,
+            r.socialBehaviour,
             c.comment,
             u.name as userName
         FROM ratings r
@@ -261,8 +265,8 @@ export async function getReviewsForLeader(leaderId: string): Promise<Review[]> {
         ORDER BY r.updatedAt DESC
     `);
     
-    const reviews = stmt.all(leaderId) as Review[];
-    return Promise.resolve(reviews);
+    const reviews = stmt.all(leaderId) as any[];
+    return Promise.resolve(reviews.map(r => ({ ...r })));
 }
 
 export async function getActivitiesForUser(userId: string): Promise<UserActivity[]> {
@@ -272,6 +276,7 @@ export async function getActivitiesForUser(userId: string): Promise<UserActivity
             l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl, l.addedByUserId as leader_addedByUserId,
             r.rating,
             r.updatedAt,
+            r.socialBehaviour,
             c.comment
         FROM ratings r
         JOIN leaders l ON r.leaderId = l.id
@@ -312,6 +317,7 @@ export async function getActivitiesForUser(userId: string): Promise<UserActivity
             rating: activity.rating,
             comment: activity.comment,
             updatedAt: activity.updatedAt,
+            socialBehaviour: activity.socialBehaviour,
             leader: leaderData,
         };
     }));

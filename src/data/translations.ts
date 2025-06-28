@@ -92,7 +92,7 @@ const translations = {
     },
     leaderCard: {
       reviews: 'reviews',
-      submitRatingAndComment: 'Submit Rating & Comment',
+      addRatingAndComment: 'Add Rating & Comment',
     },
     footer: {
       copyright: `© ${new Date().getFullYear()} PolitiRate. All rights reserved.`,
@@ -230,6 +230,18 @@ const translations = {
       title: "Rate & Comment on {leaderName}",
       description: "Your feedback is valuable. Select a rating and leave a comment.",
       ratingLabel: "Your Rating",
+      socialBehaviourLabel: "Social Behaviour",
+      socialBehaviourPlaceholder: "Select a behaviour tag",
+      socialBehaviourOptions: {
+        socialWorker: "Social Worker",
+        honest: "Honest",
+        corrupt: "Corrupt",
+        criminal: "Criminal",
+        aggressive: "Aggressive",
+        humble: "Humble",
+        fraud: "Fraud",
+        average: "Average"
+      },
       commentLabel: "Your Comment",
       commentPlaceholder: "Share your detailed thoughts, experiences, or critiques...",
       errorTitle: "Rating Required",
@@ -343,7 +355,7 @@ const translations = {
     },
     leaderCard: {
       reviews: 'समीक्षाएं',
-      submitRatingAndComment: 'रेटिंग और टिप्पणी सबमिट करें',
+      addRatingAndComment: 'रेटिंग और टिप्पणी जोड़ें',
     },
     footer: {
       copyright: `© ${new Date().getFullYear()} पॉलिटीरेट। सर्वाधिकार सुरक्षित।`,
@@ -479,8 +491,20 @@ const translations = {
     },
      ratingDialog: {
       title: "रेट करें और टिप्पणी करें {leaderName}",
-      description: "आपकी प्रतिक्रिया मूल्यवान है। 1 से 5 सितारों में से एक रेटिंग चुनें और एक टिप्पणी छोड़ें।",
+      description: "आपकी प्रतिक्रिया मूल्यवान है। एक रेटिंग चुनें और एक टिप्पणी छोड़ें।",
       ratingLabel: "आपकी रेटिंग",
+      socialBehaviourLabel: "सामाजिक व्यवहार",
+      socialBehaviourPlaceholder: "एक व्यवहार टैग चुनें",
+      socialBehaviourOptions: {
+        socialWorker: "सामाजिक कार्यकर्ता",
+        honest: "ईमानदार",
+        corrupt: "भ्रष्ट",
+        criminal: "आपराधिक",
+        aggressive: "आक्रामक",
+        humble: "विनम्र",
+        fraud: "धोखाधड़ी",
+        average: "औसत"
+      },
       commentLabel: "आपकी टिप्पणी",
       commentPlaceholder: "अपने विस्तृत विचार, अनुभव, या आलोचनाएं साझा करें...",
       errorTitle: "रेटिंग आवश्यक है",

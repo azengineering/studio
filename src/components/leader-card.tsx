@@ -188,9 +188,9 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
           </div>
         </CardContent>
 
-        <CardFooter className="p-2 bg-secondary/50 border-t">
-            <Button size="sm" className="w-full transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-px" onClick={handleRateClick}>
-                <Star className="mr-2 h-4 w-4" /> {t('leaderCard.submitRatingAndComment')}
+        <CardFooter className="p-2 bg-secondary/50 border-t flex justify-center">
+            <Button size="sm" className="transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-px" onClick={handleRateClick}>
+                <Star className="mr-2 h-4 w-4" /> {t('leaderCard.addRatingAndComment')}
             </Button>
         </CardFooter>
       </Card>

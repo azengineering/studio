@@ -192,6 +192,7 @@ const schema = `
     leaderId TEXT NOT NULL,
     rating INTEGER NOT NULL,
     updatedAt TEXT NOT NULL,
+    socialBehaviour TEXT,
     PRIMARY KEY (userId, leaderId),
     FOREIGN KEY (userId) REFERENCES users(id),
     FOREIGN KEY (leaderId) REFERENCES leaders(id)
@@ -212,10 +213,15 @@ db.exec(schema);
 
 // --- Simple migration script to add missing column ---
 try {
-    const tableInfo = db.prepare("PRAGMA table_info(leaders)").all();
-    if (!tableInfo.some((col: any) => col.name === 'addedByUserId')) {
+    const leaderTableInfo = db.prepare("PRAGMA table_info(leaders)").all();
+    if (!leaderTableInfo.some((col: any) => col.name === 'addedByUserId')) {
         db.prepare('ALTER TABLE leaders ADD COLUMN addedByUserId TEXT').run();
         console.log("Database migration: Added 'addedByUserId' to 'leaders' table.");
+    }
+    const ratingTableInfo = db.prepare("PRAGMA table_info(ratings)").all();
+    if (!ratingTableInfo.some((col: any) => col.name === 'socialBehaviour')) {
+        db.prepare('ALTER TABLE ratings ADD COLUMN socialBehaviour TEXT').run();
+        console.log("Database migration: Added 'socialBehaviour' to 'ratings' table.");
     }
 } catch (error) {
     // This might fail if the table doesn't exist yet, which is fine on first run.

@@ -77,7 +77,7 @@ function MyActivitiesPage() {
   const ActivitySkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {[...Array(4)].map((_, i) => (
-        <Skeleton key={i} className="h-36 w-full rounded-lg" />
+        <Skeleton key={i} className="h-40 w-full rounded-lg" />
       ))}
     </div>
   );
@@ -232,6 +232,7 @@ function MyActivitiesPage() {
           onRatingSuccess={handleRatingSuccess}
           initialRating={editingActivity.rating}
           initialComment={editingActivity.comment}
+          initialSocialBehaviour={editingActivity.socialBehaviour}
         />
       )}
 

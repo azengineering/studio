@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 interface RatingDialogProps {
   leader: Leader;
@@ -29,12 +30,14 @@ interface RatingDialogProps {
   onRatingSuccess: (updatedLeader: Leader) => void;
   initialRating?: number | null;
   initialComment?: string | null;
+  initialSocialBehaviour?: string | null;
 }
 
-export default function RatingDialog({ leader, open, onOpenChange, onRatingSuccess, initialRating = 0, initialComment = '' }: RatingDialogProps) {
+export default function RatingDialog({ leader, open, onOpenChange, onRatingSuccess, initialRating = 0, initialComment = '', initialSocialBehaviour = null }: RatingDialogProps) {
   const [rating, setRating] = useState(initialRating || 0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState(initialComment || '');
+  const [socialBehaviour, setSocialBehaviour] = useState<string | null>(initialSocialBehaviour);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { t } = useLanguage();
@@ -44,15 +47,28 @@ export default function RatingDialog({ leader, open, onOpenChange, onRatingSucce
     if (open) {
       setRating(initialRating || 0);
       setComment(initialComment || '');
+      setSocialBehaviour(initialSocialBehaviour || null);
     } else {
       // Reset after a short delay to allow the dialog to close smoothly
       setTimeout(() => {
         setRating(0);
         setHoverRating(0);
         setComment('');
+        setSocialBehaviour(null);
       }, 200);
     }
-  }, [open, initialRating, initialComment]);
+  }, [open, initialRating, initialComment, initialSocialBehaviour]);
+
+  const socialBehaviourOptions = [
+    { value: 'social-worker', label: t('ratingDialog.socialBehaviourOptions.socialWorker') },
+    { value: 'honest', label: t('ratingDialog.socialBehaviourOptions.honest') },
+    { value: 'corrupt', label: t('ratingDialog.socialBehaviourOptions.corrupt') },
+    { value: 'criminal', label: t('ratingDialog.socialBehaviourOptions.criminal') },
+    { value: 'aggressive', label: t('ratingDialog.socialBehaviourOptions.aggressive') },
+    { value: 'humble', label: t('ratingDialog.socialBehaviourOptions.humble') },
+    { value: 'fraud', label: t('ratingDialog.socialBehaviourOptions.fraud') },
+    { value: 'average', label: t('ratingDialog.socialBehaviourOptions.average') },
+  ];
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -73,7 +89,7 @@ export default function RatingDialog({ leader, open, onOpenChange, onRatingSucce
     }
     setIsSubmitting(true);
     try {
-      const updatedLeader = await submitRatingAndComment(leader.id, user.id, rating, comment);
+      const updatedLeader = await submitRatingAndComment(leader.id, user.id, rating, comment, socialBehaviour);
       if (updatedLeader) {
         toast({
           title: t('ratingDialog.successTitle'),
@@ -124,6 +140,19 @@ export default function RatingDialog({ leader, open, onOpenChange, onRatingSucce
                 ))}
               </div>
            </div>
+           <div className="space-y-2">
+            <Label htmlFor="social-behaviour">{t('ratingDialog.socialBehaviourLabel')}</Label>
+            <Select value={socialBehaviour ?? ''} onValueChange={(value) => setSocialBehaviour(value === '' ? null : value)}>
+              <SelectTrigger id="social-behaviour">
+                <SelectValue placeholder={t('ratingDialog.socialBehaviourPlaceholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                {socialBehaviourOptions.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
            <div className="space-y-2">
             <Label htmlFor="comment">{t('ratingDialog.commentLabel')}</Label>
             <Textarea

@@ -20,19 +20,42 @@ import { useLanguage } from '@/context/language-context';
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
 
-interface ReviewsDialogProps {
-  leader: Leader;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
+const LinkRenderer = ({ text }: { text: string | null }) => {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+
+  return (
+    <>
+      {parts.map((part, index) =>
+        urlRegex.test(part) ? (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            {part}
+          </a>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+};
 
 const ReviewItem = ({ review }: { review: Review }) => {
     return (
         <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                     <User className="h-5 w-5 text-muted-foreground" />
                     <p className="font-semibold text-sm">{review.userName}</p>
+                     {review.socialBehaviour && (
+                      <Badge variant="outline" className="capitalize">{review.socialBehaviour.replace('-', ' ')}</Badge>
+                    )}
                 </div>
                 <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
@@ -46,7 +69,11 @@ const ReviewItem = ({ review }: { review: Review }) => {
                     ))}
                 </div>
             </div>
-            {review.comment && <p className="text-muted-foreground text-sm pl-7">{review.comment}</p>}
+            {review.comment && (
+              <p className="text-muted-foreground text-sm pl-7 break-words">
+                <LinkRenderer text={review.comment} />
+              </p>
+            )}
             <p className="text-xs text-muted-foreground/80 pl-7">{formatDistanceToNow(new Date(review.updatedAt), { addSuffix: true })}</p>
         </div>
     )

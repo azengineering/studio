@@ -43,21 +43,55 @@ export default function RateLeaderPage() {
       const leadersFromStorage = await getLeaders();
       setAllLeaders(leadersFromStorage); // Keep the full list for searching
       
-      // Default to filtering by user's location if available
-      if (user && user.state) {
-        const locationBasedLeaders = leadersFromStorage.filter(leader => 
-          leader.location.state === user.state
-        );
-        setFilteredLeaders(locationBasedLeaders);
+      if (user) {
+        const { mpConstituency, mlaConstituency, panchayat, state } = user;
+        
+        const lowerMp = mpConstituency?.trim().toLowerCase();
+        const lowerMla = mlaConstituency?.trim().toLowerCase();
+        const lowerPanchayat = panchayat?.trim().toLowerCase();
+        const userState = state?.trim();
+
+        const locationBasedLeaders = leadersFromStorage.filter(leader => {
+          const leaderConstituency = leader.constituency.trim().toLowerCase();
+          const leaderState = leader.location.state?.trim();
+
+          // 1. Match based on user's state
+          if (userState && leaderState === userState) {
+            return true;
+          }
+
+          // 2. Match based on specific constituencies
+          if (leader.electionType === 'national' && lowerMp && leaderConstituency === lowerMp) {
+            return true;
+          }
+          if (leader.electionType === 'state' && lowerMla && leaderConstituency === lowerMla) {
+            return true;
+          }
+          if (leader.electionType === 'panchayat' && lowerPanchayat && leaderConstituency === lowerPanchayat) {
+            return true;
+          }
+
+          return false;
+        });
+
+        const uniqueLeaders = Array.from(new Set(locationBasedLeaders.map(l => l.id))).map(id => locationBasedLeaders.find(l => l.id === id)!);
+        
+        if (uniqueLeaders.length > 0) {
+            setFilteredLeaders(uniqueLeaders);
+        } else {
+            // If user is logged in but has no location info set or no matches found, show all.
+            setFilteredLeaders(leadersFromStorage);
+        }
+
       } else {
-        // If user is not logged in or has no state set, show all leaders.
+        // If user is not logged in, show all leaders.
         setFilteredLeaders(leadersFromStorage);
       }
 
       setIsLoading(false);
     };
     fetchAndFilterLeaders();
-  }, [user]); // Re-run when user data becomes available
+  }, [user]);
 
   const handleAddLeaderClick = () => {
     if (user) {

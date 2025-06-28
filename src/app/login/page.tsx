@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Scale, X } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ const formSchema = z.object({
 export default function LoginPage() {
   const { t } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const { toast } = useToast();
 
@@ -49,7 +50,8 @@ export default function LoginPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      await login(values.email, values.password);
+      const redirectPath = searchParams.get('redirect');
+      await login(values.email, values.password, redirectPath);
       toast({
         title: "Login Successful",
         description: "Welcome back!",

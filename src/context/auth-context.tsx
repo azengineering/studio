@@ -7,7 +7,7 @@ import { findUserByEmail, addUser as addNewUser, updateUserProfile, type User, f
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, redirectPath?: string | null) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUser: (profileData: Partial<User>) => Promise<User | null>;
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // The empty dependency array is correct, this should only run on initial mount.
 
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, redirectPath?: string | null) => {
     const existingUser = await findUserByEmail(email);
 
     if (!existingUser) {
@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     localStorage.setItem('politirate_user', JSON.stringify(loggedInUser));
     setUser(loggedInUser as User);
-    router.push('/');
+    router.push(redirectPath || '/');
   };
 
   const signup = async (email: string, password: string) => {

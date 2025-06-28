@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, type ComponentType } from 'react';
 import { useAuth } from '@/context/auth-context';
 import LoadingScreen from '@/components/loading-screen';
@@ -9,12 +9,13 @@ export default function withAuth<P extends object>(WrappedComponent: ComponentTy
   const WithAuthComponent = (props: P) => {
     const { user, loading } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
       if (!loading && !user) {
-        router.push('/login');
+        router.push(`/login?redirect=${pathname}`);
       }
-    }, [user, loading, router]);
+    }, [user, loading, router, pathname]);
 
     if (loading || !user) {
       return <LoadingScreen />;

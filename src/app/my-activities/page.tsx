@@ -20,10 +20,12 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import RatingDialog from '@/components/rating-dialog';
 import ProfileDialog from '@/components/profile-dialog';
+import { useRouter } from 'next/navigation';
 
 function MyActivitiesPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const router = useRouter();
   const [activities, setActivities] = useState<UserActivity[]>([]);
   const [addedLeaders, setAddedLeaders] = useState<Leader[]>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(true);
@@ -66,7 +68,11 @@ function MyActivitiesPage() {
     setEditingActivity(null);
     // Refresh activities to show updated rating/comment
     fetchActivities();
-  }
+  };
+
+  const handleEditLeader = (leaderId: string) => {
+    router.push(`/add-leader?edit=${leaderId}`);
+  };
 
   const ActivitySkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -159,7 +165,12 @@ function MyActivitiesPage() {
                     ) : addedLeaders.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                         {addedLeaders.map((leader) => (
-                          <LeaderCard key={leader.id} leader={leader} />
+                          <LeaderCard
+                            key={leader.id}
+                            leader={leader}
+                            isEditable={true}
+                            onEdit={() => handleEditLeader(leader.id)}
+                          />
                         ))}
                       </div>
                     ) : (

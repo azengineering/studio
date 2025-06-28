@@ -131,6 +131,55 @@ export async function getLeaderById(id: string): Promise<Leader | null> {
     return Promise.resolve(null);
 }
 
+export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId'>, userId: string): Promise<Leader | null> {
+    const leaderToUpdate = await getLeaderById(leaderId);
+
+    if (!leaderToUpdate) {
+        throw new Error("Leader not found.");
+    }
+    // Only the user who added the leader can edit them.
+    if (leaderToUpdate.addedByUserId !== userId) {
+        throw new Error("You are not authorized to edit this leader.");
+    }
+
+    const stmt = db.prepare(`
+        UPDATE leaders
+        SET name = @name,
+            partyName = @partyName,
+            gender = @gender,
+            age = @age,
+            photoUrl = @photoUrl,
+            constituency = @constituency,
+            nativeAddress = @nativeAddress,
+            electionType = @electionType,
+            location_state = @location_state,
+            location_district = @location_district,
+            previousElections = @previousElections,
+            manifestoUrl = @manifestoUrl,
+            twitterUrl = @twitterUrl
+        WHERE id = @id
+    `);
+
+    stmt.run({
+        id: leaderId,
+        name: leaderData.name,
+        partyName: leaderData.partyName,
+        gender: leaderData.gender,
+        age: leaderData.age,
+        photoUrl: leaderData.photoUrl,
+        constituency: leaderData.constituency,
+        nativeAddress: leaderData.nativeAddress,
+        electionType: leaderData.electionType,
+        location_state: leaderData.location.state,
+        location_district: leaderData.location.district,
+        previousElections: JSON.stringify(leaderData.previousElections),
+        manifestoUrl: leaderData.manifestoUrl,
+        twitterUrl: leaderData.twitterUrl,
+    });
+
+    return getLeaderById(leaderId);
+}
+
 export async function submitRatingAndComment(leaderId: string, userId: string, newRating: number, comment: string | null): Promise<Leader | null> {
     const transaction = db.transaction(() => {
         const now = new Date().toISOString();
@@ -220,7 +269,7 @@ export async function getActivitiesForUser(userId: string): Promise<UserActivity
     const stmt = db.prepare(`
         SELECT
             r.leaderId,
-            l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl,
+            l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl, l.addedByUserId as leader_addedByUserId,
             r.rating,
             r.updatedAt,
             c.comment
@@ -253,6 +302,7 @@ export async function getActivitiesForUser(userId: string): Promise<UserActivity
             previousElections: JSON.parse(activity.leader_previousElections || '[]'),
             manifestoUrl: activity.leader_manifestoUrl,
             twitterUrl: activity.leader_twitterUrl,
+            addedByUserId: activity.leader_addedByUserId,
         };
 
         return {

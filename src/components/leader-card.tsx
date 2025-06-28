@@ -7,7 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import type { Leader as LeaderType } from '@/data/leaders';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Star, Twitter, Eye } from 'lucide-react';
+import { Star, Twitter, Eye, Edit } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/context/language-context';
 import {
@@ -28,9 +28,11 @@ import ReviewsDialog from './reviews-dialog';
 
 interface LeaderCardProps {
   leader: LeaderType;
+  isEditable?: boolean;
+  onEdit?: () => void;
 }
 
-export default function LeaderCard({ leader: initialLeader }: LeaderCardProps) {
+export default function LeaderCard({ leader: initialLeader, isEditable = false, onEdit }: LeaderCardProps) {
   const { t } = useLanguage();
   const { user } = useAuth();
   const router = useRouter();
@@ -73,6 +75,12 @@ export default function LeaderCard({ leader: initialLeader }: LeaderCardProps) {
                       <h2 className="font-headline text-xl font-bold">
                           {leader.name}
                       </h2>
+                      {isEditable && onEdit && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
+                            <Edit className="h-4 w-4 text-primary" />
+                            <span className="sr-only">Edit Leader</span>
+                        </Button>
+                      )}
                   </div>
                   <p className="text-sm text-muted-foreground">
                       {genderText}, {leader.age} yrs old

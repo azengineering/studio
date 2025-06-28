@@ -69,8 +69,8 @@ function MyActivitiesPage() {
   }
 
   const ActivitySkeleton = () => (
-    <div className="space-y-6 max-w-2xl">
-      {[...Array(3)].map((_, i) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {[...Array(4)].map((_, i) => (
         <Skeleton key={i} className="h-36 w-full rounded-lg" />
       ))}
     </div>
@@ -109,7 +109,7 @@ function MyActivitiesPage() {
                 </p>
             </div>
 
-            <Tabs defaultValue="ratings">
+            <Tabs defaultValue="ratings" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="ratings">{t('myActivitiesPage.ratingsTab')}</TabsTrigger>
                 <TabsTrigger value="added-leaders">{t('myActivitiesPage.addedLeadersTab')}</TabsTrigger>
@@ -126,7 +126,7 @@ function MyActivitiesPage() {
                     {isLoadingActivities ? (
                       <ActivitySkeleton />
                     ) : activities.length > 0 ? (
-                      <div className="space-y-6 max-w-2xl">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {activities.map((activity) => (
                           <ActivityCard key={activity.leaderId} activity={activity} onEdit={() => handleEditRating(activity)} />
                         ))}

@@ -69,9 +69,9 @@ function MyActivitiesPage() {
   }
 
   const ActivitySkeleton = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-2xl">
       {[...Array(3)].map((_, i) => (
-        <Skeleton key={i} className="h-40 w-full rounded-lg" />
+        <Skeleton key={i} className="h-36 w-full rounded-lg" />
       ))}
     </div>
   );
@@ -103,10 +103,12 @@ function MyActivitiesPage() {
         <Header />
         <main className="flex-grow container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-5xl mx-auto">
-            <h1 className="text-3xl md:text-4xl font-bold font-headline mb-2">{t('myActivitiesPage.title')}</h1>
-            <p className="text-muted-foreground mb-8">
-              {t('myActivitiesPage.dashboardDescription')}
-            </p>
+            <div className="mb-8">
+                <h1 className="text-2xl md:text-3xl font-bold font-headline">{t('myActivitiesPage.title')}</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                {t('myActivitiesPage.dashboardDescription')}
+                </p>
+            </div>
 
             <Tabs defaultValue="ratings">
               <TabsList className="grid w-full grid-cols-3">
@@ -125,7 +127,7 @@ function MyActivitiesPage() {
                     {isLoadingActivities ? (
                       <ActivitySkeleton />
                     ) : activities.length > 0 ? (
-                      <div className="space-y-6">
+                      <div className="space-y-6 max-w-2xl">
                         {activities.map((activity) => (
                           <ActivityCard key={activity.leaderId} activity={activity} onEdit={() => handleEditRating(activity)} />
                         ))}

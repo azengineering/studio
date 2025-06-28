@@ -13,7 +13,7 @@ import SearchFilter from '@/components/search-filter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +32,8 @@ export default function RateLeaderPage() {
   const [allLeaders, setAllLeaders] = useState<Leader[]>([]);
   const [filteredLeaders, setFilteredLeaders] = useState<Leader[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const leadersPerPage = 10;
   
   const { user } = useAuth();
   const router = useRouter();
@@ -87,7 +89,7 @@ export default function RateLeaderPage() {
         // If user is not logged in, show all leaders.
         setFilteredLeaders(leadersFromStorage);
       }
-
+      setCurrentPage(1);
       setIsLoading(false);
     };
     fetchAndFilterLeaders();
@@ -134,6 +136,7 @@ export default function RateLeaderPage() {
     }
 
     setFilteredLeaders(results);
+    setCurrentPage(1);
     setIsLoading(false);
   };
 
@@ -150,6 +153,12 @@ export default function RateLeaderPage() {
       ))}
     </div>
   );
+
+  const sortedLeaders = [...filteredLeaders].sort((a, b) => b.rating - a.rating);
+  const indexOfLastLeader = currentPage * leadersPerPage;
+  const indexOfFirstLeader = indexOfLastLeader - leadersPerPage;
+  const currentLeaders = sortedLeaders.slice(indexOfFirstLeader, indexOfLastLeader);
+  const totalPages = Math.ceil(sortedLeaders.length / leadersPerPage);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -179,8 +188,34 @@ export default function RateLeaderPage() {
               <Separator className="mb-8" />
             </>
           )}
-          {isLoading ? <LeaderListSkeleton /> : <LeaderList leaders={filteredLeaders} />}
+          {isLoading ? <LeaderListSkeleton /> : <LeaderList leaders={currentLeaders} />}
         </div>
+
+        {totalPages > 1 && !isLoading && (
+          <div className="flex justify-center items-center gap-4 mt-8">
+            <Button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              variant="outline"
+            >
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              {t('pagination.previous')}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {t('pagination.pageInfo')
+                .replace('{currentPage}', String(currentPage))
+                .replace('{totalPages}', String(totalPages))}
+            </span>
+            <Button
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              variant="outline"
+            >
+              {t('pagination.next')}
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        )}
         
         <AlertDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
           <AlertDialogContent>

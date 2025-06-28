@@ -56,14 +56,6 @@ const formSchema = z.object({
 }, {
   message: "State is required",
   path: ["state"],
-}).refine(data => {
-    if (data.electionType === 'panchayat') {
-        return !!data.district;
-    }
-    return true;
-}, {
-  message: "District is required",
-  path: ["district"],
 });
 
 
@@ -282,36 +274,6 @@ function AddLeaderPage() {
                     
                     {/* --- Row 3: Personal Details --- */}
                     <div className="grid md:grid-cols-3 gap-6">
-                         {electionType === 'panchayat' && (
-                            <FormField
-                                control={form.control}
-                                name="district"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('addLeaderPage.districtLabel')}</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedState}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('addLeaderPage.selectDistrict')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {selectedState && districtsByState[selectedState] ? (
-                                                    districtsByState[selectedState].map(district => (
-                                                        <SelectItem key={district} value={district}>{district}</SelectItem>
-                                                    ))
-                                                ) : (
-                                                    <SelectItem value="none" disabled>
-                                                        {selectedState ? t('filterDashboard.noDistricts') : t('filterDashboard.selectStateFirst')}
-                                                    </SelectItem>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        )}
                         <FormField
                             control={form.control}
                             name="gender"

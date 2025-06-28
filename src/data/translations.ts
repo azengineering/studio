@@ -220,7 +220,12 @@ const translations = {
       title: "Reviews for {leaderName}",
       description: "See what other citizens are saying.",
       noReviews: "No reviews yet. Be the first to share your opinion!"
-    }
+    },
+    pagination: {
+      previous: 'Previous',
+      next: 'Next',
+      pageInfo: 'Page {currentPage} of {totalPages}',
+    },
   },
   hi: {
     header: {
@@ -441,7 +446,12 @@ const translations = {
       title: "{leaderName} के लिए समीक्षाएं",
       description: "देखें कि अन्य नागरिक क्या कह रहे हैं।",
       noReviews: "अभी तक कोई समीक्षा नहीं है। अपनी राय साझा करने वाले पहले व्यक्ति बनें!"
-    }
+    },
+    pagination: {
+      previous: 'पिछला',
+      next: 'अगला',
+      pageInfo: 'पेज {totalPages} का {currentPage}',
+    },
   },
 };
 

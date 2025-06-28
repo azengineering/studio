@@ -227,7 +227,7 @@ const translations = {
       errorTitle: 'Update Failed',
     },
     ratingDialog: {
-      title: "Rate & Comment on {leaderName}",
+      title: "Rate & Comment on",
       description: "Your feedback is valuable. Select a rating and leave a comment.",
       ratingLabel: "Your Rating",
       socialBehaviourLabel: "Social Behaviour",
@@ -256,9 +256,16 @@ const translations = {
       submittingButton: "Submitting...",
     },
     reviewsDialog: {
-      title: "Reviews for {leaderName}",
+      title: "Reviews",
       description: "See what other citizens are saying.",
-      noReviews: "No reviews yet. Be the first to share your opinion!"
+      noReviews: "No reviews yet. Be the first to share your opinion!",
+      reviews: "Reviews",
+      anonymous: "Anonymous",
+      addYourReview: "Add Your Review",
+      latest: "Latest",
+      oldest: "Oldest",
+      topRated: "Top Rated",
+      lowestRated: "Lowest Rated"
     },
     pagination: {
       previous: 'Previous',
@@ -492,7 +499,7 @@ const translations = {
       errorTitle: 'अपडेट विफल',
     },
      ratingDialog: {
-      title: "रेट करें और टिप्पणी करें {leaderName}",
+      title: "रेट करें और टिप्पणी करें",
       description: "आपकी प्रतिक्रिया मूल्यवान है। एक रेटिंग चुनें और एक टिप्पणी छोड़ें।",
       ratingLabel: "आपकी रेटिंग",
       socialBehaviourLabel: "सामाजिक व्यवहार",
@@ -521,9 +528,16 @@ const translations = {
       submittingButton: "सबमिट हो रहा है...",
     },
     reviewsDialog: {
-      title: "{leaderName} के लिए समीक्षाएं",
+      title: "समीक्षाएं",
       description: "देखें कि अन्य नागरिक क्या कह रहे हैं।",
-      noReviews: "अभी तक कोई समीक्षा नहीं है। अपनी राय साझा करने वाले पहले व्यक्ति बनें!"
+      noReviews: "अभी तक कोई समीक्षा नहीं है। अपनी राय साझा करने वाले पहले व्यक्ति बनें!",
+      reviews: "समीक्षाएं",
+      anonymous: "अज्ञात",
+      addYourReview: "अपनी समीक्षा जोड़ें",
+      latest: "नवीनतम",
+      oldest: "सबसे पुराना",
+      topRated: "शीर्ष रेटेड",
+      lowestRated: "सबसे कम रेटेड"
     },
     pagination: {
       previous: 'पिछला',

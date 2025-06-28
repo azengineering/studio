@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Star, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -11,7 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -47,34 +49,45 @@ const LinkRenderer = ({ text }: { text: string | null }) => {
 };
 
 const ReviewItem = ({ review }: { review: Review }) => {
+    const { t } = useLanguage();
+    const [isNameVisible, setIsNameVisible] = useState(false);
+
     return (
         <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2">
+            {/* User row */}
+            {isNameVisible ? (
+                <p className="font-semibold text-sm flex items-center gap-2">
                     <User className="h-5 w-5 text-muted-foreground" />
-                    <p className="font-semibold text-sm">{review.userName}</p>
-                     {review.socialBehaviour && (
-                      <Badge variant="outline" className="capitalize">{review.socialBehaviour.replace('-', ' ')}</Badge>
+                    {review.userName}
+                </p>
+            ) : (
+                <button onClick={() => setIsNameVisible(true)} className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors w-fit">
+                    <User className="h-5 w-5" />
+                    <span className="text-sm font-semibold hover:underline">{t('reviewsDialog.anonymous')}</span>
+                </button>
+            )}
+            
+            {/* Main content row (social, rating, time) */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+                 <div className="flex items-center gap-2 flex-wrap">
+                    {review.socialBehaviour && (
+                      <Badge variant="secondary" className="capitalize">{review.socialBehaviour.replace('-', ' ')}</Badge>
                     )}
+                    <div className="flex items-center gap-0.5">
+                        {[...Array(5)].map((_, i) => (
+                            <Star key={i} className={cn('h-4 w-4', i < review.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30')} />
+                        ))}
+                    </div>
                 </div>
-                <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                        <Star
-                            key={i}
-                            className={cn(
-                            'h-4 w-4',
-                            i < review.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/50'
-                            )}
-                        />
-                    ))}
-                </div>
+                 <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(review.updatedAt), { addSuffix: true })}</p>
             </div>
+            
+            {/* Comment */}
             {review.comment && (
-              <p className="text-muted-foreground text-sm pl-7 break-words">
+              <p className="text-sm text-muted-foreground break-words pt-1">
                 <LinkRenderer text={review.comment} />
               </p>
             )}
-            <p className="text-xs text-muted-foreground/80 pl-7">{formatDistanceToNow(new Date(review.updatedAt), { addSuffix: true })}</p>
         </div>
     )
 };
@@ -97,10 +110,21 @@ const ReviewSkeleton = () => (
     </div>
 );
 
-export default function ReviewsDialog({ leader, open, onOpenChange }: ReviewsDialogProps) {
+type SortOrder = 'latest' | 'oldest' | 'top-rated' | 'lowest-rated';
+
+interface ReviewsDialogProps {
+  leader: Leader;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAddReview: () => void;
+}
+
+
+export default function ReviewsDialog({ leader, open, onOpenChange, onAddReview }: ReviewsDialogProps) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { t } = useLanguage();
+  const [sortOrder, setSortOrder] = useState<SortOrder>('latest');
 
   useEffect(() => {
     if (open) {
@@ -111,30 +135,71 @@ export default function ReviewsDialog({ leader, open, onOpenChange }: ReviewsDia
         setIsLoading(false);
       };
       fetchReviews();
+    } else {
+        // Reset sort order when dialog is closed
+        setSortOrder('latest');
     }
   }, [open, leader.id]);
+  
+  const sortedReviews = useMemo(() => {
+    return [...reviews].sort((a, b) => {
+        switch (sortOrder) {
+            case 'top-rated':
+                return b.rating - a.rating;
+            case 'lowest-rated':
+                return a.rating - b.rating;
+            case 'oldest':
+                return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+            case 'latest':
+            default:
+                return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        }
+    });
+  }, [reviews, sortOrder]);
+  
+  const SortButton = ({ value, label }: { value: SortOrder, label: string }) => (
+    <Button 
+        variant={sortOrder === value ? 'default' : 'ghost'} 
+        size="sm"
+        onClick={() => setSortOrder(value)}
+    >
+        {label}
+    </Button>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{t('reviewsDialog.title').replace('{leaderName}', leader.name)}</DialogTitle>
+          <DialogTitle>
+            {t('reviewsDialog.title')} <span className="font-bold text-primary">{leader.name}</span>
+          </DialogTitle>
           <DialogDescription>
             <span className="flex items-center gap-2">
                 {t('reviewsDialog.description')}
-                <Badge variant="secondary">{leader.reviewCount} Reviews</Badge>
+                <Badge className="bg-amber-200 text-amber-800 hover:bg-amber-300">{leader.reviewCount} {t('reviewsDialog.reviews')}</Badge>
             </span>
           </DialogDescription>
         </DialogHeader>
+        
+        <div className="py-2 border-y">
+            <div className="flex flex-wrap gap-2 items-center">
+                <SortButton value="latest" label={t('reviewsDialog.latest')} />
+                <SortButton value="top-rated" label={t('reviewsDialog.topRated')} />
+                <SortButton value="lowest-rated" label={t('reviewsDialog.lowestRated')} />
+                <SortButton value="oldest" label={t('reviewsDialog.oldest')} />
+            </div>
+        </div>
+
         <ScrollArea className="h-96 pr-4 -mr-4">
           <div className="space-y-6">
             {isLoading ? (
               <ReviewSkeleton />
-            ) : reviews.length > 0 ? (
-              reviews.map((review, index) => (
-                <div key={index}>
+            ) : sortedReviews.length > 0 ? (
+              sortedReviews.map((review, index) => (
+                <div key={`${review.userName}-${review.updatedAt}-${index}`}>
                   <ReviewItem review={review} />
-                  {index < reviews.length - 1 && <Separator className="my-4" />}
+                  {index < sortedReviews.length - 1 && <Separator className="my-4" />}
                 </div>
               ))
             ) : (
@@ -142,6 +207,11 @@ export default function ReviewsDialog({ leader, open, onOpenChange }: ReviewsDia
             )}
           </div>
         </ScrollArea>
+        <DialogFooter>
+            <Button onClick={onAddReview}>
+                {t('reviewsDialog.addYourReview')}
+            </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

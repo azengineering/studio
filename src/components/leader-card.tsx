@@ -207,7 +207,11 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
       <ReviewsDialog 
         leader={leader} 
         open={isReviewsDialogOpen} 
-        onOpenChange={setReviewsDialogOpen} 
+        onOpenChange={setReviewsDialogOpen}
+        onAddReview={() => {
+            setReviewsDialogOpen(false);
+            setRatingDialogOpen(true);
+        }}
       />
 
       <AlertDialog open={isLoginAlertOpen} onOpenChange={setLoginAlertOpen}>

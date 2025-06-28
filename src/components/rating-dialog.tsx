@@ -75,10 +75,27 @@ export default function RatingDialog({ leader, open, onOpenChange, onRatingSucce
       toast({
         variant: 'destructive',
         title: t('ratingDialog.errorTitle'),
-        description: t('ratingDialog.errorDescription'),
+        description: t('ratingDialog.errorDescriptionRating'),
       });
       return;
     }
+    if (!socialBehaviour) {
+      toast({
+        variant: 'destructive',
+        title: t('ratingDialog.errorTitle'),
+        description: t('ratingDialog.errorDescriptionBehaviour'),
+      });
+      return;
+    }
+    if (!comment || comment.trim().length === 0) {
+      toast({
+        variant: 'destructive',
+        title: t('ratingDialog.errorTitle'),
+        description: t('ratingDialog.errorDescriptionComment'),
+      });
+      return;
+    }
+
     if (!user) {
        toast({
         variant: 'destructive',
@@ -143,7 +160,7 @@ export default function RatingDialog({ leader, open, onOpenChange, onRatingSucce
                 ))}
               </div>
            </div>
-           <div className="space-y-2">
+           <div className="space-y-2 max-w-sm">
             <Label htmlFor="social-behaviour" className="font-bold text-foreground">{t('ratingDialog.socialBehaviourLabel')}</Label>
             <Select value={socialBehaviour ?? ''} onValueChange={(value) => setSocialBehaviour(value === '' ? null : value)}>
               <SelectTrigger id="social-behaviour">

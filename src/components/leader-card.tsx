@@ -29,6 +29,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 import { Separator } from './ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 interface LeaderCardProps {
   leader: LeaderType;
@@ -81,6 +82,12 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
     };
   }, [leader.previousElections]);
 
+  const NameComponent = () => (
+    <h2 className={cn("font-headline font-bold text-xl", isCompact && "text-base")}>
+        {leader.name}
+    </h2>
+  );
+
   return (
     <>
       <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg rounded-xl border">
@@ -96,9 +103,13 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
               />
               <div className="flex-1">
                   <div className="flex justify-between items-start">
-                      <h2 className={cn("font-headline font-bold text-xl", isCompact && "text-base")}>
-                          {leader.name}
-                      </h2>
+                    {isCompact ? (
+                      <Link href={`/rate-leader?candidateName=${encodeURIComponent(leader.name)}`} className="hover:underline hover:text-primary transition-colors">
+                        <NameComponent />
+                      </Link>
+                    ) : (
+                      <NameComponent />
+                    )}
                       {isEditable && onEdit && (
                         <Button variant="ghost" size="icon" className={cn("h-8 w-8", isCompact && "h-7 w-7")} onClick={onEdit}>
                             <Edit className="h-4 w-4 text-primary" />

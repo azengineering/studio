@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import LeaderList from '@/components/leader-list';
@@ -37,15 +37,28 @@ export default function RateLeaderPage() {
   
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   useEffect(() => {
+    const candidateNameFromQuery = searchParams.get('candidateName');
+
     const fetchAndFilterLeaders = async () => {
       setIsLoading(true);
       const leadersFromStorage = await getLeaders();
       setAllLeaders(leadersFromStorage); // Keep the full list for searching
       
-      if (user) {
+      let leadersToShow = leadersFromStorage;
+
+      if (candidateNameFromQuery) {
+        const lowerCaseQuery = candidateNameFromQuery.toLowerCase();
+        const specificLeaders = leadersFromStorage.filter(leader => 
+          leader.name.toLowerCase() === lowerCaseQuery
+        );
+        if (specificLeaders.length > 0) {
+          leadersToShow = specificLeaders;
+        }
+      } else if (user) {
         const { mpConstituency, mlaConstituency, panchayat, state } = user;
         
         const lowerMp = mpConstituency?.trim().toLowerCase();
@@ -57,12 +70,10 @@ export default function RateLeaderPage() {
           const leaderConstituency = leader.constituency.trim().toLowerCase();
           const leaderState = leader.location.state?.trim();
 
-          // 1. Match based on user's state
           if (userState && leaderState === userState) {
             return true;
           }
 
-          // 2. Match based on specific constituencies
           if (leader.electionType === 'national' && lowerMp && leaderConstituency === lowerMp) {
             return true;
           }
@@ -79,21 +90,16 @@ export default function RateLeaderPage() {
         const uniqueLeaders = Array.from(new Set(locationBasedLeaders.map(l => l.id))).map(id => locationBasedLeaders.find(l => l.id === id)!);
         
         if (uniqueLeaders.length > 0) {
-            setFilteredLeaders(uniqueLeaders);
-        } else {
-            // If user is logged in but has no location info set or no matches found, show all.
-            setFilteredLeaders(leadersFromStorage);
+            leadersToShow = uniqueLeaders;
         }
-
-      } else {
-        // If user is not logged in, show all leaders.
-        setFilteredLeaders(leadersFromStorage);
-      }
+      } 
+      
+      setFilteredLeaders(leadersToShow);
       setCurrentPage(1);
       setIsLoading(false);
     };
     fetchAndFilterLeaders();
-  }, [user]);
+  }, [user, searchParams]);
 
   const handleAddLeaderClick = () => {
     if (user) {

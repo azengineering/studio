@@ -51,6 +51,7 @@ export interface UserActivity {
   updatedAt: string;
   leader: Leader;
   socialBehaviour: string | null;
+  userName: string;
 }
 
 
@@ -76,6 +77,40 @@ function dbToLeader(dbLeader: any): Leader {
         manifestoUrl: dbLeader.manifestoUrl,
         twitterUrl: dbLeader.twitterUrl,
         addedByUserId: dbLeader.addedByUserId,
+    };
+}
+
+function mapDbActivityToUserActivity(activity: any): UserActivity {
+    const leaderData = dbToLeader({
+        id: activity.leader_id,
+        name: activity.leader_name,
+        partyName: activity.leader_partyName,
+        gender: activity.leader_gender,
+        age: activity.leader_age,
+        photoUrl: activity.leader_photoUrl,
+        constituency: activity.leader_constituency,
+        nativeAddress: activity.leader_nativeAddress,
+        electionType: activity.leader_electionType,
+        location_state: activity.leader_location_state,
+        location_district: activity.leader_location_district,
+        rating: activity.leader_rating,
+        reviewCount: activity.leader_reviewCount,
+        previousElections: activity.leader_previousElections, // Already a string
+        manifestoUrl: activity.leader_manifestoUrl,
+        twitterUrl: activity.leader_twitterUrl,
+        addedByUserId: activity.leader_addedByUserId,
+    });
+
+    return {
+        leaderId: activity.leaderId,
+        leaderName: activity.leader_name,
+        leaderPhotoUrl: activity.leader_photoUrl,
+        rating: activity.rating,
+        comment: activity.comment,
+        updatedAt: activity.updatedAt,
+        socialBehaviour: activity.socialBehaviour,
+        userName: activity.userName,
+        leader: leaderData,
     };
 }
 
@@ -277,9 +312,11 @@ export async function getActivitiesForUser(userId: string): Promise<UserActivity
             r.rating,
             r.updatedAt,
             r.socialBehaviour,
-            c.comment
+            c.comment,
+            u.name as userName
         FROM ratings r
         JOIN leaders l ON r.leaderId = l.id
+        JOIN users u ON r.userId = u.id
         LEFT JOIN comments c ON r.userId = c.userId AND r.leaderId = c.leaderId
         WHERE r.userId = ?
         ORDER BY r.updatedAt DESC
@@ -287,44 +324,44 @@ export async function getActivitiesForUser(userId: string): Promise<UserActivity
     
     const activities = stmt.all(userId) as any[];
 
-    return Promise.resolve(activities.map(activity => {
-        const leaderData = {
-            id: activity.leader_id,
-            name: activity.leader_name,
-            partyName: activity.leader_partyName,
-            gender: activity.leader_gender,
-            age: activity.leader_age,
-            photoUrl: activity.leader_photoUrl,
-            constituency: activity.leader_constituency,
-            nativeAddress: activity.leader_nativeAddress,
-            electionType: activity.leader_electionType,
-            location: {
-                state: activity.leader_location_state,
-                district: activity.leader_location_district,
-            },
-            rating: activity.leader_rating,
-            reviewCount: activity.leader_reviewCount,
-            previousElections: JSON.parse(activity.leader_previousElections || '[]'),
-            manifestoUrl: activity.leader_manifestoUrl,
-            twitterUrl: activity.leader_twitterUrl,
-            addedByUserId: activity.leader_addedByUserId,
-        };
-
-        return {
-            leaderId: activity.leaderId,
-            leaderName: activity.leader_name,
-            leaderPhotoUrl: activity.leader_photoUrl,
-            rating: activity.rating,
-            comment: activity.comment,
-            updatedAt: activity.updatedAt,
-            socialBehaviour: activity.socialBehaviour,
-            leader: leaderData,
-        };
-    }));
+    return Promise.resolve(activities.map(mapDbActivityToUserActivity));
 }
+
+export async function getAllActivities(): Promise<UserActivity[]> {
+    const stmt = db.prepare(`
+        SELECT
+            r.leaderId,
+            l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl, l.addedByUserId as leader_addedByUserId,
+            r.rating,
+            r.updatedAt,
+            r.socialBehaviour,
+            c.comment,
+            u.name as userName
+        FROM ratings r
+        JOIN leaders l ON r.leaderId = l.id
+        JOIN users u ON r.userId = u.id
+        LEFT JOIN comments c ON r.userId = c.userId AND r.leaderId = c.leaderId
+        ORDER BY r.updatedAt DESC
+    `);
+    
+    const activities = stmt.all() as any[];
+    return Promise.resolve(activities.map(mapDbActivityToUserActivity));
+}
+
 
 export async function getLeadersAddedByUser(userId: string): Promise<Leader[]> {
   const stmt = db.prepare('SELECT * FROM leaders WHERE addedByUserId = ? ORDER BY name ASC');
   const dbLeaders = stmt.all(userId) as any[];
   return Promise.resolve(dbLeaders.map(dbToLeader));
+}
+
+
+export async function getLeaderCount(): Promise<number> {
+    const { count } = db.prepare('SELECT COUNT(*) as count FROM leaders').get() as { count: number };
+    return Promise.resolve(count);
+}
+
+export async function getRatingCount(): Promise<number> {
+    const { count } = db.prepare('SELECT COUNT(*) as count FROM ratings').get() as { count: number };
+    return Promise.resolve(count);
 }

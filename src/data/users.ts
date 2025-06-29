@@ -111,3 +111,8 @@ export async function updateUserProfile(userId: string, profileData: Partial<Use
         return Promise.resolve(null);
     }
 }
+
+export async function getUserCount(): Promise<number> {
+    const { count } = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
+    return Promise.resolve(count);
+}

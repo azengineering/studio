@@ -193,7 +193,10 @@ const schema = `
     mpConstituency TEXT,
     mlaConstituency TEXT,
     panchayat TEXT,
-    createdAt TEXT
+    createdAt TEXT,
+    isBlocked INTEGER DEFAULT 0,
+    blockedUntil TEXT,
+    blockReason TEXT
   );
 
   CREATE TABLE IF NOT EXISTS leaders (
@@ -216,7 +219,7 @@ const schema = `
     addedByUserId TEXT,
     createdAt TEXT,
     status TEXT NOT NULL DEFAULT 'pending',
-    FOREIGN KEY(addedByUserId) REFERENCES users(id)
+    FOREIGN KEY(addedByUserId) REFERENCES users(id) ON DELETE SET NULL
   );
   
   CREATE TABLE IF NOT EXISTS ratings (
@@ -227,7 +230,7 @@ const schema = `
     updatedAt TEXT NOT NULL,
     socialBehaviour TEXT,
     PRIMARY KEY (userId, leaderId),
-    FOREIGN KEY (userId) REFERENCES users(id),
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (leaderId) REFERENCES leaders(id) ON DELETE CASCADE
   );
 
@@ -238,7 +241,7 @@ const schema = `
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL,
     PRIMARY KEY (userId, leaderId),
-    FOREIGN KEY (userId) REFERENCES users(id),
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (leaderId) REFERENCES leaders(id) ON DELETE CASCADE
   );
 `;
@@ -247,7 +250,12 @@ db.exec(schema);
 
 // --- Simple migration script to add missing columns ---
 const migrations = {
-    users: { createdAt: 'TEXT' },
+    users: {
+        createdAt: 'TEXT',
+        isBlocked: 'INTEGER DEFAULT 0',
+        blockedUntil: 'TEXT',
+        blockReason: 'TEXT'
+    },
     leaders: {
         addedByUserId: 'TEXT',
         createdAt: 'TEXT',

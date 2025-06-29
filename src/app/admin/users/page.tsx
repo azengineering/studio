@@ -2,19 +2,59 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getUsers, type User } from "@/data/users";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import Link from 'next/link';
+import { addDays } from 'date-fns';
+
+import { getUsers, type User, blockUser, unblockUser } from "@/data/users";
 import { getActivitiesForUser, getLeadersAddedByUser, type UserActivity, type Leader } from "@/data/leaders";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, RotateCw, X, Star } from 'lucide-react';
+import { Search, Loader2, RotateCw, X, Star, MoreVertical, Ban, Unlock, MessageSquareWarning } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Badge } from '@/components/ui/badge';
+
 
 // The User type from the data layer will include these optional counts
 type UserWithCounts = User & {
@@ -23,6 +63,24 @@ type UserWithCounts = User & {
 };
 
 type SelectedTab = 'profile' | 'ratings' | 'leaders';
+
+const blockFormSchema = z.object({
+  durationType: z.enum(['temporary', 'permanent']),
+  days: z.coerce.number().int().positive().optional(),
+  reason: z.string().min(10, { message: "Reason must be at least 10 characters." }),
+}).refine(data => {
+  if (data.durationType === 'temporary') {
+    return data.days !== undefined && data.days > 0;
+  }
+  return true;
+}, {
+  message: "Number of days is required for a temporary block.",
+  path: ['days'],
+});
+
+const messageFormSchema = z.object({
+  message: z.string().min(10, { message: "Message must be at least 10 characters." }),
+});
 
 const ProfileInfo = ({ label, value }: {label: string, value: string | number | undefined | null}) => (
     <div>
@@ -37,11 +95,25 @@ export default function AdminUsersPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
+    const { toast } = useToast();
 
     const [selectedTab, setSelectedTab] = useState<SelectedTab>('profile');
     const [userActivities, setUserActivities] = useState<UserActivity[]>([]);
     const [userAddedLeaders, setUserAddedLeaders] = useState<Leader[]>([]);
     const [isDetailsLoading, setIsDetailsLoading] = useState(false);
+    
+    const [isBlockUserDialogOpen, setBlockUserDialogOpen] = useState(false);
+    const [isSendMessageDialogOpen, setSendMessageDialogOpen] = useState(false);
+
+    const blockUserForm = useForm<z.infer<typeof blockFormSchema>>({
+      resolver: zodResolver(blockFormSchema),
+      defaultValues: { durationType: 'temporary', reason: "" },
+    });
+    
+    const sendMessageForm = useForm<z.infer<typeof messageFormSchema>>({
+      resolver: zodResolver(messageFormSchema),
+      defaultValues: { message: "" },
+    });
     
     const fetchUsers = async (query?: string) => {
         setIsLoading(true);
@@ -70,15 +142,15 @@ export default function AdminUsersPage() {
     };
 
     const handleSelectUser = (user: UserWithCounts, tab: SelectedTab = 'profile') => {
-        setSelectedUser(user);
-        setSelectedTab(tab);
-        setUserActivities([]);
-        setUserAddedLeaders([]);
-        if (tab === 'ratings') {
-            fetchUserRatings(user.id);
-        }
-        if (tab === 'leaders') {
-            fetchUserLeaders(user.id);
+        if (selectedUser?.id === user.id) {
+          // If already selected, just switch tab
+          setSelectedTab(tab);
+        } else {
+          // If new user selected, reset everything
+          setSelectedUser(user);
+          setSelectedTab(tab);
+          setUserActivities([]);
+          setUserAddedLeaders([]);
         }
     };
 
@@ -102,6 +174,47 @@ export default function AdminUsersPage() {
             if (selectedTab === 'leaders') fetchUserLeaders(selectedUser.id);
         }
     }, [selectedUser, selectedTab, fetchUserRatings, fetchUserLeaders]);
+
+    const handleUnblockUser = async () => {
+      if (!selectedUser) return;
+      await unblockUser(selectedUser.id);
+      toast({ title: "User Unblocked", description: `${selectedUser.name} can now access the platform again.` });
+      // Refresh user data
+      const updatedUser = { ...selectedUser, isBlocked: false, blockReason: null, blockedUntil: null };
+      setSelectedUser(updatedUser);
+      setUsers(users.map(u => u.id === selectedUser.id ? updatedUser : u));
+    }
+
+    async function onBlockUserSubmit(values: z.infer<typeof blockFormSchema>) {
+      if (!selectedUser) return;
+      try {
+        const blockUntil = values.durationType === 'temporary'
+          ? addDays(new Date(), values.days!).toISOString()
+          : null; // Permanent
+        
+        await blockUser(selectedUser.id, values.reason, blockUntil);
+
+        toast({ title: "User Blocked", description: `${selectedUser.name} has been blocked.` });
+        setBlockUserDialogOpen(false);
+        blockUserForm.reset();
+
+        const updatedUser = { ...selectedUser, isBlocked: true, blockReason: values.reason, blockedUntil };
+        setSelectedUser(updatedUser);
+        setUsers(users.map(u => u.id === selectedUser.id ? updatedUser : u));
+
+      } catch (error) {
+        toast({ variant: 'destructive', title: "Failed to block user", description: String(error) });
+      }
+    }
+
+    function onSendMessageSubmit(values: z.infer<typeof messageFormSchema>) {
+      if (!selectedUser) return;
+      // NOTE: This is a simulation. A real implementation would require a user inbox/notification system.
+      console.log(`Sending message to ${selectedUser.email}:`, values.message);
+      toast({ title: "Message Sent (Simulation)", description: "The warning has been logged for admin records." });
+      setSendMessageDialogOpen(false);
+      sendMessageForm.reset();
+    }
 
 
     const TableSkeleton = () => (
@@ -139,8 +252,8 @@ export default function AdminUsersPage() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Users</CardTitle>
-                    <CardDescription>Search for registered users in the system.</CardDescription>
+                    <CardTitle>User Management</CardTitle>
+                    <CardDescription>Search for registered users and perform administrative actions.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center gap-2 mb-4">
@@ -180,7 +293,10 @@ export default function AdminUsersPage() {
                                                 className={cn("cursor-pointer", selectedUser?.id === user.id && "bg-secondary")}
                                             >
                                                 <TableCell onClick={() => handleSelectUser(user, 'profile')}>
-                                                    <div className="font-medium hover:text-primary hover:underline">{user.name || 'N/A'}</div>
+                                                    <div className="flex items-center gap-2">
+                                                      <span className="font-medium hover:text-primary hover:underline">{user.name || 'N/A'}</span>
+                                                      {user.isBlocked ? <Badge variant="destructive">Blocked</Badge> : null}
+                                                    </div>
                                                     <div className="text-sm text-muted-foreground">{user.email}</div>
                                                     <div className="text-xs text-muted-foreground/70">ID: {user.id}</div>
                                                 </TableCell>
@@ -242,6 +358,13 @@ export default function AdminUsersPage() {
                                 <TabsTrigger value="leaders">Leaders Added ({selectedUser.leaderAddedCount})</TabsTrigger>
                             </TabsList>
                             <TabsContent value="profile" className="mt-4">
+                                {selectedUser.isBlocked ? (
+                                  <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/50 text-destructive mb-4">
+                                    <h4 className="font-bold flex items-center gap-2"><Ban /> User Blocked</h4>
+                                    <p className="text-sm mt-2"><strong>Reason:</strong> {selectedUser.blockReason}</p>
+                                    <p className="text-sm"><strong>Blocked Until:</strong> {selectedUser.blockedUntil ? new Date(selectedUser.blockedUntil).toLocaleString() : 'Permanent'}</p>
+                                  </div>
+                                ) : null}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
                                     <ProfileInfo label="Name" value={selectedUser.name} />
                                     <ProfileInfo label="Email" value={selectedUser.email} />
@@ -313,8 +436,164 @@ export default function AdminUsersPage() {
                             </TabsContent>
                         </Tabs>
                     </CardContent>
+                    <CardFooter className="flex justify-end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline">
+                            <MoreVertical className="mr-2 h-4 w-4" />
+                             Admin Actions
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Moderation</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {selectedUser.isBlocked ? (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                    <Unlock className="mr-2 h-4 w-4" />
+                                    Unblock User
+                                  </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Unblock {selectedUser.name}?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This will allow the user to access the platform again. Are you sure?
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleUnblockUser}>Confirm Unblock</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                          ) : (
+                            <DropdownMenuItem onSelect={() => setBlockUserDialogOpen(true)}>
+                              <Ban className="mr-2 h-4 w-4" />
+                              Block User
+                            </DropdownMenuItem>
+                          )}
+                           <DropdownMenuItem onSelect={() => setSendMessageDialogOpen(true)}>
+                            <MessageSquareWarning className="mr-2 h-4 w-4" />
+                            Send Warning/Message
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </CardFooter>
                 </Card>
             )}
+
+            {/* Block User Dialog */}
+            <Dialog open={isBlockUserDialogOpen} onOpenChange={setBlockUserDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Block User: {selectedUser?.name}</DialogTitle>
+                  <DialogDescription>
+                    Select the duration and provide a reason for blocking this user. This action can be reversed later.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...blockUserForm}>
+                  <form onSubmit={blockUserForm.handleSubmit(onBlockUserSubmit)} className="space-y-4">
+                    <FormField
+                      control={blockUserForm.control}
+                      name="durationType"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <FormLabel>Block Duration</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="flex flex-col space-y-1"
+                            >
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="temporary" />
+                                </FormControl>
+                                <FormLabel className="font-normal">Temporary</FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="permanent" />
+                                </FormControl>
+                                <FormLabel className="font-normal">Permanent</FormLabel>
+                              </FormItem>
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {blockUserForm.watch('durationType') === 'temporary' && (
+                       <FormField
+                          control={blockUserForm.control}
+                          name="days"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Number of Days</FormLabel>
+                              <FormControl>
+                                <Input type="number" placeholder="e.g., 30" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                    )}
+                    <FormField
+                      control={blockUserForm.control}
+                      name="reason"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Reason for Blocking (Required)</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Explain why this user is being blocked..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <DialogFooter>
+                      <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
+                      <Button type="submit">Confirm Block</Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+
+            {/* Send Message Dialog */}
+            <Dialog open={isSendMessageDialogOpen} onOpenChange={setSendMessageDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Send Message to: {selectedUser?.name}</DialogTitle>
+                  <DialogDescription>
+                    Compose a warning or message for this user. This will be logged for administrative review.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...sendMessageForm}>
+                  <form onSubmit={sendMessageForm.handleSubmit(onSendMessageSubmit)} className="space-y-4">
+                    <FormField
+                        control={sendMessageForm.control}
+                        name="message"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Message</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="Type your message here..." {...field} rows={6} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    <DialogFooter>
+                      <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
+                      <Button type="submit">Send Message</Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
 
         </div>
     );

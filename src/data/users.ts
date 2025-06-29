@@ -18,6 +18,9 @@ export interface User {
   mlaConstituency?: string;
   panchayat?: string;
   createdAt?: string;
+  isBlocked?: boolean | number;
+  blockedUntil?: string | null;
+  blockReason?: string | null;
   // These are optional because they are added by the query, not part of the core table schema
   ratingCount?: number; 
   leaderAddedCount?: number;
@@ -76,11 +79,14 @@ export async function addUser(user: Omit<User, 'id' | 'name' | 'createdAt'>): Pr
     id,
     name: formattedName,
     createdAt,
+    isBlocked: 0,
+    blockedUntil: null,
+    blockReason: null,
   };
 
   const stmt = db.prepare(`
-    INSERT INTO users (id, email, password, name, createdAt)
-    VALUES (@id, @email, @password, @name, @createdAt)
+    INSERT INTO users (id, email, password, name, createdAt, isBlocked, blockedUntil, blockReason)
+    VALUES (@id, @email, @password, @name, @createdAt, @isBlocked, @blockedUntil, @blockReason)
   `);
 
   try {
@@ -90,6 +96,9 @@ export async function addUser(user: Omit<User, 'id' | 'name' | 'createdAt'>): Pr
         password: newUser.password,
         name: newUser.name,
         createdAt: newUser.createdAt,
+        isBlocked: newUser.isBlocked,
+        blockedUntil: newUser.blockedUntil,
+        blockReason: newUser.blockReason,
     });
     
     const createdUser: Partial<User> = { ...newUser };
@@ -163,4 +172,24 @@ export async function getUserCount(filters?: { startDate?: string, endDate?: str
     
     const { count } = db.prepare(query).get(...params) as { count: number };
     return Promise.resolve(count);
+}
+
+export async function blockUser(userId: string, reason: string, blockedUntil: string | null): Promise<void> {
+    const stmt = db.prepare(`
+        UPDATE users
+        SET isBlocked = 1, blockReason = ?, blockedUntil = ?
+        WHERE id = ?
+    `);
+    stmt.run(reason, blockedUntil, userId);
+    return Promise.resolve();
+}
+
+export async function unblockUser(userId: string): Promise<void> {
+    const stmt = db.prepare(`
+        UPDATE users
+        SET isBlocked = 0, blockReason = NULL, blockedUntil = NULL
+        WHERE id = ?
+    `);
+    stmt.run(userId);
+    return Promise.resolve();
 }

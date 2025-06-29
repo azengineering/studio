@@ -14,6 +14,10 @@ import { cn } from '@/lib/utils';
 import type { DateRange } from "react-day-picker";
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { indianStates } from '@/data/locations';
 
 
 interface Stats {
@@ -26,6 +30,8 @@ export default function AdminDashboard() {
   const [totalStats, setTotalStats] = useState<Stats | null>(null);
   const [filteredStats, setFilteredStats] = useState<Stats | null>(null);
   const [date, setDate] = useState<DateRange | undefined>(undefined);
+  const [selectedState, setSelectedState] = useState<string>('');
+  const [constituency, setConstituency] = useState<string>('');
   const [isTotalLoading, setIsTotalLoading] = useState(true);
   const [isFilteredLoading, setIsFilteredLoading] = useState(false);
 
@@ -45,26 +51,35 @@ export default function AdminDashboard() {
   }, []);
   
   const handleFilter = async () => {
-    if (date?.from && date?.to) {
-      setIsFilteredLoading(true);
-      setFilteredStats(null); // Clear previous results
-      // Format dates to be start/end of day in UTC for consistent DB querying
-      const start = format(date.from, 'yyyy-MM-dd') + 'T00:00:00.000Z';
-      const end = format(date.to, 'yyyy-MM-dd') + 'T23:59:59.999Z';
-      
-      const [userCount, leaderCount, ratingCount] = await Promise.all([
-        getUserCount(start, end),
-        getLeaderCount(start, end),
-        getRatingCount(start, end),
-      ]);
-      
-      setFilteredStats({ userCount, leaderCount, ratingCount });
-      setIsFilteredLoading(false);
+    if (!date?.from && !date?.to && !selectedState && !constituency.trim()) {
+        handleReset();
+        return;
     }
+
+    setIsFilteredLoading(true);
+    setFilteredStats(null); // Clear previous results
+
+    const filters = {
+        startDate: date?.from ? format(date.from, 'yyyy-MM-dd') + 'T00:00:00.000Z' : undefined,
+        endDate: date?.to ? format(date.to, 'yyyy-MM-dd') + 'T23:59:59.999Z' : undefined,
+        state: selectedState || undefined,
+        constituency: constituency.trim() || undefined,
+    };
+    
+    const [userCount, leaderCount, ratingCount] = await Promise.all([
+      getUserCount(filters),
+      getLeaderCount(filters),
+      getRatingCount(filters),
+    ]);
+    
+    setFilteredStats({ userCount, leaderCount, ratingCount });
+    setIsFilteredLoading(false);
   };
   
   const handleReset = () => {
     setDate(undefined);
+    setSelectedState('');
+    setConstituency('');
     setFilteredStats(null);
   };
 
@@ -96,56 +111,87 @@ export default function AdminDashboard() {
         
         <Card>
             <CardHeader>
-                <CardTitle>Filter Statistics by Date</CardTitle>
-                <CardDescription>Select a date range to view data for a specific period.</CardDescription>
+                <CardTitle>Filter Statistics</CardTitle>
+                <CardDescription>Select filters to view data for a specific period, location, or constituency.</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-wrap items-end gap-4">
-                 <div className="grid gap-2">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <Button
-                            id="date"
-                            variant={"outline"}
-                            className={cn(
-                            "w-[300px] justify-start text-left font-normal",
-                            !date && "text-muted-foreground"
-                            )}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {date?.from ? (
-                            date.to ? (
-                                <>
-                                {format(date.from, "LLL dd, y")} -{" "}
-                                {format(date.to, "LLL dd, y")}
-                                </>
-                            ) : (
-                                format(date.from, "LLL dd, y")
-                            )
-                            ) : (
-                            <span>Pick a date range</span>
-                            )}
-                        </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            initialFocus
-                            mode="range"
-                            defaultMonth={date?.from}
-                            selected={date}
-                            onSelect={setDate}
-                            numberOfMonths={2}
+            <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                    <div className="grid gap-2 lg:col-span-2">
+                        <Label>Date Range</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <Button
+                                id="date"
+                                variant={"outline"}
+                                className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !date && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {date?.from ? (
+                                date.to ? (
+                                    <>
+                                    {format(date.from, "LLL dd, y")} -{" "}
+                                    {format(date.to, "LLL dd, y")}
+                                    </>
+                                ) : (
+                                    format(date.from, "LLL dd, y")
+                                )
+                                ) : (
+                                <span>Pick a date range</span>
+                                )}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={date?.from}
+                                selected={date}
+                                onSelect={setDate}
+                                numberOfMonths={2}
+                            />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="state-filter">State</Label>
+                        <Select value={selectedState} onValueChange={setSelectedState}>
+                            <SelectTrigger id="state-filter" className="bg-background">
+                            <SelectValue placeholder="Select State" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">All States</SelectItem>
+                                {indianStates.map(state => (
+                                    <SelectItem key={state} value={state}>{state}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="constituency-filter">Constituency</Label>
+                        <Input 
+                            id="constituency-filter"
+                            value={constituency}
+                            onChange={(e) => setConstituency(e.target.value)}
+                            placeholder="Constituency name"
+                            className="bg-background"
                         />
-                        </PopoverContent>
-                    </Popover>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                        <Button onClick={handleFilter} disabled={isFilteredLoading} className="w-full">
+                            {isFilteredLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Filter
+                        </Button>
+                        <Button onClick={handleReset} variant="outline" disabled={isFilteredLoading} size="icon">
+                            <RotateCcw className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
-                <Button onClick={handleFilter} disabled={!date?.from || !date?.to || isFilteredLoading}>
-                    {isFilteredLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Apply Filter
-                </Button>
-                <Button onClick={handleReset} variant="outline" disabled={isFilteredLoading}>
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    Reset
-                </Button>
             </CardContent>
         </Card>
 
@@ -171,11 +217,6 @@ export default function AdminDashboard() {
             <div className="space-y-4">
                 <h2 className="text-2xl font-semibold font-headline">
                     Filtered Results
-                    {date?.from && date?.to && (
-                        <span className="text-base font-normal text-muted-foreground ml-2">
-                           ({format(date.from, "LLL dd, y")} to {format(date.to, "LLL dd, y")})
-                        </span>
-                    )}
                 </h2>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {statCardsData.map(stat => (

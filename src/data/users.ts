@@ -117,13 +117,29 @@ export async function updateUserProfile(userId: string, profileData: Partial<Use
     }
 }
 
-export async function getUserCount(startDate?: string, endDate?: string): Promise<number> {
+export async function getUserCount(filters?: { startDate?: string, endDate?: string, state?: string, constituency?: string }): Promise<number> {
     let query = 'SELECT COUNT(*) as count FROM users';
-    const params: string[] = [];
-    if (startDate && endDate) {
-        query += ' WHERE createdAt >= ? AND createdAt <= ?';
-        params.push(startDate, endDate);
+    const params: (string | number)[] = [];
+    const conditions: string[] = [];
+
+    if (filters?.startDate && filters?.endDate) {
+        conditions.push('createdAt >= ? AND createdAt <= ?');
+        params.push(filters.startDate, filters.endDate);
     }
+    if (filters?.state) {
+        conditions.push('state = ?');
+        params.push(filters.state);
+    }
+    if (filters?.constituency) {
+        conditions.push('(mpConstituency LIKE ? OR mlaConstituency LIKE ? OR panchayat LIKE ?)');
+        const searchTerm = `%${filters.constituency}%`;
+        params.push(searchTerm, searchTerm, searchTerm);
+    }
+    
+    if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
+    }
+    
     const { count } = db.prepare(query).get(...params) as { count: number };
     return Promise.resolve(count);
 }

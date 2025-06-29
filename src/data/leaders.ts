@@ -361,24 +361,60 @@ export async function getLeadersAddedByUser(userId: string): Promise<Leader[]> {
 }
 
 
-export async function getLeaderCount(startDate?: string, endDate?: string): Promise<number> {
+export async function getLeaderCount(filters?: { startDate?: string, endDate?: string, state?: string, constituency?: string }): Promise<number> {
     let query = 'SELECT COUNT(*) as count FROM leaders';
-    const params = [];
-    if (startDate && endDate) {
-        query += ' WHERE createdAt >= ? AND createdAt <= ?';
-        params.push(startDate, endDate);
+    const params: (string | number)[] = [];
+    const conditions: string[] = [];
+
+    if (filters?.startDate && filters?.endDate) {
+        conditions.push('createdAt >= ? AND createdAt <= ?');
+        params.push(filters.startDate, filters.endDate);
+    }
+    if (filters?.state) {
+        conditions.push('location_state = ?');
+        params.push(filters.state);
+    }
+    if (filters?.constituency) {
+        conditions.push('constituency LIKE ?');
+        params.push(`%${filters.constituency}%`);
+    }
+
+    if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
     }
     const { count } = db.prepare(query).get(...params) as { count: number };
     return Promise.resolve(count);
 }
 
-export async function getRatingCount(startDate?: string, endDate?: string): Promise<number> {
-    let query = 'SELECT COUNT(*) as count FROM ratings';
-    const params = [];
-    if (startDate && endDate) {
-        query += ' WHERE createdAt >= ? AND createdAt <= ?';
-        params.push(startDate, endDate);
+export async function getRatingCount(filters?: { startDate?: string, endDate?: string, state?: string, constituency?: string }): Promise<number> {
+    let query = 'SELECT COUNT(r.leaderId) as count FROM ratings r';
+    const params: (string | number)[] = [];
+    const conditions: string[] = [];
+    let needsJoin = false;
+
+    if (filters?.startDate && filters?.endDate) {
+        conditions.push('r.createdAt >= ? AND r.createdAt <= ?');
+        params.push(filters.startDate, filters.endDate);
     }
+    if (filters?.state) {
+        needsJoin = true;
+        conditions.push('l.location_state = ?');
+        params.push(filters.state);
+    }
+    if (filters?.constituency) {
+        needsJoin = true;
+        conditions.push('l.constituency LIKE ?');
+        params.push(`%${filters.constituency}%`);
+    }
+    
+    if (needsJoin) {
+        query += ' JOIN leaders l ON r.leaderId = l.id';
+    }
+
+    if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
+    }
+    
     const { count } = db.prepare(query).get(...params) as { count: number };
     return Promise.resolve(count);
 }

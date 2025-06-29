@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   const [totalStats, setTotalStats] = useState<Stats | null>(null);
   const [filteredStats, setFilteredStats] = useState<Stats | null>(null);
   const [date, setDate] = useState<DateRange | undefined>(undefined);
-  const [selectedState, setSelectedState] = useState<string>('');
+  const [selectedState, setSelectedState] = useState<string>('all-states');
   const [constituency, setConstituency] = useState<string>('');
   const [isTotalLoading, setIsTotalLoading] = useState(true);
   const [isFilteredLoading, setIsFilteredLoading] = useState(false);
@@ -51,7 +51,7 @@ export default function AdminDashboard() {
   }, []);
   
   const handleFilter = async () => {
-    if (!date?.from && !date?.to && !selectedState && !constituency.trim()) {
+    if (!date?.from && !date?.to && selectedState === 'all-states' && !constituency.trim()) {
         handleReset();
         return;
     }
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
     const filters = {
         startDate: date?.from ? format(date.from, 'yyyy-MM-dd') + 'T00:00:00.000Z' : undefined,
         endDate: date?.to ? format(date.to, 'yyyy-MM-dd') + 'T23:59:59.999Z' : undefined,
-        state: selectedState || undefined,
+        state: selectedState === 'all-states' ? undefined : selectedState,
         constituency: constituency.trim() || undefined,
     };
     
@@ -78,7 +78,7 @@ export default function AdminDashboard() {
   
   const handleReset = () => {
     setDate(undefined);
-    setSelectedState('');
+    setSelectedState('all-states');
     setConstituency('');
     setFilteredStats(null);
   };
@@ -160,10 +160,10 @@ export default function AdminDashboard() {
                         <Label htmlFor="state-filter">State</Label>
                         <Select value={selectedState} onValueChange={setSelectedState}>
                             <SelectTrigger id="state-filter" className="bg-background">
-                            <SelectValue placeholder="Select State" />
+                            <SelectValue placeholder="All States" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">All States</SelectItem>
+                                <SelectItem value="all-states">All States</SelectItem>
                                 {indianStates.map(state => (
                                     <SelectItem key={state} value={state}>{state}</SelectItem>
                                 ))}

@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { UserCheck, MessageSquare, LogOut, LayoutDashboard, Scale, Users } from 'lucide-react';
+import { UserCheck, MessageSquare, LogOut, LayoutDashboard, Scale, Users, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -49,9 +50,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return null;
   }
 
+  const NavLinks = () => (
+    <>
+      {navItems.map(item => (
+        <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                pathname === item.href && "bg-secondary text-primary"
+            )}
+        >
+            <item.icon className="h-4 w-4" />
+            {item.label}
+        </Link>
+      ))}
+    </>
+  );
+
   return (
     <div className="min-h-screen w-full bg-secondary/50">
       <div className="flex min-h-screen w-full">
+        {/* --- Desktop Sidebar --- */}
         <aside className="hidden w-64 flex-col border-r bg-background sm:flex">
             <div className="border-b p-4">
                  <Link href="/" className="flex items-center gap-2 font-semibold">
@@ -60,19 +80,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </Link>
             </div>
             <nav className="flex flex-col gap-2 p-4 flex-grow">
-                {navItems.map(item => (
-                    <Link
-                        key={item.href}
-                        href={item.href}
-                        className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                            pathname === item.href && "bg-secondary text-primary"
-                        )}
-                    >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                    </Link>
-                ))}
+                <NavLinks />
             </nav>
             <div className="mt-auto p-4">
                 <Button variant="ghost" className="w-full justify-start gap-3" onClick={handleLogout}>
@@ -81,15 +89,54 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </Button>
             </div>
         </aside>
+
         <div className="flex flex-col flex-1">
-            <header className="flex h-14 items-center gap-4 border-b bg-background px-6 sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 sm:py-4">
-                <div className="sm:hidden">
-                    <Link href="/" className="flex items-center gap-2 font-semibold">
-                        <Scale className="h-6 w-6 text-primary" />
-                        <span>Admin</span>
-                    </Link>
-                </div>
+            {/* --- Mobile Header --- */}
+            <header className="flex h-14 items-center gap-4 border-b bg-background px-4 sm:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button size="icon" variant="outline">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Toggle Menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="flex flex-col">
+                  <nav className="grid gap-4 text-base font-medium">
+                      <Link
+                          href="/"
+                          className="flex items-center gap-2 font-semibold"
+                      >
+                          <Scale className="h-6 w-6 text-primary" />
+                          <span>PolitiRate Admin</span>
+                      </Link>
+                      {navItems.map(item => (
+                          <SheetClose asChild key={item.href}>
+                              <Link
+                                  href={item.href}
+                                  className={cn(
+                                      "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                                      pathname === item.href && "bg-secondary text-primary"
+                                  )}
+                              >
+                                  <item.icon className="h-4 w-4" />
+                                  {item.label}
+                              </Link>
+                          </SheetClose>
+                      ))}
+                  </nav>
+                  <div className="mt-auto">
+                    <Button variant="ghost" className="w-full justify-start gap-3" onClick={handleLogout}>
+                        <LogOut className="h-4 w-4" />
+                        Logout
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+              <div className="flex-1 text-center font-semibold">
+                  Admin Panel
+              </div>
             </header>
+            
             <main className="flex-1 p-6">{children}</main>
         </div>
       </div>

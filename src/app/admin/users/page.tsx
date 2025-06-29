@@ -19,25 +19,18 @@ type UserWithCounts = User & {
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<UserWithCounts[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSearching, setIsSearching] = useState(false);
+    const [isLoading, setIsLoading] = useState(false); // No initial load
+    const [hasSearched, setHasSearched] = useState(false);
 
     const fetchUsers = async (query?: string) => {
-        if (!query) setIsLoading(true);
-        else setIsSearching(true);
-
+        setIsLoading(true);
         const fetchedUsers = await getUsers(query);
         setUsers(fetchedUsers as UserWithCounts[]);
-
-        if (!query) setIsLoading(false);
-        else setIsSearching(false);
+        setIsLoading(false);
     };
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
-
     const handleSearch = () => {
+        if (!hasSearched) setHasSearched(true);
         fetchUsers(searchTerm);
     };
     
@@ -84,7 +77,7 @@ export default function AdminUsersPage() {
         <Card>
             <CardHeader>
                 <CardTitle>Users</CardTitle>
-                <CardDescription>A list of all registered users in the system.</CardDescription>
+                <CardDescription>Search for registered users in the system.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="flex items-center gap-2 mb-4">
@@ -95,13 +88,13 @@ export default function AdminUsersPage() {
                         onKeyDown={handleKeyDown}
                         className="max-w-sm"
                     />
-                    <Button onClick={handleSearch} disabled={isSearching}>
-                        {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                    <Button onClick={handleSearch} disabled={isLoading}>
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                         Search
                     </Button>
                 </div>
                 
-                {isLoading ? <TableSkeleton /> : (
+                {isLoading ? <TableSkeleton /> : hasSearched ? (
                     <div className="border rounded-lg">
                         <Table>
                             <TableHeader>
@@ -133,12 +126,19 @@ export default function AdminUsersPage() {
                                 ) : (
                                     <TableRow>
                                         <TableCell colSpan={5} className="h-24 text-center">
-                                            No users found.
+                                            No users found matching your search.
                                         </TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
                         </Table>
+                    </div>
+                ) : (
+                    <div className="text-center py-16 px-4 rounded-lg bg-secondary border-2 border-dashed border-border">
+                        <h3 className="text-lg font-semibold">Search for Users</h3>
+                        <p className="mt-2 text-muted-foreground">
+                            Enter a name, email, or user ID to begin your search.
+                        </p>
                     </div>
                 )}
             </CardContent>

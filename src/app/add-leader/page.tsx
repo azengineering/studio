@@ -97,6 +97,14 @@ function AddLeaderPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [matchingLeaders, setMatchingLeaders] = useState<Leader[]>([]);
   const [isMatchingLeadersLoading, setIsMatchingLeadersLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    // Check if the user is an admin
+    if (localStorage.getItem('admin_auth') === 'true') {
+        setIsAdmin(true);
+    }
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -165,7 +173,7 @@ function AddLeaderPage() {
         try {
           const leaderData = await getLeaderById(editId);
           if (leaderData) {
-              if (user && leaderData.addedByUserId !== user.id) {
+              if (!isAdmin && user && leaderData.addedByUserId !== user.id) {
                   toast({ variant: 'destructive', title: 'Unauthorized', description: "You are not allowed to edit this leader." });
                   router.push('/my-activities');
                   return;
@@ -201,7 +209,7 @@ function AddLeaderPage() {
     } else {
         setIsLoading(false);
     }
-  }, [searchParams, form, router, toast, user]);
+  }, [searchParams, form, router, toast, user, isAdmin]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -274,12 +282,16 @@ function AddLeaderPage() {
 
     try {
         if (isEditMode && leaderId) {
-            await updateLeader(leaderId, leaderPayload, user.id);
+            await updateLeader(leaderId, leaderPayload, user.id, isAdmin);
             toast({ title: t('addLeaderPage.updateSuccessMessage') });
-            router.push('/my-activities');
+            if (isAdmin) {
+                router.push('/admin/leaders');
+            } else {
+                router.push('/my-activities');
+            }
         } else {
             await addLeader(leaderPayload, user.id);
-            toast({ title: t('addLeaderPage.successMessage') });
+            toast({ title: t('addLeaderPage.successMessage'), description: "Your submission is pending admin approval." });
             form.reset();
             router.push('/rate-leader');
         }

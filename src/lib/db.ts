@@ -43,6 +43,7 @@ const defaultLeaders: Leader[] = [
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
     createdAt: now,
+    status: 'approved',
   },
   {
     id: '2',
@@ -61,6 +62,7 @@ const defaultLeaders: Leader[] = [
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
     createdAt: now,
+    status: 'approved',
   },
   {
     id: '3',
@@ -79,6 +81,7 @@ const defaultLeaders: Leader[] = [
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
     createdAt: now,
+    status: 'approved',
   },
   {
     id: '4',
@@ -97,6 +100,7 @@ const defaultLeaders: Leader[] = [
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
     createdAt: now,
+    status: 'approved',
   },
   {
     id: '5',
@@ -115,6 +119,7 @@ const defaultLeaders: Leader[] = [
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
     createdAt: now,
+    status: 'approved',
   },
   {
     id: '6',
@@ -133,6 +138,7 @@ const defaultLeaders: Leader[] = [
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
     createdAt: now,
+    status: 'approved',
   },
    {
     id: '7',
@@ -151,6 +157,7 @@ const defaultLeaders: Leader[] = [
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
     createdAt: now,
+    status: 'approved',
   },
   {
     id: '8',
@@ -169,6 +176,7 @@ const defaultLeaders: Leader[] = [
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
     createdAt: now,
+    status: 'approved',
   }
 ];
 
@@ -207,6 +215,7 @@ const schema = `
     twitterUrl TEXT,
     addedByUserId TEXT,
     createdAt TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
     FOREIGN KEY(addedByUserId) REFERENCES users(id)
   );
   
@@ -219,7 +228,7 @@ const schema = `
     socialBehaviour TEXT,
     PRIMARY KEY (userId, leaderId),
     FOREIGN KEY (userId) REFERENCES users(id),
-    FOREIGN KEY (leaderId) REFERENCES leaders(id)
+    FOREIGN KEY (leaderId) REFERENCES leaders(id) ON DELETE CASCADE
   );
 
   CREATE TABLE IF NOT EXISTS comments (
@@ -230,7 +239,7 @@ const schema = `
     updatedAt TEXT NOT NULL,
     PRIMARY KEY (userId, leaderId),
     FOREIGN KEY (userId) REFERENCES users(id),
-    FOREIGN KEY (leaderId) REFERENCES leaders(id)
+    FOREIGN KEY (leaderId) REFERENCES leaders(id) ON DELETE CASCADE
   );
 `;
 
@@ -241,7 +250,8 @@ const migrations = {
     users: { createdAt: 'TEXT' },
     leaders: {
         addedByUserId: 'TEXT',
-        createdAt: 'TEXT'
+        createdAt: 'TEXT',
+        status: "TEXT NOT NULL DEFAULT 'pending'"
     },
     ratings: {
         socialBehaviour: 'TEXT',
@@ -280,8 +290,8 @@ const seedLeaders = () => {
   }
 
   const insertStmt = db.prepare(`
-    INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId, createdAt)
-    VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId, @createdAt)
+    INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId, createdAt, status)
+    VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId, @createdAt, @status)
   `);
 
   const insertMany = db.transaction((leaders: Leader[]) => {
@@ -305,6 +315,7 @@ const seedLeaders = () => {
         twitterUrl: leader.twitterUrl,
         addedByUserId: leader.addedByUserId,
         createdAt: leader.createdAt,
+        status: leader.status,
       });
     }
   });

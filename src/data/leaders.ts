@@ -33,6 +33,7 @@ export interface Leader {
   twitterUrl?: string;
   addedByUserId?: string | null;
   createdAt?: string;
+  status: 'pending' | 'approved' | 'rejected';
 }
 
 export interface Review {
@@ -79,6 +80,7 @@ function dbToLeader(dbLeader: any): Leader {
         twitterUrl: dbLeader.twitterUrl,
         addedByUserId: dbLeader.addedByUserId,
         createdAt: dbLeader.createdAt,
+        status: dbLeader.status,
     };
 }
 
@@ -102,6 +104,7 @@ function mapDbActivityToUserActivity(activity: any): UserActivity {
         twitterUrl: activity.leader_twitterUrl,
         addedByUserId: activity.leader_addedByUserId,
         createdAt: activity.leader_createdAt,
+        status: activity.leader_status,
     });
 
     return {
@@ -119,13 +122,14 @@ function mapDbActivityToUserActivity(activity: any): UserActivity {
 
 // --- Public API ---
 
+// Gets only approved leaders for the public site
 export async function getLeaders(): Promise<Leader[]> {
-  const stmt = db.prepare('SELECT * FROM leaders');
+  const stmt = db.prepare("SELECT * FROM leaders WHERE status = 'approved'");
   const dbLeaders = stmt.all() as any[];
   return Promise.resolve(dbLeaders.map(dbToLeader));
 }
 
-export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt'>, userId: string): Promise<void> {
+export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status'>, userId: string): Promise<void> {
     const newLeader: Leader = {
         ...leaderData,
         id: new Date().getTime().toString(),
@@ -133,11 +137,12 @@ export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'revi
         reviewCount: 0,
         addedByUserId: userId,
         createdAt: new Date().toISOString(),
+        status: 'pending', // New leaders are pending approval
     };
     
     const stmt = db.prepare(`
-        INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId, createdAt)
-        VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId, @createdAt)
+        INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId, createdAt, status)
+        VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId, @createdAt, @status)
     `);
     
     stmt.run({
@@ -159,6 +164,7 @@ export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'revi
         twitterUrl: newLeader.twitterUrl,
         addedByUserId: newLeader.addedByUserId,
         createdAt: newLeader.createdAt,
+        status: newLeader.status,
     });
 
     return Promise.resolve();
@@ -173,14 +179,14 @@ export async function getLeaderById(id: string): Promise<Leader | null> {
     return Promise.resolve(null);
 }
 
-export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt'>, userId: string): Promise<Leader | null> {
+export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status'>, userId: string, isAdmin: boolean = false): Promise<Leader | null> {
     const leaderToUpdate = await getLeaderById(leaderId);
 
     if (!leaderToUpdate) {
         throw new Error("Leader not found.");
     }
-    // Only the user who added the leader can edit them.
-    if (leaderToUpdate.addedByUserId !== userId) {
+    // Admin can edit anyone. Regular users can only edit leaders they added.
+    if (!isAdmin && leaderToUpdate.addedByUserId !== userId) {
         throw new Error("You are not authorized to edit this leader.");
     }
 
@@ -313,7 +319,7 @@ export async function getActivitiesForUser(userId: string): Promise<UserActivity
     const stmt = db.prepare(`
         SELECT
             r.leaderId,
-            l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl, l.addedByUserId as leader_addedByUserId, l.createdAt as leader_createdAt,
+            l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl, l.addedByUserId as leader_addedByUserId, l.createdAt as leader_createdAt, l.status as leader_status,
             r.rating,
             r.updatedAt,
             r.socialBehaviour,
@@ -336,7 +342,7 @@ export async function getAllActivities(): Promise<UserActivity[]> {
     const stmt = db.prepare(`
         SELECT
             r.leaderId,
-            l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl, l.addedByUserId as leader_addedByUserId, l.createdAt as leader_createdAt,
+            l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl, l.addedByUserId as leader_addedByUserId, l.createdAt as leader_createdAt, l.status as leader_status,
             r.rating,
             r.updatedAt,
             r.socialBehaviour,
@@ -417,4 +423,31 @@ export async function getRatingCount(filters?: { startDate?: string, endDate?: s
     
     const { count } = db.prepare(query).get(...params) as { count: number };
     return Promise.resolve(count);
+}
+
+// --- Admin Functions ---
+
+export async function getPendingLeaders(): Promise<Leader[]> {
+  const stmt = db.prepare("SELECT * FROM leaders WHERE status = 'pending' ORDER BY createdAt DESC");
+  const dbLeaders = stmt.all() as any[];
+  return Promise.resolve(dbLeaders.map(dbToLeader));
+}
+
+export async function getApprovedLeaders(): Promise<Leader[]> {
+  const stmt = db.prepare("SELECT * FROM leaders WHERE status = 'approved' ORDER BY createdAt DESC");
+  const dbLeaders = stmt.all() as any[];
+  return Promise.resolve(dbLeaders.map(dbToLeader));
+}
+
+export async function approveLeader(leaderId: string): Promise<void> {
+  const stmt = db.prepare("UPDATE leaders SET status = 'approved' WHERE id = ?");
+  stmt.run(leaderId);
+  return Promise.resolve();
+}
+
+export async function deleteLeader(leaderId: string): Promise<void> {
+    // Foreign key constraints with ON DELETE CASCADE will handle ratings and comments
+    const stmt = db.prepare('DELETE FROM leaders WHERE id = ?');
+    stmt.run(leaderId);
+    return Promise.resolve();
 }

@@ -110,7 +110,7 @@ export default function AdminUsersPage() {
 
     const blockUserForm = useForm<z.infer<typeof blockFormSchema>>({
       resolver: zodResolver(blockFormSchema),
-      defaultValues: { durationType: 'temporary', reason: "" },
+      defaultValues: { durationType: 'temporary', reason: "", days: undefined },
     });
     
     const sendMessageForm = useForm<z.infer<typeof messageFormSchema>>({
@@ -623,7 +623,15 @@ export default function AdminUsersPage() {
                             <FormItem>
                               <FormLabel>Number of Days</FormLabel>
                               <FormControl>
-                                <Input type="number" placeholder="e.g., 30" {...field} />
+                                <Input
+                                  type="number"
+                                  placeholder="e.g., 30"
+                                  {...field}
+                                  value={field.value ?? ''}
+                                  onChange={(e) =>
+                                    field.onChange(e.target.value === '' ? undefined : +e.target.value)
+                                  }
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>

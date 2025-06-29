@@ -6,15 +6,16 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { addDays } from 'date-fns';
 
 import { getUsers, type User, blockUser, unblockUser, addAdminMessage, getAdminMessages, deleteAdminMessage, type AdminMessage } from "@/data/users";
-import { getActivitiesForUser, getLeadersAddedByUser, type UserActivity, type Leader } from "@/data/leaders";
+import { getActivitiesForUser, getLeadersAddedByUser, type UserActivity, type Leader, deleteRating, approveLeader, deleteLeader as deleteLeaderAction } from "@/data/leaders";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, RotateCw, X, Star, MoreVertical, Ban, Unlock, MessageSquareWarning, Trash2 } from 'lucide-react';
+import { Search, Loader2, RotateCw, X, Star, MoreVertical, Ban, Unlock, MessageSquareWarning, Trash2, Edit, UserCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -91,6 +92,7 @@ const ProfileInfo = ({ label, value }: {label: string, value: string | number | 
 );
 
 export default function AdminUsersPage() {
+    const router = useRouter();
     const [users, setUsers] = useState<UserWithCounts[]>([]);
     const [selectedUser, setSelectedUser] = useState<UserWithCounts | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -107,6 +109,7 @@ export default function AdminUsersPage() {
     
     const [isBlockUserDialogOpen, setBlockUserDialogOpen] = useState(false);
     const [isSendMessageDialogOpen, setSendMessageDialogOpen] = useState(false);
+    const [selectedLeaderForView, setSelectedLeaderForView] = useState<Leader | null>(null);
 
     const blockUserForm = useForm<z.infer<typeof blockFormSchema>>({
       resolver: zodResolver(blockFormSchema),
@@ -121,6 +124,7 @@ export default function AdminUsersPage() {
     const fetchUsers = async (query?: string) => {
         setIsLoading(true);
         setSelectedUser(null);
+        setSelectedLeaderForView(null);
         const fetchedUsers = await getUsers(query);
         setUsers(fetchedUsers as UserWithCounts[]);
         setIsLoading(false);
@@ -142,6 +146,7 @@ export default function AdminUsersPage() {
         setUsers([]);
         setHasSearched(false);
         setSelectedUser(null);
+        setSelectedLeaderForView(null);
     };
 
     const handleSelectUser = (user: UserWithCounts, tab: SelectedTab = 'profile') => {
@@ -155,6 +160,7 @@ export default function AdminUsersPage() {
           setUserActivities([]);
           setUserAddedLeaders([]);
           setUserAdminMessages([]);
+          setSelectedLeaderForView(null);
         }
     };
 
@@ -210,7 +216,7 @@ export default function AdminUsersPage() {
 
           toast({ title: "User Blocked", description: `${selectedUser.name} has been blocked.` });
           setBlockUserDialogOpen(false);
-          blockUserForm.reset();
+          blockUserForm.reset({ durationType: 'temporary', reason: "", days: undefined });
 
           const updatedUser = { ...selectedUser, isBlocked: true, blockReason: values.reason, blockedUntil: blockUntil };
           setSelectedUser(updatedUser);
@@ -228,11 +234,9 @@ export default function AdminUsersPage() {
         toast({ title: "Message Sent", description: "The message has been sent to the user." });
         setSendMessageDialogOpen(false);
         sendMessageForm.reset();
-        // Optionally refresh messages if the tab is active
         if (selectedTab === 'messages') {
           fetchUserAdminMessages(selectedUser.id);
         }
-        // Refresh the main user list to show the new message count icon
         fetchUsers(searchTerm);
       });
     }
@@ -243,10 +247,48 @@ export default function AdminUsersPage() {
             await deleteAdminMessage(messageId);
             toast({ title: "Message Deleted" });
             fetchUserAdminMessages(selectedUser.id);
-            // Refresh the main user list to update the message count icon
             fetchUsers(searchTerm);
         });
     }
+    
+    const handleDeleteRating = (userId: string, leaderId: string) => {
+      if (!selectedUser) return;
+      startTransition(async () => {
+        try {
+          await deleteRating(userId, leaderId);
+          toast({ title: "Rating Deleted", description: "The user's rating has been removed." });
+          fetchUserRatings(selectedUser.id);
+          fetchUsers(searchTerm);
+        } catch (error) {
+          toast({ variant: 'destructive', title: "Failed to delete rating", description: String(error) });
+        }
+      });
+    };
+
+    const handleApproveLeader = (leaderId: string) => {
+      if (!selectedUser) return;
+      startTransition(async () => {
+        await approveLeader(leaderId);
+        toast({ title: "Leader Approved" });
+        fetchUserLeaders(selectedUser.id);
+        setSelectedLeaderForView(prev => prev && prev.id === leaderId ? { ...prev, status: 'approved' } : prev);
+      });
+    };
+
+    const handleEditLeader = (leaderId: string) => {
+        router.push(`/add-leader?edit=${leaderId}`);
+    };
+
+    const handleDeleteLeader = (leaderId: string) => {
+      if (!selectedUser) return;
+      startTransition(async () => {
+        await deleteLeaderAction(leaderId);
+        toast({ title: "Leader Deleted", variant: 'destructive' });
+        fetchUserLeaders(selectedUser.id);
+        fetchUsers(searchTerm);
+        setSelectedLeaderForView(null);
+      });
+    };
 
     const TableSkeleton = () => (
         <div className="border rounded-lg">
@@ -436,8 +478,10 @@ export default function AdminUsersPage() {
                                             <TableRow>
                                                 <TableHead>Leader</TableHead>
                                                 <TableHead>Rating</TableHead>
+                                                <TableHead>Social Behaviour</TableHead>
                                                 <TableHead>Comment</TableHead>
-                                                <TableHead className="text-right">Date</TableHead>
+                                                <TableHead>Date</TableHead>
+                                                <TableHead className="text-right">Actions</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -450,36 +494,116 @@ export default function AdminUsersPage() {
                                                         {activity.rating}
                                                     </div>
                                                 </TableCell>
+                                                <TableCell className="capitalize">{activity.socialBehaviour?.replace('-', ' ') || 'N/A'}</TableCell>
                                                 <TableCell className="max-w-xs truncate">{activity.comment || 'N/A'}</TableCell>
-                                                <TableCell className="text-right">{new Date(activity.updatedAt).toLocaleDateString()}</TableCell>
+                                                <TableCell>{new Date(activity.updatedAt).toLocaleDateString()}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                          <Button variant="ghost" size="icon" disabled={isPending}>
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                          </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                          <AlertDialogHeader>
+                                                            <AlertDialogTitle>Delete this rating?</AlertDialogTitle>
+                                                            <AlertDialogDescription>This action cannot be undone. It will permanently delete the rating and associated comment, and the leader's overall score will be recalculated.</AlertDialogDescription>
+                                                          </AlertDialogHeader>
+                                                          <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDeleteRating(selectedUser.id, activity.leaderId)} className="bg-destructive hover:bg-destructive/90">Confirm Delete</AlertDialogAction>
+                                                          </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                      </AlertDialog>
+                                                </TableCell>
                                             </TableRow>
-                                        )) : <TableRow><TableCell colSpan={4} className="text-center h-24">This user has not submitted any ratings.</TableCell></TableRow>}
+                                        )) : <TableRow><TableCell colSpan={6} className="text-center h-24">This user has not submitted any ratings.</TableCell></TableRow>}
                                         </TableBody>
                                     </Table>
                                 )}
                             </TabsContent>
                             <TabsContent value="leaders" className="mt-4">
                                 {isDetailsLoading ? <p>Loading leaders...</p> : (
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Leader</TableHead>
-                                                <TableHead>Constituency</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead className="text-right">Date Added</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {userAddedLeaders.length > 0 ? userAddedLeaders.map(leader => (
-                                                <TableRow key={leader.id}>
-                                                    <TableCell className="font-medium">{leader.name}</TableCell>
-                                                    <TableCell>{leader.constituency}</TableCell>
-                                                    <TableCell className="capitalize">{leader.status}</TableCell>
-                                                    <TableCell className="text-right">{leader.createdAt ? new Date(leader.createdAt).toLocaleDateString() : 'N/A'}</TableCell>
+                                    <>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Leader</TableHead>
+                                                    <TableHead>Constituency</TableHead>
+                                                    <TableHead>Status</TableHead>
+                                                    <TableHead className="text-right">Date Added</TableHead>
                                                 </TableRow>
-                                            )) : <TableRow><TableCell colSpan={4} className="text-center h-24">This user has not added any leaders.</TableCell></TableRow>}
-                                        </TableBody>
-                                    </Table>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {userAddedLeaders.length > 0 ? userAddedLeaders.map(leader => (
+                                                    <TableRow key={leader.id}>
+                                                        <TableCell>
+                                                            <Button variant="link" className="p-0 h-auto font-medium" onClick={() => setSelectedLeaderForView(leader)}>
+                                                                {leader.name}
+                                                            </Button>
+                                                        </TableCell>
+                                                        <TableCell>{leader.constituency}</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={leader.status === 'approved' ? 'default' : 'secondary'} className={cn(leader.status === 'approved' && 'bg-green-600')}>{leader.status}</Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">{leader.createdAt ? new Date(leader.createdAt).toLocaleDateString() : 'N/A'}</TableCell>
+                                                    </TableRow>
+                                                )) : <TableRow><TableCell colSpan={4} className="text-center h-24">This user has not added any leaders.</TableCell></TableRow>}
+                                            </TableBody>
+                                        </Table>
+                                        {selectedLeaderForView && (
+                                            <Card className="mt-6 bg-secondary/50" key={selectedLeaderForView.id}>
+                                                <CardHeader>
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <CardTitle className="flex items-center gap-2">{selectedLeaderForView.name}</CardTitle>
+                                                            <CardDescription>{selectedLeaderForView.partyName}</CardDescription>
+                                                        </div>
+                                                        <Button variant="ghost" size="icon" onClick={() => setSelectedLeaderForView(null)}>
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                        <ProfileInfo label="Status" value={selectedLeaderForView.status} />
+                                                        <ProfileInfo label="Constituency" value={selectedLeaderForView.constituency} />
+                                                        <ProfileInfo label="Election Type" value={selectedLeaderForView.electionType} />
+                                                        <ProfileInfo label="State" value={selectedLeaderForView.location.state} />
+                                                    </div>
+                                                </CardContent>
+                                                <CardFooter className="flex justify-end gap-2">
+                                                    {selectedLeaderForView.status === 'pending' && (
+                                                        <Button size="sm" onClick={() => handleApproveLeader(selectedLeaderForView.id)} disabled={isPending}>
+                                                            <UserCheck className="mr-2 h-4 w-4" /> Approve
+                                                        </Button>
+                                                    )}
+                                                    <Button size="sm" variant="outline" onClick={() => handleEditLeader(selectedLeaderForView.id)} disabled={isPending}>
+                                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                                    </Button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button size="sm" variant="destructive" disabled={isPending}>
+                                                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Delete {selectedLeaderForView.name}?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    This action cannot be undone. This will permanently delete the leader and all associated ratings and comments.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => handleDeleteLeader(selectedLeaderForView.id)} className="bg-destructive hover:bg-destructive/90">Yes, delete it</AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </CardFooter>
+                                            </Card>
+                                        )}
+                                    </>
                                 )}
                             </TabsContent>
                             <TabsContent value="messages" className="mt-4">

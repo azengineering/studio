@@ -451,3 +451,48 @@ export async function deleteLeader(leaderId: string): Promise<void> {
     stmt.run(leaderId);
     return Promise.resolve();
 }
+
+export async function deleteRating(userId: string, leaderId: string): Promise<void> {
+    const transaction = db.transaction(() => {
+        // 1. Get the rating value before deleting
+        const ratingStmt = db.prepare('SELECT rating FROM ratings WHERE userId = ? AND leaderId = ?');
+        const ratingToDelete = ratingStmt.get(userId, leaderId) as { rating: number } | undefined;
+
+        if (!ratingToDelete) {
+            // Nothing to delete, maybe already deleted.
+            return;
+        }
+
+        // 2. Delete from ratings and comments
+        db.prepare('DELETE FROM ratings WHERE userId = ? AND leaderId = ?').run(userId, leaderId);
+        db.prepare('DELETE FROM comments WHERE userId = ? AND leaderId = ?').run(userId, leaderId);
+
+        // 3. Recalculate leader's average rating
+        const leader = db.prepare('SELECT rating, reviewCount FROM leaders WHERE id = ?').get(leaderId) as { rating: number; reviewCount: number };
+        if (!leader) {
+            // Leader might have been deleted concurrently, which is fine.
+            return;
+        }
+
+        const newReviewCount = leader.reviewCount - 1;
+        let newAverageRating = 0;
+
+        if (newReviewCount > 0) {
+            // (Total Score - Deleted Score) / New Count
+            newAverageRating = ((leader.rating * leader.reviewCount) - ratingToDelete.rating) / newReviewCount;
+        }
+        // If newReviewCount is 0, newAverageRating remains 0, which is correct.
+
+        // 4. Update the leader
+        const updateLeaderStmt = db.prepare('UPDATE leaders SET rating = ?, reviewCount = ? WHERE id = ?');
+        updateLeaderStmt.run(newAverageRating.toFixed(2), newReviewCount, leaderId);
+    });
+
+    try {
+        transaction();
+        return Promise.resolve();
+    } catch (error) {
+        console.error("Failed to delete rating:", error);
+        throw error;
+    }
+}

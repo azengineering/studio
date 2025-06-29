@@ -93,24 +93,6 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8">
         <h1 className="text-3xl font-bold font-headline">Dashboard</h1>
-
-        <div className="space-y-4">
-            <h2 className="text-2xl font-semibold font-headline">Overall Statistics</h2>
-             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {statCardsData.map(stat => (
-                    <StatCard 
-                        key={stat.title}
-                        title={`Total ${stat.title}`}
-                        value={totalStats?.[stat.key] ?? 0}
-                        icon={stat.icon}
-                        color={stat.color}
-                        loading={isTotalLoading}
-                    />
-                ))}
-            </div>
-        </div>
-
-        <Separator />
         
         <Card>
             <CardHeader>
@@ -166,6 +148,24 @@ export default function AdminDashboard() {
                 </Button>
             </CardContent>
         </Card>
+
+        <Separator />
+
+        <div className="space-y-4">
+            <h2 className="text-2xl font-semibold font-headline">Overall Statistics</h2>
+             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {statCardsData.map(stat => (
+                    <StatCard 
+                        key={stat.title}
+                        title={`Total ${stat.title}`}
+                        value={totalStats?.[stat.key] ?? 0}
+                        icon={stat.icon}
+                        color={stat.color}
+                        loading={isTotalLoading}
+                    />
+                ))}
+            </div>
+        </div>
         
         {(isFilteredLoading || filteredStats) && (
             <div className="space-y-4">

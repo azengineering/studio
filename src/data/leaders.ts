@@ -32,6 +32,7 @@ export interface Leader {
   manifestoUrl?: string;
   twitterUrl?: string;
   addedByUserId?: string | null;
+  createdAt?: string;
 }
 
 export interface Review {
@@ -77,6 +78,7 @@ function dbToLeader(dbLeader: any): Leader {
         manifestoUrl: dbLeader.manifestoUrl,
         twitterUrl: dbLeader.twitterUrl,
         addedByUserId: dbLeader.addedByUserId,
+        createdAt: dbLeader.createdAt,
     };
 }
 
@@ -99,6 +101,7 @@ function mapDbActivityToUserActivity(activity: any): UserActivity {
         manifestoUrl: activity.leader_manifestoUrl,
         twitterUrl: activity.leader_twitterUrl,
         addedByUserId: activity.leader_addedByUserId,
+        createdAt: activity.leader_createdAt,
     });
 
     return {
@@ -122,18 +125,19 @@ export async function getLeaders(): Promise<Leader[]> {
   return Promise.resolve(dbLeaders.map(dbToLeader));
 }
 
-export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId'>, userId: string): Promise<void> {
+export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt'>, userId: string): Promise<void> {
     const newLeader: Leader = {
         ...leaderData,
         id: new Date().getTime().toString(),
         rating: 0,
         reviewCount: 0,
         addedByUserId: userId,
+        createdAt: new Date().toISOString(),
     };
     
     const stmt = db.prepare(`
-        INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId)
-        VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId)
+        INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId, createdAt)
+        VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId, @createdAt)
     `);
     
     stmt.run({
@@ -154,6 +158,7 @@ export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'revi
         manifestoUrl: newLeader.manifestoUrl,
         twitterUrl: newLeader.twitterUrl,
         addedByUserId: newLeader.addedByUserId,
+        createdAt: newLeader.createdAt,
     });
 
     return Promise.resolve();
@@ -168,7 +173,7 @@ export async function getLeaderById(id: string): Promise<Leader | null> {
     return Promise.resolve(null);
 }
 
-export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId'>, userId: string): Promise<Leader | null> {
+export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt'>, userId: string): Promise<Leader | null> {
     const leaderToUpdate = await getLeaderById(leaderId);
 
     if (!leaderToUpdate) {
@@ -225,27 +230,27 @@ export async function submitRatingAndComment(leaderId: string, userId: string, n
         const ratingStmt = db.prepare('SELECT rating FROM ratings WHERE userId = ? AND leaderId = ?');
         const existingRating = ratingStmt.get(userId, leaderId) as { rating: number } | undefined;
         
-        // 2. Insert or update rating
+        // 2. Insert or update rating. createdAt is only set on the initial insert.
         const upsertRatingStmt = db.prepare(`
-            INSERT INTO ratings (userId, leaderId, rating, updatedAt, socialBehaviour)
-            VALUES (@userId, @leaderId, @rating, @updatedAt, @socialBehaviour)
+            INSERT INTO ratings (userId, leaderId, rating, createdAt, updatedAt, socialBehaviour)
+            VALUES (@userId, @leaderId, @rating, @createdAt, @updatedAt, @socialBehaviour)
             ON CONFLICT(userId, leaderId) DO UPDATE SET
             rating = excluded.rating,
             updatedAt = excluded.updatedAt,
             socialBehaviour = excluded.socialBehaviour
         `);
-        upsertRatingStmt.run({ userId, leaderId, rating: newRating, updatedAt: now, socialBehaviour });
+        upsertRatingStmt.run({ userId, leaderId, rating: newRating, createdAt: now, updatedAt: now, socialBehaviour });
 
         // 3. Handle comment
         if (comment && comment.trim().length > 0) {
             const upsertCommentStmt = db.prepare(`
-                INSERT INTO comments (userId, leaderId, comment, updatedAt)
-                VALUES (@userId, @leaderId, @comment, @updatedAt)
+                INSERT INTO comments (userId, leaderId, comment, createdAt, updatedAt)
+                VALUES (@userId, @leaderId, @comment, @createdAt, @updatedAt)
                 ON CONFLICT(userId, leaderId) DO UPDATE SET
                 comment = excluded.comment,
                 updatedAt = excluded.updatedAt
             `);
-            upsertCommentStmt.run({ userId, leaderId, comment, updatedAt: now });
+            upsertCommentStmt.run({ userId, leaderId, comment, createdAt: now, updatedAt: now });
         }
 
         // 4. Update leader's aggregate rating
@@ -308,7 +313,7 @@ export async function getActivitiesForUser(userId: string): Promise<UserActivity
     const stmt = db.prepare(`
         SELECT
             r.leaderId,
-            l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl, l.addedByUserId as leader_addedByUserId,
+            l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl, l.addedByUserId as leader_addedByUserId, l.createdAt as leader_createdAt,
             r.rating,
             r.updatedAt,
             r.socialBehaviour,
@@ -331,7 +336,7 @@ export async function getAllActivities(): Promise<UserActivity[]> {
     const stmt = db.prepare(`
         SELECT
             r.leaderId,
-            l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl, l.addedByUserId as leader_addedByUserId,
+            l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl, l.addedByUserId as leader_addedByUserId, l.createdAt as leader_createdAt,
             r.rating,
             r.updatedAt,
             r.socialBehaviour,
@@ -356,12 +361,24 @@ export async function getLeadersAddedByUser(userId: string): Promise<Leader[]> {
 }
 
 
-export async function getLeaderCount(): Promise<number> {
-    const { count } = db.prepare('SELECT COUNT(*) as count FROM leaders').get() as { count: number };
+export async function getLeaderCount(startDate?: string, endDate?: string): Promise<number> {
+    let query = 'SELECT COUNT(*) as count FROM leaders';
+    const params = [];
+    if (startDate && endDate) {
+        query += ' WHERE createdAt >= ? AND createdAt <= ?';
+        params.push(startDate, endDate);
+    }
+    const { count } = db.prepare(query).get(...params) as { count: number };
     return Promise.resolve(count);
 }
 
-export async function getRatingCount(): Promise<number> {
-    const { count } = db.prepare('SELECT COUNT(*) as count FROM ratings').get() as { count: number };
+export async function getRatingCount(startDate?: string, endDate?: string): Promise<number> {
+    let query = 'SELECT COUNT(*) as count FROM ratings';
+    const params = [];
+    if (startDate && endDate) {
+        query += ' WHERE createdAt >= ? AND createdAt <= ?';
+        params.push(startDate, endDate);
+    }
+    const { count } = db.prepare(query).get(...params) as { count: number };
     return Promise.resolve(count);
 }

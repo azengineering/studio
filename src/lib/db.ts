@@ -9,6 +9,7 @@ export const db = new Database('/tmp/politirate.db');
 // Enable WAL mode for better concurrency.
 db.pragma('journal_mode = WAL');
 
+const now = new Date().toISOString();
 
 const defaultLeaders: Leader[] = [
   {
@@ -29,6 +30,7 @@ const defaultLeaders: Leader[] = [
     ],
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
+    createdAt: now,
   },
   {
     id: '2',
@@ -46,6 +48,7 @@ const defaultLeaders: Leader[] = [
     previousElections: [],
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
+    createdAt: now,
   },
   {
     id: '3',
@@ -63,6 +66,7 @@ const defaultLeaders: Leader[] = [
     previousElections: [],
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
+    createdAt: now,
   },
   {
     id: '4',
@@ -80,6 +84,7 @@ const defaultLeaders: Leader[] = [
     previousElections: [],
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
+    createdAt: now,
   },
   {
     id: '5',
@@ -97,6 +102,7 @@ const defaultLeaders: Leader[] = [
     previousElections: [],
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
+    createdAt: now,
   },
   {
     id: '6',
@@ -114,6 +120,7 @@ const defaultLeaders: Leader[] = [
     previousElections: [],
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
+    createdAt: now,
   },
    {
     id: '7',
@@ -131,6 +138,7 @@ const defaultLeaders: Leader[] = [
     previousElections: [],
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
+    createdAt: now,
   },
   {
     id: '8',
@@ -148,6 +156,7 @@ const defaultLeaders: Leader[] = [
     previousElections: [],
     twitterUrl: 'https://x.com/example',
     addedByUserId: null,
+    createdAt: now,
   }
 ];
 
@@ -163,7 +172,8 @@ const schema = `
     state TEXT,
     mpConstituency TEXT,
     mlaConstituency TEXT,
-    panchayat TEXT
+    panchayat TEXT,
+    createdAt TEXT
   );
 
   CREATE TABLE IF NOT EXISTS leaders (
@@ -184,6 +194,7 @@ const schema = `
     manifestoUrl TEXT,
     twitterUrl TEXT,
     addedByUserId TEXT,
+    createdAt TEXT,
     FOREIGN KEY(addedByUserId) REFERENCES users(id)
   );
   
@@ -191,6 +202,7 @@ const schema = `
     userId TEXT NOT NULL,
     leaderId TEXT NOT NULL,
     rating INTEGER NOT NULL,
+    createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL,
     socialBehaviour TEXT,
     PRIMARY KEY (userId, leaderId),
@@ -202,6 +214,7 @@ const schema = `
     userId TEXT NOT NULL,
     leaderId TEXT NOT NULL,
     comment TEXT NOT NULL,
+    createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL,
     PRIMARY KEY (userId, leaderId),
     FOREIGN KEY (userId) REFERENCES users(id),
@@ -211,20 +224,39 @@ const schema = `
 
 db.exec(schema);
 
-// --- Simple migration script to add missing column ---
-try {
-    const leaderTableInfo = db.prepare("PRAGMA table_info(leaders)").all();
-    if (!leaderTableInfo.some((col: any) => col.name === 'addedByUserId')) {
-        db.prepare('ALTER TABLE leaders ADD COLUMN addedByUserId TEXT').run();
-        console.log("Database migration: Added 'addedByUserId' to 'leaders' table.");
+// --- Simple migration script to add missing columns ---
+const migrations = {
+    users: { createdAt: 'TEXT' },
+    leaders: {
+        addedByUserId: 'TEXT',
+        createdAt: 'TEXT'
+    },
+    ratings: {
+        socialBehaviour: 'TEXT',
+        createdAt: 'TEXT'
+    },
+    comments: {
+        createdAt: 'TEXT'
     }
-    const ratingTableInfo = db.prepare("PRAGMA table_info(ratings)").all();
-    if (!ratingTableInfo.some((col: any) => col.name === 'socialBehaviour')) {
-        db.prepare('ALTER TABLE ratings ADD COLUMN socialBehaviour TEXT').run();
-        console.log("Database migration: Added 'socialBehaviour' to 'ratings' table.");
+};
+
+for (const [tableName, columns] of Object.entries(migrations)) {
+    try {
+        const tableInfo = db.prepare(`PRAGMA table_info(${tableName})`).all() as { name: string }[];
+        const existingColumns = tableInfo.map(col => col.name);
+
+        for (const [columnName, columnType] of Object.entries(columns)) {
+            if (!existingColumns.includes(columnName)) {
+                db.prepare(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnType}`).run();
+                console.log(`Database migration: Added '${columnName}' to '${tableName}' table.`);
+            }
+        }
+    } catch (error) {
+        // This might fail if the table doesn't exist yet, which is fine on the first run during schema creation.
+        if (!(error instanceof Error && error.message.includes('no such table'))) {
+            console.error(`Migration failed for table ${tableName}:`, error);
+        }
     }
-} catch (error) {
-    // This might fail if the table doesn't exist yet, which is fine on first run.
 }
 
 
@@ -236,8 +268,8 @@ const seedLeaders = () => {
   }
 
   const insertStmt = db.prepare(`
-    INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId)
-    VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId)
+    INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId, createdAt)
+    VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId, @createdAt)
   `);
 
   const insertMany = db.transaction((leaders: Leader[]) => {
@@ -260,6 +292,7 @@ const seedLeaders = () => {
         manifestoUrl: leader.manifestoUrl,
         twitterUrl: leader.twitterUrl,
         addedByUserId: leader.addedByUserId,
+        createdAt: leader.createdAt,
       });
     }
   });

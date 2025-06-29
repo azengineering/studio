@@ -212,7 +212,7 @@ export default function AdminUsersPage() {
           setBlockUserDialogOpen(false);
           blockUserForm.reset();
 
-          const updatedUser = { ...selectedUser, isBlocked: true, blockReason: values.reason, blockedUntil };
+          const updatedUser = { ...selectedUser, isBlocked: true, blockReason: values.reason, blockedUntil: blockUntil };
           setSelectedUser(updatedUser);
           setUsers(users.map(u => u.id === selectedUser.id ? updatedUser : u));
         } catch (error) {

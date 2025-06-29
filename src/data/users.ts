@@ -24,6 +24,7 @@ export interface User {
   // These are optional because they are added by the query, not part of the core table schema
   ratingCount?: number; 
   leaderAddedCount?: number;
+  unreadMessageCount?: number;
 }
 
 export interface AdminMessage {
@@ -39,7 +40,8 @@ export async function getUsers(searchTerm?: string): Promise<User[]> {
         SELECT
             u.*,
             (SELECT COUNT(*) FROM ratings WHERE userId = u.id) as ratingCount,
-            (SELECT COUNT(*) FROM leaders WHERE addedByUserId = u.id) as leaderAddedCount
+            (SELECT COUNT(*) FROM leaders WHERE addedByUserId = u.id) as leaderAddedCount,
+            (SELECT COUNT(*) FROM admin_messages WHERE userId = u.id AND isRead = 0) as unreadMessageCount
         FROM users u
     `;
     const params: string[] = [];

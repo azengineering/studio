@@ -13,7 +13,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MailWarning } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { MailWarning, Mail } from 'lucide-react';
 
 export default function AdminMessageManager() {
   const { user } = useAuth();
@@ -64,7 +65,13 @@ export default function AdminMessageManager() {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogAction onClick={handleAcknowledge}>Acknowledge</AlertDialogAction>
+          <Button variant="outline" onClick={handleAcknowledge}>Acknowledge</Button>
+          <AlertDialogAction asChild>
+            <a href="mailto:support@politirate.com" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Contact Support
+            </a>
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

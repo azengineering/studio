@@ -53,12 +53,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 // The User type from the data layer will include these optional counts
 type UserWithCounts = User & {
     ratingCount?: number;
     leaderAddedCount?: number;
+    unreadMessageCount?: number;
 };
 
 type SelectedTab = 'profile' | 'ratings' | 'leaders' | 'messages';
@@ -230,6 +232,8 @@ export default function AdminUsersPage() {
         if (selectedTab === 'messages') {
           fetchUserAdminMessages(selectedUser.id);
         }
+        // Refresh the main user list to show the new message count icon
+        fetchUsers(searchTerm);
       });
     }
     
@@ -239,6 +243,8 @@ export default function AdminUsersPage() {
             await deleteAdminMessage(messageId);
             toast({ title: "Message Deleted" });
             fetchUserAdminMessages(selectedUser.id);
+            // Refresh the main user list to update the message count icon
+            fetchUsers(searchTerm);
         });
     }
 
@@ -320,7 +326,23 @@ export default function AdminUsersPage() {
                                                 <TableCell onClick={() => handleSelectUser(user, 'profile')}>
                                                     <div className="flex items-center gap-2">
                                                       <span className="font-medium hover:text-primary hover:underline">{user.name || 'N/A'}</span>
-                                                      {user.isBlocked ? <Badge variant="destructive">Blocked</Badge> : null}
+                                                        {user.isBlocked ? <Badge variant="destructive">Blocked</Badge> : null}
+                                                        {user.unreadMessageCount && user.unreadMessageCount > 0 ? (
+                                                            <TooltipProvider>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button variant="ghost" size="icon" className="h-auto w-auto p-0" onClick={(e) => { e.stopPropagation(); handleSelectUser(user, 'messages'); }}>
+                                                                            <Badge variant="outline" className="border-amber-500 text-amber-500 cursor-pointer">
+                                                                                <MessageSquareWarning className="h-4 w-4" />
+                                                                            </Badge>
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{user.unreadMessageCount} unread message(s)</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        ) : null}
                                                     </div>
                                                     <div className="text-sm text-muted-foreground">{user.email}</div>
                                                     <div className="text-xs text-muted-foreground/70">ID: {user.id}</div>

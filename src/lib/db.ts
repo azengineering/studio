@@ -1,10 +1,22 @@
 
 import Database from 'better-sqlite3';
+import path from 'path';
+import fs from 'fs';
 import type { Leader } from '@/data/leaders';
 
 // For this prototype, we'll use a simple file-based SQLite database.
 // In a production app, you'd use a more robust database solution.
-export const db = new Database('/tmp/politirate.db');
+
+// Store the database in a `data` directory at the project root to ensure it's persistent.
+const dbDir = path.join(process.cwd(), 'data');
+
+// Ensure the directory exists before initializing the database.
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+export const db = new Database(path.join(dbDir, 'politirate.db'));
+
 
 // Enable WAL mode for better concurrency.
 db.pragma('journal_mode = WAL');

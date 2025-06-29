@@ -18,11 +18,32 @@ export interface User {
   mlaConstituency?: string;
   panchayat?: string;
   createdAt?: string;
+  // These are optional because they are added by the query, not part of the core table schema
+  ratingCount?: number; 
+  leaderAddedCount?: number;
 }
 
-export async function getUsers(): Promise<User[]> {
-    const stmt = db.prepare('SELECT * FROM users');
-    const users = stmt.all() as User[];
+export async function getUsers(searchTerm?: string): Promise<User[]> {
+    let query = `
+        SELECT
+            u.*,
+            (SELECT COUNT(*) FROM ratings WHERE userId = u.id) as ratingCount,
+            (SELECT COUNT(*) FROM leaders WHERE addedByUserId = u.id) as leaderAddedCount
+        FROM users u
+    `;
+    const params: string[] = [];
+
+    if (searchTerm && searchTerm.trim() !== '') {
+        query += ' WHERE u.name LIKE ? OR u.email LIKE ? OR u.id LIKE ?';
+        const st = `%${searchTerm.trim()}%`;
+        params.push(st, st, st);
+    }
+    
+    query += ' ORDER BY u.createdAt DESC';
+
+    const stmt = db.prepare(query);
+    const users = stmt.all(...params) as User[];
+    
     return Promise.resolve(users.map(u => {
         delete u.password;
         return u;

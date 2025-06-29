@@ -97,11 +97,13 @@ export default function LoginPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2"><Ban className="text-destructive" /> Account Blocked</AlertDialogTitle>
-            <AlertDialogDescription className="text-left py-4 space-y-2">
-              <p>Your account has been blocked by an administrator.</p>
-              <p><strong>Reason:</strong> {blockInfo.reason}</p>
-              <p><strong>Blocked Until:</strong> {blockedUntilDate}</p>
-              <p>If you believe this is a mistake, please contact our support team.</p>
+            <AlertDialogDescription asChild>
+              <div className="text-left py-4 space-y-2 text-sm text-muted-foreground">
+                <p>Your account has been blocked by an administrator.</p>
+                <p><strong>Reason:</strong> {blockInfo.reason}</p>
+                <p><strong>Blocked Until:</strong> {blockedUntilDate}</p>
+                <p>If you believe this is a mistake, please contact our support team.</p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -31,23 +31,24 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
+      <Card className="w-full max-w-sm shadow-xl rounded-xl">
+        <CardHeader className="text-center p-8">
           <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
             <Shield className="w-10 h-10 text-primary" />
           </div>
-          <CardTitle>Admin Panel</CardTitle>
-          <CardDescription>Please login to continue</CardDescription>
+          <CardTitle className="text-3xl font-headline">Admin Panel</CardTitle>
+          <CardDescription className="pt-1">Please login to continue</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+        <CardContent className="px-8 pb-8">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Admin"
+                placeholder="Default: Admin"
+                className="h-12"
               />
             </div>
             <div className="space-y-2">
@@ -57,10 +58,11 @@ export default function AdminLoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Admin"
+                placeholder="Default: Admin"
+                className="h-12"
               />
             </div>
-            <Button type="submit" className="w-full">
+            <Button type="submit" size="lg" className="w-full text-base">
               Login
             </Button>
           </form>

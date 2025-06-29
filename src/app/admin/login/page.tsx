@@ -1,13 +1,15 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Shield } from 'lucide-react';
+import { Shield, X, Home } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 export default function AdminLoginPage() {
   const [username, setUsername] = useState('');
@@ -31,7 +33,11 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary">
-      <Card className="w-full max-w-sm shadow-xl rounded-xl">
+      <Card className="w-full max-w-sm shadow-xl rounded-xl relative">
+        <Button variant="ghost" size="icon" className="absolute top-4 right-4 text-muted-foreground hover:text-foreground" onClick={() => router.push('/')}>
+            <X className="h-5 w-5" />
+            <span className="sr-only">Close</span>
+        </Button>
         <CardHeader className="text-center p-8">
           <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
             <Shield className="w-10 h-10 text-primary" />
@@ -67,6 +73,12 @@ export default function AdminLoginPage() {
             </Button>
           </form>
         </CardContent>
+         <CardFooter className="flex justify-center p-6 bg-secondary/30 rounded-b-xl border-t">
+            <Link href="/" className="text-sm text-primary hover:underline font-medium flex items-center gap-2">
+                <Home className="h-4 w-4" />
+                Return to main site
+            </Link>
+        </CardFooter>
       </Card>
     </div>
   );

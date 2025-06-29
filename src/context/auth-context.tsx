@@ -3,7 +3,8 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { findUserByEmail, addUser as addNewUser, updateUserProfile, type User, findUserById } from '@/data/users';
+import { findUserByEmail, addUser as addNewUser, updateUserProfile, type User, findUserById, unblockUser } from '@/data/users';
+import { isAfter } from 'date-fns';
 
 interface AuthContextType {
   user: User | null;
@@ -28,35 +29,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (storedUserString) {
           const storedUser = JSON.parse(storedUserString);
           if (storedUser.id) {
-            // Fetch the latest user data from the database to ensure sync
-            const freshUser = await findUserById(storedUser.id);
+            let freshUser = await findUserById(storedUser.id);
             if (freshUser) {
+              // Check if user is blocked
+              if (freshUser.isBlocked) {
+                if (freshUser.blockedUntil && isAfter(new Date(), new Date(freshUser.blockedUntil))) {
+                  // Ban has expired, unblock them
+                  await unblockUser(freshUser.id);
+                  freshUser = (await findUserById(freshUser.id))!; // Refetch after unblocking
+                } else {
+                  // Active ban, log them out locally
+                  logout();
+                  return;
+                }
+              }
               setUser(freshUser);
-              // Re-sync localStorage with the fresh data from the DB
               localStorage.setItem('politirate_user', JSON.stringify(freshUser));
             } else {
-              // User not found in DB, maybe deleted. Log them out locally.
-              localStorage.removeItem('politirate_user');
-              setUser(null);
+              // User not in DB, clear local state
+              logout();
             }
           }
         }
       } catch (error) {
         console.error("Failed to sync user from localStorage", error);
-        // Clear potentially corrupted data
-        localStorage.removeItem('politirate_user');
-        setUser(null);
+        logout();
       } finally {
         setLoading(false);
       }
     };
 
     syncUser();
-  }, []); // The empty dependency array is correct, this should only run on initial mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // This should only run once on initial app load.
 
 
   const login = async (email: string, password: string, redirectPath?: string | null) => {
-    const existingUser = await findUserByEmail(email);
+    let existingUser = await findUserByEmail(email);
 
     if (!existingUser) {
       throw new Error("An account with this email does not exist. Please sign up first.");
@@ -64,6 +73,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (existingUser.password !== password) {
       throw new Error('Invalid email or password.');
+    }
+
+    // Check if user is blocked
+    if (existingUser.isBlocked) {
+      if (existingUser.blockedUntil && isAfter(new Date(), new Date(existingUser.blockedUntil))) {
+        // Ban has expired, unblock and continue login
+        await unblockUser(existingUser.id);
+        existingUser = (await findUserByEmail(email))!; // Refetch user data
+      } else {
+        // Active ban, prevent login by throwing a specific error
+        throw new Error(`BLOCKED::${existingUser.blockReason}::${existingUser.blockedUntil}`);
+      }
     }
 
     const loggedInUser: Partial<User & { password?: string }> = { ...existingUser };
@@ -94,8 +115,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem('politirate_user');
     setUser(null);
-    // Force a full page reload to the homepage to ensure a clean state
-    // and prevent race conditions with protected routes.
     window.location.href = '/';
   };
 

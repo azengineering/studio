@@ -244,6 +244,15 @@ const schema = `
     FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (leaderId) REFERENCES leaders(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS admin_messages (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    message TEXT NOT NULL,
+    isRead INTEGER DEFAULT 0,
+    createdAt TEXT NOT NULL,
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+  );
 `;
 
 db.exec(schema);
@@ -267,6 +276,9 @@ const migrations = {
     },
     comments: {
         createdAt: 'TEXT'
+    },
+    admin_messages: {
+        isRead: 'INTEGER DEFAULT 0'
     }
 };
 

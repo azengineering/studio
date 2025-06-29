@@ -1,20 +1,20 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Link from 'next/link';
 import { addDays } from 'date-fns';
 
-import { getUsers, type User, blockUser, unblockUser } from "@/data/users";
+import { getUsers, type User, blockUser, unblockUser, addAdminMessage, getAdminMessages, deleteAdminMessage, type AdminMessage } from "@/data/users";
 import { getActivitiesForUser, getLeadersAddedByUser, type UserActivity, type Leader } from "@/data/leaders";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, RotateCw, X, Star, MoreVertical, Ban, Unlock, MessageSquareWarning } from 'lucide-react';
+import { Search, Loader2, RotateCw, X, Star, MoreVertical, Ban, Unlock, MessageSquareWarning, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -35,7 +35,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose
 } from "@/components/ui/dialog";
@@ -62,7 +61,7 @@ type UserWithCounts = User & {
     leaderAddedCount?: number;
 };
 
-type SelectedTab = 'profile' | 'ratings' | 'leaders';
+type SelectedTab = 'profile' | 'ratings' | 'leaders' | 'messages';
 
 const blockFormSchema = z.object({
   durationType: z.enum(['temporary', 'permanent']),
@@ -96,10 +95,12 @@ export default function AdminUsersPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
     const { toast } = useToast();
+    const [isPending, startTransition] = useTransition();
 
     const [selectedTab, setSelectedTab] = useState<SelectedTab>('profile');
     const [userActivities, setUserActivities] = useState<UserActivity[]>([]);
     const [userAddedLeaders, setUserAddedLeaders] = useState<Leader[]>([]);
+    const [userAdminMessages, setUserAdminMessages] = useState<AdminMessage[]>([]);
     const [isDetailsLoading, setIsDetailsLoading] = useState(false);
     
     const [isBlockUserDialogOpen, setBlockUserDialogOpen] = useState(false);
@@ -151,6 +152,7 @@ export default function AdminUsersPage() {
           setSelectedTab(tab);
           setUserActivities([]);
           setUserAddedLeaders([]);
+          setUserAdminMessages([]);
         }
     };
 
@@ -167,55 +169,78 @@ export default function AdminUsersPage() {
         setUserAddedLeaders(leaders);
         setIsDetailsLoading(false);
     }, []);
+
+    const fetchUserAdminMessages = useCallback(async (userId: string) => {
+        setIsDetailsLoading(true);
+        const messages = await getAdminMessages(userId);
+        setUserAdminMessages(messages);
+        setIsDetailsLoading(false);
+    }, []);
     
     useEffect(() => {
         if (selectedUser) {
             if (selectedTab === 'ratings') fetchUserRatings(selectedUser.id);
             if (selectedTab === 'leaders') fetchUserLeaders(selectedUser.id);
+            if (selectedTab === 'messages') fetchUserAdminMessages(selectedUser.id);
         }
-    }, [selectedUser, selectedTab, fetchUserRatings, fetchUserLeaders]);
+    }, [selectedUser, selectedTab, fetchUserRatings, fetchUserLeaders, fetchUserAdminMessages]);
 
-    const handleUnblockUser = async () => {
+    const handleUnblockUser = () => {
       if (!selectedUser) return;
-      await unblockUser(selectedUser.id);
-      toast({ title: "User Unblocked", description: `${selectedUser.name} can now access the platform again.` });
-      // Refresh user data
-      const updatedUser = { ...selectedUser, isBlocked: false, blockReason: null, blockedUntil: null };
-      setSelectedUser(updatedUser);
-      setUsers(users.map(u => u.id === selectedUser.id ? updatedUser : u));
-    }
-
-    async function onBlockUserSubmit(values: z.infer<typeof blockFormSchema>) {
-      if (!selectedUser) return;
-      try {
-        const blockUntil = values.durationType === 'temporary'
-          ? addDays(new Date(), values.days!).toISOString()
-          : null; // Permanent
-        
-        await blockUser(selectedUser.id, values.reason, blockUntil);
-
-        toast({ title: "User Blocked", description: `${selectedUser.name} has been blocked.` });
-        setBlockUserDialogOpen(false);
-        blockUserForm.reset();
-
-        const updatedUser = { ...selectedUser, isBlocked: true, blockReason: values.reason, blockedUntil };
+      startTransition(async () => {
+        await unblockUser(selectedUser.id);
+        toast({ title: "User Unblocked", description: `${selectedUser.name} can now access the platform again.` });
+        const updatedUser = { ...selectedUser, isBlocked: false, blockReason: null, blockedUntil: null };
         setSelectedUser(updatedUser);
         setUsers(users.map(u => u.id === selectedUser.id ? updatedUser : u));
-
-      } catch (error) {
-        toast({ variant: 'destructive', title: "Failed to block user", description: String(error) });
-      }
+      });
     }
 
-    function onSendMessageSubmit(values: z.infer<typeof messageFormSchema>) {
+    const onBlockUserSubmit = (values: z.infer<typeof blockFormSchema>) => {
       if (!selectedUser) return;
-      // NOTE: This is a simulation. A real implementation would require a user inbox/notification system.
-      console.log(`Sending message to ${selectedUser.email}:`, values.message);
-      toast({ title: "Message Sent (Simulation)", description: "The warning has been logged for admin records." });
-      setSendMessageDialogOpen(false);
-      sendMessageForm.reset();
+      startTransition(async () => {
+        try {
+          const blockUntil = values.durationType === 'temporary'
+            ? addDays(new Date(), values.days!).toISOString()
+            : null;
+          
+          await blockUser(selectedUser.id, values.reason, blockUntil);
+
+          toast({ title: "User Blocked", description: `${selectedUser.name} has been blocked.` });
+          setBlockUserDialogOpen(false);
+          blockUserForm.reset();
+
+          const updatedUser = { ...selectedUser, isBlocked: true, blockReason: values.reason, blockedUntil };
+          setSelectedUser(updatedUser);
+          setUsers(users.map(u => u.id === selectedUser.id ? updatedUser : u));
+        } catch (error) {
+          toast({ variant: 'destructive', title: "Failed to block user", description: String(error) });
+        }
+      });
     }
 
+    const onSendMessageSubmit = (values: z.infer<typeof messageFormSchema>) => {
+      if (!selectedUser) return;
+      startTransition(async () => {
+        await addAdminMessage(selectedUser.id, values.message);
+        toast({ title: "Message Sent", description: "The message has been sent to the user." });
+        setSendMessageDialogOpen(false);
+        sendMessageForm.reset();
+        // Optionally refresh messages if the tab is active
+        if (selectedTab === 'messages') {
+          fetchUserAdminMessages(selectedUser.id);
+        }
+      });
+    }
+    
+    const handleDeleteMessage = (messageId: string) => {
+        if (!selectedUser) return;
+        startTransition(async () => {
+            await deleteAdminMessage(messageId);
+            toast({ title: "Message Deleted" });
+            fetchUserAdminMessages(selectedUser.id);
+        });
+    }
 
     const TableSkeleton = () => (
         <div className="border rounded-lg">
@@ -264,11 +289,11 @@ export default function AdminUsersPage() {
                             onKeyDown={handleKeyDown}
                             className="max-w-sm"
                         />
-                        <Button onClick={handleSearch} disabled={isLoading}>
+                        <Button onClick={handleSearch} disabled={isLoading || isPending}>
                             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                             Search
                         </Button>
-                        <Button onClick={handleReset} variant="outline" size="icon" disabled={isLoading}>
+                        <Button onClick={handleReset} variant="outline" size="icon" disabled={isLoading || isPending}>
                             <RotateCw className="h-4 w-4" />
                             <span className="sr-only">Reset search</span>
                         </Button>
@@ -352,10 +377,11 @@ export default function AdminUsersPage() {
                     </CardHeader>
                     <CardContent>
                         <Tabs value={selectedTab} onValueChange={(value) => setSelectedTab(value as SelectedTab)} className="w-full">
-                            <TabsList className="grid w-full grid-cols-3">
-                                <TabsTrigger value="profile">Profile Details</TabsTrigger>
+                            <TabsList className="grid w-full grid-cols-4">
+                                <TabsTrigger value="profile">Profile</TabsTrigger>
                                 <TabsTrigger value="ratings">Ratings ({selectedUser.ratingCount})</TabsTrigger>
                                 <TabsTrigger value="leaders">Leaders Added ({selectedUser.leaderAddedCount})</TabsTrigger>
+                                <TabsTrigger value="messages">Admin Messages</TabsTrigger>
                             </TabsList>
                             <TabsContent value="profile" className="mt-4">
                                 {selectedUser.isBlocked ? (
@@ -434,12 +460,54 @@ export default function AdminUsersPage() {
                                     </Table>
                                 )}
                             </TabsContent>
+                            <TabsContent value="messages" className="mt-4">
+                                {isDetailsLoading ? <p>Loading messages...</p> : (
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Message</TableHead>
+                                                <TableHead>Sent On</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead className="text-right">Actions</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {userAdminMessages.length > 0 ? userAdminMessages.map(message => (
+                                                <TableRow key={message.id}>
+                                                    <TableCell className="max-w-md break-words">{message.message}</TableCell>
+                                                    <TableCell>{new Date(message.createdAt).toLocaleString()}</TableCell>
+                                                    <TableCell>{message.isRead ? 'Read' : 'Unread'}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        <AlertDialog>
+                                                          <AlertDialogTrigger asChild>
+                                                            <Button variant="ghost" size="icon" disabled={isPending}>
+                                                              <Trash2 className="h-4 w-4 text-destructive" />
+                                                            </Button>
+                                                          </AlertDialogTrigger>
+                                                          <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                              <AlertDialogTitle>Delete this message?</AlertDialogTitle>
+                                                              <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                              <AlertDialogAction onClick={() => handleDeleteMessage(message.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                          </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )) : <TableRow><TableCell colSpan={4} className="text-center h-24">No messages have been sent to this user.</TableCell></TableRow>}
+                                        </TableBody>
+                                    </Table>
+                                )}
+                            </TabsContent>
                         </Tabs>
                     </CardContent>
                     <CardFooter className="flex justify-end">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="outline">
+                          <Button variant="outline" disabled={isPending}>
                             <MoreVertical className="mr-2 h-4 w-4" />
                              Admin Actions
                           </Button>
@@ -469,12 +537,12 @@ export default function AdminUsersPage() {
                                 </AlertDialogContent>
                               </AlertDialog>
                           ) : (
-                            <DropdownMenuItem onSelect={() => setBlockUserDialogOpen(true)}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setBlockUserDialogOpen(true); }}>
                               <Ban className="mr-2 h-4 w-4" />
                               Block User
                             </DropdownMenuItem>
                           )}
-                           <DropdownMenuItem onSelect={() => setSendMessageDialogOpen(true)}>
+                           <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSendMessageDialogOpen(true); }}>
                             <MessageSquareWarning className="mr-2 h-4 w-4" />
                             Send Warning/Message
                           </DropdownMenuItem>
@@ -555,7 +623,10 @@ export default function AdminUsersPage() {
                     />
                     <DialogFooter>
                       <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
-                      <Button type="submit">Confirm Block</Button>
+                      <Button type="submit" disabled={isPending}>
+                        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Confirm Block
+                      </Button>
                     </DialogFooter>
                   </form>
                 </Form>
@@ -588,7 +659,10 @@ export default function AdminUsersPage() {
                       />
                     <DialogFooter>
                       <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
-                      <Button type="submit">Send Message</Button>
+                      <Button type="submit" disabled={isPending}>
+                        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Send Message
+                      </Button>
                     </DialogFooter>
                   </form>
                 </Form>

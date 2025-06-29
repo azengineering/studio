@@ -26,6 +26,14 @@ export interface User {
   leaderAddedCount?: number;
 }
 
+export interface AdminMessage {
+    id: string;
+    userId: string;
+    message: string;
+    isRead: boolean | number;
+    createdAt: string;
+}
+
 export async function getUsers(searchTerm?: string): Promise<User[]> {
     let query = `
         SELECT
@@ -174,6 +182,8 @@ export async function getUserCount(filters?: { startDate?: string, endDate?: str
     return Promise.resolve(count);
 }
 
+// --- Admin Moderation Functions ---
+
 export async function blockUser(userId: string, reason: string, blockedUntil: string | null): Promise<void> {
     const stmt = db.prepare(`
         UPDATE users
@@ -191,5 +201,36 @@ export async function unblockUser(userId: string): Promise<void> {
         WHERE id = ?
     `);
     stmt.run(userId);
+    return Promise.resolve();
+}
+
+export async function addAdminMessage(userId: string, message: string): Promise<void> {
+    const stmt = db.prepare(`
+        INSERT INTO admin_messages (id, userId, message, createdAt, isRead)
+        VALUES (?, ?, ?, ?, 0)
+    `);
+    stmt.run(new Date().getTime().toString(), userId, message, new Date().toISOString());
+    return Promise.resolve();
+}
+
+export async function getAdminMessages(userId: string): Promise<AdminMessage[]> {
+    const stmt = db.prepare('SELECT * FROM admin_messages WHERE userId = ? ORDER BY createdAt DESC');
+    return Promise.resolve(stmt.all(userId) as AdminMessage[]);
+}
+
+export async function getUnreadMessages(userId: string): Promise<AdminMessage[]> {
+    const stmt = db.prepare('SELECT * FROM admin_messages WHERE userId = ? AND isRead = 0 ORDER BY createdAt ASC');
+    return Promise.resolve(stmt.all(userId) as AdminMessage[]);
+}
+
+export async function markMessageAsRead(messageId: string): Promise<void> {
+    const stmt = db.prepare('UPDATE admin_messages SET isRead = 1 WHERE id = ?');
+    stmt.run(messageId);
+    return Promise.resolve();
+}
+
+export async function deleteAdminMessage(messageId: string): Promise<void> {
+    const stmt = db.prepare('DELETE FROM admin_messages WHERE id = ?');
+    stmt.run(messageId);
     return Promise.resolve();
 }

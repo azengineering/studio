@@ -6,8 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getSiteSettings, updateSiteSettings, type SiteSettings } from '@/data/settings';
-import { getSupportTickets, updateTicketStatus, type SupportTicket, type TicketStatus } from '@/data/support';
+import { getSupportTicketStats, updateSiteSettings, type SiteSettings, getSupportTickets, updateTicketStatus, type SupportTicket, type TicketStatus, type SupportTicketStats } from '@/data/support';
 import { useToast } from '@/hooks/use-toast';
 import React from 'react';
 
@@ -23,9 +22,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronLeft, Loader2, Save, Mail, Eye, Inbox, History, CheckCircle, XCircle, Search, RotateCw } from 'lucide-react';
+import { ChevronLeft, Loader2, Save, Mail, Eye, Inbox, History, CheckCircle, XCircle, Search, RotateCw, BarChart, Clock, Ticket } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import { ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 const contactFormSchema = z.object({
   contact_email: z.string().email().or(z.literal('')),
@@ -49,6 +50,10 @@ export default function SiteContactsPage() {
     const [closedTickets, setClosedTickets] = useState<SupportTicket[]>([]);
     const [isLoadingTickets, setIsLoadingTickets] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    
+    // State for ticket analytics
+    const [ticketStats, setTicketStats] = useState<SupportTicketStats | null>(null);
+    const [isLoadingStats, setIsLoadingStats] = useState(true);
 
     // State for ticket dialog
     const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
@@ -77,7 +82,7 @@ export default function SiteContactsPage() {
     };
 
     const fetchContactInfo = async () => {
-        const settings = await getSiteSettings();
+        const settings = await getSupportTicketStats();
         contactForm.reset({
             contact_email: settings.contact_email || '',
             contact_phone: settings.contact_phone || '',
@@ -86,10 +91,18 @@ export default function SiteContactsPage() {
             contact_youtube: settings.contact_youtube || '',
         });
     };
+    
+    const fetchStats = async () => {
+        setIsLoadingStats(true);
+        const stats = await getSupportTicketStats();
+        setTicketStats(stats);
+        setIsLoadingStats(false);
+    };
 
     useEffect(() => {
         fetchTickets();
         fetchContactInfo();
+        fetchStats();
     }, []);
 
     const onContactSubmit = async (data: ContactFormData) => {
@@ -127,6 +140,7 @@ export default function SiteContactsPage() {
             toast({ title: 'Ticket Updated' });
             setSelectedTicket(null);
             await fetchTickets(searchQuery); // Refetch with current search query
+            await fetchStats(); // Refetch stats
         } catch (error) {
             toast({ variant: 'destructive', title: "Update Failed", description: "Could not update the ticket status." });
         } finally {
@@ -178,6 +192,44 @@ export default function SiteContactsPage() {
          <div className="border rounded-md p-4"><div className="space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div></div>
     );
     
+    const chartConfig: ChartConfig = {
+        open: { label: 'Open', color: 'hsl(var(--destructive))' },
+        inProgress: { label: 'In-Progress', color: 'hsl(var(--accent))' },
+        resolved: { label: 'Resolved', color: 'hsl(var(--chart-2))' },
+        closed: { label: 'Closed', color: 'hsl(var(--muted-foreground))' },
+    };
+
+    const chartData = ticketStats ? [
+        { name: 'open', value: ticketStats.open, fill: 'var(--color-open)' },
+        { name: 'inProgress', value: ticketStats.inProgress, fill: 'var(--color-inProgress)' },
+        { name: 'resolved', value: ticketStats.resolved, fill: 'var(--color-resolved)' },
+        { name: 'closed', value: ticketStats.closed, fill: 'var(--color-closed)' },
+    ].filter(item => item.value > 0) : [];
+
+    const StatCard = ({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) => (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{value}</div>
+            </CardContent>
+        </Card>
+    );
+
+     const AnalyticsSkeleton = () => (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <Skeleton className="h-[300px] w-full rounded-lg" />
+            <div className="grid grid-cols-2 gap-4">
+                <Skeleton className="h-24 w-full rounded-lg" />
+                <Skeleton className="h-24 w-full rounded-lg" />
+                <Skeleton className="h-24 w-full rounded-lg" />
+                <Skeleton className="h-24 w-full rounded-lg" />
+            </div>
+        </div>
+    );
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -238,6 +290,42 @@ export default function SiteContactsPage() {
                                     )}
                                 </div>
                              </Tabs>
+                        </CardContent>
+                    </Card>
+
+                     <Card className="mt-6">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><BarChart/> Ticket Analytics</CardTitle>
+                            <CardDescription>An overview of support ticket statistics.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {isLoadingStats ? <AnalyticsSkeleton /> : ticketStats ? (
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                                    <div className="min-h-[300px]">
+                                        <ChartContainer config={chartConfig} className="w-full h-full aspect-square">
+                                            <ResponsiveContainer width="100%" height={300}>
+                                                <PieChart>
+                                                    <Tooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                                                    <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={5}>
+                                                        {chartData.map((entry) => (
+                                                            <Cell key={entry.name} fill={entry.fill} />
+                                                        ))}
+                                                    </Pie>
+                                                    <Legend />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        </ChartContainer>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <StatCard title="Total Tickets" value={ticketStats.total} icon={Ticket} />
+                                        <StatCard title="Open" value={ticketStats.open} icon={Inbox} />
+                                        <StatCard title="In Progress" value={ticketStats.inProgress} icon={History} />
+                                        <StatCard title="Avg. Resolution" value={`${ticketStats.avgResolutionHours?.toFixed(1) ?? 'N/A'} hrs`} icon={Clock} />
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-muted-foreground text-center py-8">Could not load statistics.</p>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>

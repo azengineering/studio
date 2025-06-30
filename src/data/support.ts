@@ -20,6 +20,21 @@ export interface SupportTicket {
     admin_notes: string | null;
 }
 
+export interface SupportTicketStats {
+    total: number;
+    open: number;
+    inProgress: number;
+    resolved: number;
+    closed: number;
+    avgResolutionHours: number | null;
+    contact_email: string | null;
+    contact_phone: string | null;
+    contact_twitter: string | null;
+    contact_linkedin: string | null;
+    contact_youtube: string | null;
+}
+
+
 const dbToTicket = (row: any): SupportTicket => ({
     ...row,
     resolved_at: row.resolved_at || null,
@@ -104,4 +119,52 @@ export async function updateTicketStatus(ticketId: string, status: TicketStatus,
         resolved_at: (status === 'resolved' || status === 'closed') ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
     });
+}
+
+export async function getSupportTicketStats(): Promise<SupportTicketStats> {
+    const countsStmt = db.prepare(`
+        SELECT
+            status,
+            COUNT(id) as count
+        FROM support_tickets
+        GROUP BY status
+    `);
+    const statusCounts = countsStmt.all() as { status: TicketStatus, count: number }[];
+
+    const stats: Omit<SupportTicketStats, 'avgResolutionHours' | 'contact_email' | 'contact_phone' | 'contact_twitter' | 'contact_linkedin' | 'contact_youtube'> = {
+        total: 0,
+        open: 0,
+        inProgress: 0,
+        resolved: 0,
+        closed: 0,
+    };
+
+    for (const row of statusCounts) {
+        switch(row.status) {
+            case 'open': stats.open = row.count; break;
+            case 'in-progress': stats.inProgress = row.count; break;
+            case 'resolved': stats.resolved = row.count; break;
+            case 'closed': stats.closed = row.count; break;
+        }
+        stats.total += row.count;
+    }
+
+    const avgTimeStmt = db.prepare(`
+        SELECT
+            AVG(CAST(strftime('%s', resolved_at) - strftime('%s', created_at) AS REAL)) as avg_seconds
+        FROM support_tickets
+        WHERE status IN ('resolved', 'closed') AND resolved_at IS NOT NULL
+    `);
+    
+    const result = avgTimeStmt.get() as { avg_seconds: number | null };
+    const avgResolutionHours = result?.avg_seconds ? result.avg_seconds / 3600 : null;
+    
+    const settingsStmt = db.prepare('SELECT key, value FROM site_settings WHERE key LIKE "contact_%"');
+    const settingsRows = settingsStmt.all() as { key: string; value: string }[];
+    const contactSettings: Partial<SupportTicketStats> = {};
+     for (const row of settingsRows) {
+        contactSettings[row.key as keyof SupportTicketStats] = row.value as any;
+    }
+
+    return { ...stats, avgResolutionHours, ...contactSettings as any };
 }

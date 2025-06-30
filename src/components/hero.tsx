@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -59,6 +60,9 @@ export default function Hero() {
                     {t('hero.findLeader')}
                 </Button>
                </Link>
+                <Button size="lg" variant="outline" asChild>
+                    <Link href="/polls">Participate in Polls</Link>
+                </Button>
                <Button size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20" onClick={handleAddLeaderClick}>
                   {t('hero.addNewLeader')}
               </Button>

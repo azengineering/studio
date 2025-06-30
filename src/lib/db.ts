@@ -276,6 +276,51 @@ const schema = `
     is_active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS polls (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    is_active INTEGER NOT NULL DEFAULT 0,
+    active_until TEXT,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS poll_questions (
+    id TEXT PRIMARY KEY,
+    poll_id TEXT NOT NULL,
+    question_text TEXT NOT NULL,
+    question_type TEXT NOT NULL,
+    question_order INTEGER NOT NULL,
+    FOREIGN KEY(poll_id) REFERENCES polls(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS poll_options (
+    id TEXT PRIMARY KEY,
+    question_id TEXT NOT NULL,
+    option_text TEXT NOT NULL,
+    option_order INTEGER NOT NULL,
+    FOREIGN KEY(question_id) REFERENCES poll_questions(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS poll_responses (
+    id TEXT PRIMARY KEY,
+    poll_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(poll_id, user_id),
+    FOREIGN KEY(poll_id) REFERENCES polls(id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS poll_answers (
+    id TEXT PRIMARY KEY,
+    response_id TEXT NOT NULL,
+    question_id TEXT NOT NULL,
+    selected_option_id TEXT NOT NULL,
+    FOREIGN KEY(response_id) REFERENCES poll_responses(id) ON DELETE CASCADE,
+    FOREIGN KEY(question_id) REFERENCES poll_questions(id) ON DELETE CASCADE
+  );
 `;
 
 db.exec(schema);

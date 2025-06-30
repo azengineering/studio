@@ -42,7 +42,7 @@ export default function AdminToolsPage() {
     },
     {
       title: "Display Notifications",
-      description: "Create and manage site-wide notifications.",
+      description: "Create and manage site-wide announcements.",
       icon: Bell,
       href: "/admin/tools/notifications",
       disabled: false,
@@ -51,8 +51,8 @@ export default function AdminToolsPage() {
       title: "Add Polls",
       description: "Create and manage public polls.",
       icon: Vote,
-      href: "#",
-      disabled: true,
+      href: "/admin/tools/polls",
+      disabled: false,
     },
     {
       title: "Add Videos",

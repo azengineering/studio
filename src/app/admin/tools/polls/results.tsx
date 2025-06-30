@@ -6,12 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { getPollResults, type PollResult } from '@/data/polls';
-import { Loader2, X, Users, PieChart as PieChartIcon, Check, Circle } from 'lucide-react';
+import { Loader2, X, Users, PieChart as PieChartIcon } from 'lucide-react';
 import { ChartConfig, ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 
 const GENDER_COLORS = { Male: '#3b82f6', Female: '#ec4899', Other: '#f97316', Unknown: '#6b7280' };
 const OPTION_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-const YES_NO_COLORS = { 'Total Yes': '#22c55e', 'Total No': '#ef4444' };
 
 interface PollResultsProps {
   pollId: string;
@@ -62,15 +61,6 @@ export default function PollResults({ pollId, onClose }: PollResultsProps) {
     return acc;
   }, {} as ChartConfig);
   
-  const combinedChartConfig: ChartConfig = results.combinedYesNo?.reduce((acc, item) => {
-    acc[item.name] = {
-      label: item.name,
-      color: YES_NO_COLORS[item.name as keyof typeof YES_NO_COLORS] || '#a8a29e',
-      icon: item.name === 'Total Yes' ? Check : Circle,
-    };
-    return acc;
-  }, {} as ChartConfig) || {};
-
 
   return (
     <Card className="mt-6 animate-in fade-in-0" id="poll-results-section">
@@ -121,30 +111,6 @@ export default function PollResults({ pollId, onClose }: PollResultsProps) {
                 </Card>
             </div>
             
-            {results.combinedYesNo && (
-                <Card className="bg-secondary/50">
-                    <CardHeader>
-                        <CardTitle className="text-center text-xl font-headline">Overall Yes/No Analysis</CardTitle>
-                        <CardDescription className="text-center">A combined summary of all "Yes/No" questions in this poll.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={combinedChartConfig} className="mx-auto aspect-video h-[250px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                                <Pie data={results.combinedYesNo} dataKey="value" nameKey="name" outerRadius={80}>
-                                    {results.combinedYesNo.map((entry) => (
-                                    <Cell key={entry.name} fill={`var(--color-${entry.name})`} />
-                                    ))}
-                                </Pie>
-                                <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-            )}
-
             <div className="space-y-6">
                 {results.questions.map((question, index) => {
                     const questionChartConfig = question.answers.reduce((acc, answer, i) => {

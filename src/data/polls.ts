@@ -62,7 +62,6 @@ export interface PollResult {
         text: string;
         answers: { name: string; value: number }[];
     }[];
-    combinedYesNo?: { name: string; value: number }[];
 }
 
 
@@ -204,31 +203,6 @@ export async function getPollResults(pollId: string): Promise<PollResult | null>
     const questionsData = db.prepare('SELECT id, question_text, question_type FROM poll_questions WHERE poll_id = ? ORDER BY question_order').all(pollId) as { id: string, question_text: string, question_type: PollQuestionType }[];
     
     const questions = [];
-    let combinedYesNo: { name: string; value: number }[] | undefined = undefined;
-    
-    const yesNoQuestions = questionsData.filter(q => q.question_type === 'yes_no');
-    if (yesNoQuestions.length > 0) {
-        const yesNoQuestionIds = yesNoQuestions.map(q => q.id);
-        const yesNoQuestionPlaceholders = yesNoQuestionIds.map(() => '?').join(',');
-        
-        const yesNoOptions = db.prepare(`
-            SELECT id, option_text 
-            FROM poll_options 
-            WHERE question_id IN (${yesNoQuestionPlaceholders})
-        `).all(...yesNoQuestionIds) as { id: string, option_text: string}[];
-
-        const yesOptionIds = yesNoOptions.filter(o => o.option_text.toLowerCase() === 'yes').map(o => o.id);
-        const noOptionIds = yesNoOptions.filter(o => o.option_text.toLowerCase() === 'no').map(o => o.id);
-        
-        const yesVotes = allAnswersForPoll.filter(a => yesOptionIds.includes(a.selected_option_id)).length;
-        const noVotes = allAnswersForPoll.filter(a => noOptionIds.includes(a.selected_option_id)).length;
-        
-        combinedYesNo = [
-            { name: 'Total Yes', value: yesVotes },
-            { name: 'Total No', value: noVotes }
-        ];
-    }
-
 
     for (const q of questionsData) {
         const options = db.prepare('SELECT id, option_text FROM poll_options WHERE question_id = ? ORDER BY option_order').all(q.id) as { id: string, option_text: string}[];
@@ -250,7 +224,6 @@ export async function getPollResults(pollId: string): Promise<PollResult | null>
         totalResponses,
         genderDistribution,
         questions,
-        combinedYesNo
     };
 }
 

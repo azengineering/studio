@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -54,11 +55,11 @@ export default function NotificationBanner() {
     };
 
     return (
-        <div className="bg-primary/10 text-primary animate-in fade-in-0 slide-in-from-top-4 duration-500">
+        <div className="bg-gradient-to-r from-primary to-accent text-primary-foreground animate-in fade-in-0 slide-in-from-top-4 duration-500 shadow-lg">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between p-2.5 gap-3">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className="hidden sm:flex items-center justify-center p-2 bg-primary/20 rounded-full flex-shrink-0">
+                        <span className="hidden sm:flex items-center justify-center p-2 bg-white/20 rounded-full flex-shrink-0">
                             <Megaphone className="h-5 w-5" aria-hidden="true" />
                         </span>
                         <div className="text-sm font-semibold flex-1 min-w-0">
@@ -78,7 +79,7 @@ export default function NotificationBanner() {
                         </div>
                     </div>
                     <div className="flex items-center">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/20 hover:text-primary" onClick={handleDismiss}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary-foreground hover:bg-white/20" onClick={handleDismiss}>
                             <span className="sr-only">Dismiss</span>
                             <X className="h-4 w-4" aria-hidden="true" />
                         </Button>

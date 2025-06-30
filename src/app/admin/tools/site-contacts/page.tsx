@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { getSiteSettings, updateSiteSettings, type SiteSettings } from '@/data/settings';
 import { getSupportTickets, updateTicketStatus, type SupportTicket, type TicketStatus } from '@/data/support';
 import { useToast } from '@/hooks/use-toast';
+import React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -22,7 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronLeft, Loader2, Save, Mail, Eye } from 'lucide-react';
+import { ChevronLeft, Loader2, Save, Mail, Eye, Inbox, History, CheckCircle, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const contactFormSchema = z.object({
@@ -41,8 +42,13 @@ export default function SiteContactsPage() {
     const { toast } = useToast();
 
     // State for tickets
-    const [tickets, setTickets] = useState<SupportTicket[]>([]);
+    const [openTickets, setOpenTickets] = useState<SupportTicket[]>([]);
+    const [inProgressTickets, setInProgressTickets] = useState<SupportTicket[]>([]);
+    const [resolvedTickets, setResolvedTickets] = useState<SupportTicket[]>([]);
+    const [closedTickets, setClosedTickets] = useState<SupportTicket[]>([]);
     const [isLoadingTickets, setIsLoadingTickets] = useState(true);
+
+    // State for ticket dialog
     const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
     const [isUpdatingTicket, setIsUpdatingTicket] = useState(false);
     const [adminNotes, setAdminNotes] = useState('');
@@ -60,8 +66,11 @@ export default function SiteContactsPage() {
 
     const fetchTickets = async () => {
         setIsLoadingTickets(true);
-        const fetchedTickets = await getSupportTickets();
-        setTickets(fetchedTickets);
+        const allTickets = await getSupportTickets();
+        setOpenTickets(allTickets.filter(t => t.status === 'open'));
+        setInProgressTickets(allTickets.filter(t => t.status === 'in-progress'));
+        setResolvedTickets(allTickets.filter(t => t.status === 'resolved'));
+        setClosedTickets(allTickets.filter(t => t.status === 'closed'));
         setIsLoadingTickets(false);
     };
 
@@ -114,17 +123,39 @@ export default function SiteContactsPage() {
         }
     }
     
-    const statusBadgeVariant = (status: TicketStatus) => {
-        switch (status) {
-            case 'open': return 'destructive';
-            case 'in-progress': return 'secondary';
-            case 'resolved': return 'default';
-            case 'closed': return 'outline';
-            default: return 'secondary';
-        }
+    const statusConfig: Record<TicketStatus, { variant: 'destructive' | 'secondary' | 'default' | 'outline', icon: React.ElementType, name: string }> = {
+        'open': { variant: 'destructive', icon: Inbox, name: 'Open' },
+        'in-progress': { variant: 'secondary', icon: History, name: 'In Progress' },
+        'resolved': { variant: 'default', icon: CheckCircle, name: 'Resolved' },
+        'closed': { variant: 'outline', icon: XCircle, name: 'Closed' }
     };
     
-    const TicketTableSkeleton = () => (
+    const TicketTable = ({ tickets }: { tickets: SupportTicket[] }) => (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Date Submitted</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {tickets.length > 0 ? tickets.map(ticket => (
+                    <TableRow key={ticket.id}>
+                        <TableCell><div className="font-medium">{ticket.user_name}</div><div className="text-sm text-muted-foreground">{ticket.user_email}</div></TableCell>
+                        <TableCell>{ticket.subject}</TableCell>
+                        <TableCell>{format(new Date(ticket.created_at), 'PPP')}</TableCell>
+                        <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => handleViewTicket(ticket)}><Eye className="h-4 w-4"/></Button>
+                        </TableCell>
+                    </TableRow>
+                )) : <TableRow><TableCell colSpan={4} className="h-24 text-center">No tickets in this category.</TableCell></TableRow>}
+            </TableBody>
+        </Table>
+    );
+
+    const TableSkeleton = () => (
          <div className="border rounded-md p-4"><div className="space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div></div>
     );
     
@@ -141,38 +172,38 @@ export default function SiteContactsPage() {
                 </TabsList>
                 
                 <TabsContent value="tickets" className="mt-6">
-                    <Card>
+                     <Card>
                         <CardHeader>
                             <CardTitle>User Support Tickets</CardTitle>
                             <CardDescription>Manage and respond to all user-submitted inquiries.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {isLoadingTickets ? <TicketTableSkeleton /> : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>User</TableHead>
-                                            <TableHead>Subject</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {tickets.length > 0 ? tickets.map(ticket => (
-                                            <TableRow key={ticket.id}>
-                                                <TableCell><div className="font-medium">{ticket.user_name}</div><div className="text-sm text-muted-foreground">{ticket.user_email}</div></TableCell>
-                                                <TableCell>{ticket.subject}</TableCell>
-                                                <TableCell><Badge variant={statusBadgeVariant(ticket.status)} className="capitalize">{ticket.status}</Badge></TableCell>
-                                                <TableCell>{format(new Date(ticket.created_at), 'PPP')}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button variant="ghost" size="icon" onClick={() => handleViewTicket(ticket)}><Eye className="h-4 w-4"/></Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        )) : <TableRow><TableCell colSpan={5} className="h-24 text-center">No support tickets found.</TableCell></TableRow>}
-                                    </TableBody>
-                                </Table>
-                            )}
+                             <Tabs defaultValue="open">
+                                <TabsList className="grid w-full grid-cols-4">
+                                     <TabsTrigger value="open">
+                                        <Inbox className="mr-2 h-4 w-4"/>Open <Badge variant="secondary" className="ml-2">{openTickets.length}</Badge>
+                                    </TabsTrigger>
+                                    <TabsTrigger value="in-progress">
+                                        <History className="mr-2 h-4 w-4"/>In Progress <Badge variant="secondary" className="ml-2">{inProgressTickets.length}</Badge>
+                                    </TabsTrigger>
+                                    <TabsTrigger value="resolved">
+                                        <CheckCircle className="mr-2 h-4 w-4"/>Resolved <Badge variant="secondary" className="ml-2">{resolvedTickets.length}</Badge>
+                                    </TabsTrigger>
+                                    <TabsTrigger value="closed">
+                                        <XCircle className="mr-2 h-4 w-4"/>Closed <Badge variant="secondary" className="ml-2">{closedTickets.length}</Badge>
+                                    </TabsTrigger>
+                                </TabsList>
+                                <div className="mt-4">
+                                     {isLoadingTickets ? <TableSkeleton /> : (
+                                        <>
+                                            <TabsContent value="open"><TicketTable tickets={openTickets} /></TabsContent>
+                                            <TabsContent value="in-progress"><TicketTable tickets={inProgressTickets} /></TabsContent>
+                                            <TabsContent value="resolved"><TicketTable tickets={resolvedTickets} /></TabsContent>
+                                            <TabsContent value="closed"><TicketTable tickets={closedTickets} /></TabsContent>
+                                        </>
+                                    )}
+                                </div>
+                             </Tabs>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -216,12 +247,21 @@ export default function SiteContactsPage() {
                             <div className="space-y-2">
                                 <Label>Status</Label>
                                 <Select value={selectedStatus} onValueChange={(v) => setSelectedStatus(v as TicketStatus)}>
-                                    <SelectTrigger><SelectValue/></SelectTrigger>
+                                    <SelectTrigger>
+                                        <span className="flex items-center gap-2">
+                                            {React.createElement(statusConfig[selectedStatus].icon, { className: "h-4 w-4" })}
+                                            <span className="capitalize">{statusConfig[selectedStatus].name}</span>
+                                        </span>
+                                    </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="open">Open</SelectItem>
-                                        <SelectItem value="in-progress">In Progress</SelectItem>
-                                        <SelectItem value="resolved">Resolved</SelectItem>
-                                        <SelectItem value="closed">Closed</SelectItem>
+                                        {Object.entries(statusConfig).map(([status, { icon, name }]) => (
+                                            <SelectItem key={status} value={status}>
+                                                <span className="flex items-center gap-2">
+                                                    {React.createElement(icon, { className: "h-4 w-4" })}
+                                                    <span className="capitalize">{name}</span>
+                                                </span>
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>

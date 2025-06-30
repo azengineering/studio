@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChevronLeft, Loader2, Save, Mail, Eye, Inbox, History, CheckCircle, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { Separator } from '@/components/ui/separator';
 
 const contactFormSchema = z.object({
   contact_email: z.string().email().or(z.literal('')),
@@ -136,7 +137,7 @@ export default function SiteContactsPage() {
                 <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Subject</TableHead>
-                    <TableHead>Date Submitted</TableHead>
+                    <TableHead>Last Activity</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
             </TableHeader>
@@ -145,7 +146,10 @@ export default function SiteContactsPage() {
                     <TableRow key={ticket.id}>
                         <TableCell><div className="font-medium">{ticket.user_name}</div><div className="text-sm text-muted-foreground">{ticket.user_email}</div></TableCell>
                         <TableCell>{ticket.subject}</TableCell>
-                        <TableCell>{format(new Date(ticket.created_at), 'PPP')}</TableCell>
+                        <TableCell>
+                            <div className="font-medium">{format(new Date(ticket.updated_at), 'PP')}</div>
+                            <div className="text-sm text-muted-foreground">{format(new Date(ticket.updated_at), 'p')}</div>
+                        </TableCell>
                         <TableCell className="text-right">
                             <Button variant="ghost" size="icon" onClick={() => handleViewTicket(ticket)}><Eye className="h-4 w-4"/></Button>
                         </TableCell>
@@ -271,6 +275,15 @@ export default function SiteContactsPage() {
                             <Textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} rows={4} placeholder="Add notes about this ticket..."/>
                         </div>
                     </div>
+                     {selectedTicket && (
+                        <>
+                          <Separator className="my-2"/>
+                          <div className="px-1 text-xs text-muted-foreground space-y-1">
+                              <p>Ticket created: {format(new Date(selectedTicket.created_at), 'PPpp')}</p>
+                              <p>Last update: {format(new Date(selectedTicket.updated_at), 'PPpp')}</p>
+                          </div>
+                        </>
+                      )}
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setSelectedTicket(null)}>Cancel</Button>
                         <Button onClick={handleUpdateTicket} disabled={isUpdatingTicket}>

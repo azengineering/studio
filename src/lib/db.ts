@@ -332,6 +332,7 @@ const schema = `
     message TEXT NOT NULL,
     status TEXT NOT NULL,
     created_at TEXT NOT NULL,
+    updated_at TEXT,
     resolved_at TEXT,
     admin_notes TEXT,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
@@ -373,6 +374,9 @@ const migrations = {
         contact_twitter: 'TEXT',
         contact_linkedin: 'TEXT',
         contact_youtube: 'TEXT',
+    },
+    support_tickets: {
+        updated_at: 'TEXT'
     }
 };
 

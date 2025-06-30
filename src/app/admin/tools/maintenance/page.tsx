@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -10,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { Calendar as CalendarIcon, Wrench, Save, PowerOff, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Wrench, Save, PowerOff, Loader2, ChevronLeft } from "lucide-react";
 import { format, set, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { DateRange } from "react-day-picker";
@@ -22,6 +23,7 @@ export default function MaintenancePage() {
     const [settings, setSettings] = useState<Partial<SiteSettings>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const router = useRouter();
     
     // Form state
     const [isActive, setIsActive] = useState(false);
@@ -144,7 +146,13 @@ export default function MaintenancePage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold font-headline">Site Maintenance</h1>
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold font-headline">Site Maintenance</h1>
+                <Button variant="outline" onClick={() => router.back()}>
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    Back
+                </Button>
+            </div>
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">

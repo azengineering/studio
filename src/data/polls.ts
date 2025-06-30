@@ -52,6 +52,18 @@ export interface PollAnswer {
     optionId: string;
 }
 
+export interface PollResult {
+    pollTitle: string;
+    totalResponses: number;
+    genderDistribution: { name: string; value: number }[];
+    questions: {
+        id: string;
+        text: string;
+        answers: { name: string; value: number }[];
+    }[];
+}
+
+
 // --- Admin Panel Functions ---
 
 export async function getPollsForAdmin(): Promise<PollListItem[]> {
@@ -62,7 +74,7 @@ export async function getPollsForAdmin(): Promise<PollListItem[]> {
             p.is_active,
             p.active_until,
             p.created_at,
-            COUNT(DISTINCT pr.id) as response_count
+            (SELECT COUNT(DISTINCT pr.user_id) FROM poll_responses pr WHERE pr.poll_id = p.id) as response_count
         FROM polls p
         LEFT JOIN poll_responses pr ON p.id = pr.poll_id
         GROUP BY p.id
@@ -147,6 +159,71 @@ export async function upsertPoll(poll: Omit<Poll, 'created_at'>): Promise<Poll> 
     const newPollId = transaction(poll);
     return (await getPollForEdit(newPollId))!;
 }
+
+export async function getPollResults(pollId: string): Promise<PollResult | null> {
+    const poll = db.prepare('SELECT title FROM polls WHERE id = ?').get(pollId) as { title: string };
+    if (!poll) return null;
+
+    const responses = db.prepare('SELECT id, user_id FROM poll_responses WHERE poll_id = ?').all(pollId) as { id: string, user_id: string }[];
+    const totalResponses = responses.length;
+
+    if (totalResponses === 0) {
+        return {
+            pollTitle: poll.title,
+            totalResponses: 0,
+            genderDistribution: [],
+            questions: []
+        };
+    }
+
+    const userIds = responses.map(r => r.user_id);
+    const placeholders = userIds.map(() => '?').join(',');
+    const users = db.prepare(`SELECT gender FROM users WHERE id IN (${placeholders})`).all(...userIds) as { gender: string | null }[];
+    
+    const genderCounts = users.reduce((acc, user) => {
+        const gender = user.gender || 'unknown';
+        acc[gender] = (acc[gender] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+    
+    const genderDistribution = Object.entries(genderCounts).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value
+    }));
+    
+    const allAnswersForPoll = db.prepare(`
+        SELECT pa.question_id, pa.selected_option_id
+        FROM poll_answers pa
+        JOIN poll_responses pr ON pa.response_id = pr.id
+        WHERE pr.poll_id = ?
+    `).all(pollId) as { question_id: string, selected_option_id: string }[];
+
+    const questionsData = db.prepare('SELECT id, question_text FROM poll_questions WHERE poll_id = ? ORDER BY question_order').all(pollId) as { id: string, question_text: string }[];
+    const questions = [];
+
+    for (const q of questionsData) {
+        const options = db.prepare('SELECT id, option_text FROM poll_options WHERE question_id = ? ORDER BY option_order').all(q.id) as { id: string, option_text: string}[];
+        
+        const answersForThisQuestion = options.map(opt => {
+            const count = allAnswersForPoll.filter(ans => ans.selected_option_id === opt.id).length;
+            return { name: opt.option_text, value: count };
+        });
+
+        questions.push({
+            id: q.id,
+            text: q.question_text,
+            answers: answersForThisQuestion
+        });
+    }
+
+    return {
+        pollTitle: poll.title,
+        totalResponses,
+        genderDistribution,
+        questions
+    };
+}
+
 
 // --- User Facing Functions ---
 

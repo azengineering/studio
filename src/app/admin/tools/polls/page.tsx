@@ -14,11 +14,13 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import PollResults from './results';
 
 export default function AdminPollsPage() {
     const [polls, setPolls] = useState<PollListItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [selectedPollId, setSelectedPollId] = useState<string | null>(null);
     const router = useRouter();
     const { toast } = useToast();
 
@@ -34,6 +36,9 @@ export default function AdminPollsPage() {
     }, []);
 
     const handleDeletePoll = async (pollId: string) => {
+        if (selectedPollId === pollId) {
+            setSelectedPollId(null);
+        }
         setIsDeleting(true);
         try {
             await deletePoll(pollId);
@@ -46,6 +51,13 @@ export default function AdminPollsPage() {
         }
     };
     
+    const handleViewResults = (pollId: string) => {
+        setSelectedPollId(pollId);
+        setTimeout(() => {
+            document.getElementById('poll-results-section')?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    };
+
     const TableSkeleton = () => (
          <div className="border rounded-md p-4">
             <div className="space-y-3">
@@ -98,7 +110,7 @@ export default function AdminPollsPage() {
                                         <TableCell>{poll.active_until ? format(new Date(poll.active_until), 'MMM dd, yyyy') : 'No limit'}</TableCell>
                                         <TableCell>{poll.response_count}</TableCell>
                                         <TableCell className="text-right">
-                                            <Button variant="ghost" size="sm" disabled>
+                                            <Button variant="ghost" size="sm" onClick={() => handleViewResults(poll.id)} disabled={poll.response_count === 0}>
                                                 <BarChart className="h-4 w-4 mr-1" /> Results
                                             </Button>
                                             <Button variant="ghost" size="sm" onClick={() => router.push(`/admin/tools/polls/${poll.id}`)}>
@@ -138,6 +150,10 @@ export default function AdminPollsPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {selectedPollId && (
+                <PollResults pollId={selectedPollId} onClose={() => setSelectedPollId(null)} />
+            )}
         </div>
     );
 }

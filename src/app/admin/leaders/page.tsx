@@ -36,7 +36,7 @@ import type { DateRange } from "react-day-picker";
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { indianStates } from '@/data/locations';
-import { Dialog, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -247,7 +247,7 @@ export default function AdminLeadersPage() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Leader Management & Search</CardTitle>
+                    <CardTitle>Leader Management &amp; Search</CardTitle>
                     <CardDescription>Filter, search, and manage all leader submissions.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -331,12 +331,12 @@ export default function AdminLeadersPage() {
 
             <Dialog open={!!statusChangeInfo} onOpenChange={() => setStatusChangeInfo(null)}>
               <DialogContent>
-                <CardHeader>
-                  <CardTitle>Update Leader Status</CardTitle>
-                  <CardDescription>
+                <DialogHeader>
+                  <DialogTitle>Update Leader Status</DialogTitle>
+                  <DialogDescription>
                     You are changing the status to <span className="font-bold capitalize">{statusChangeInfo?.newStatus}</span>. A comment is required for rejection.
-                  </CardDescription>
-                </CardHeader>
+                  </DialogDescription>
+                </DialogHeader>
                 <div className="px-6 py-4">
                   <Label htmlFor="status-comment">Admin Comment</Label>
                   <Textarea id="status-comment" value={statusChangeComment} onChange={(e) => setStatusChangeComment(e.target.value)} placeholder="Provide a reason for this status change..." className="mt-2"/>
@@ -353,3 +353,5 @@ export default function AdminLeadersPage() {
         </div>
     );
 }
+
+    

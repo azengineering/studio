@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, XCircle, Edit, Trash2, Clock, Calendar as CalendarIcon, RotateCcw, Loader2, Search, ChevronDown, UserCheck } from 'lucide-react';
+import { CheckCircle, XCircle, Trash2, Clock, Calendar as CalendarIcon, RotateCcw, Loader2, Search, ChevronDown, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -90,11 +90,12 @@ export default function AdminLeadersPage() {
     }, []);
 
     useEffect(() => {
-        const fromParam = searchParams.get('from');
-        const toParam = searchParams.get('to');
-        const stateParam = searchParams.get('state');
-        const constiParam = searchParams.get('constituency');
-        const nameParam = searchParams.get('name');
+        const params = new URLSearchParams(searchParams);
+        const fromParam = params.get('from');
+        const toParam = params.get('to');
+        const stateParam = params.get('state');
+        const constiParam = params.get('constituency');
+        const nameParam = params.get('name');
 
         // Sync URL params to local state for the input fields
         if (fromParam) {
@@ -106,7 +107,7 @@ export default function AdminLeadersPage() {
         setConstituency(constiParam || '');
         setCandidateName(nameParam || '');
 
-        if (fromParam || toParam || stateParam || constiParam || nameParam) {
+        if (params.size > 0) {
             fetchLeaders({ dateFrom: fromParam, dateTo: toParam, state: stateParam, constituency: constiParam, candidateName: nameParam });
         } else {
             setAllFoundLeaders([]);
@@ -178,12 +179,14 @@ export default function AdminLeadersPage() {
         setStatusChangeInfo(null);
         setStatusChangeComment('');
         setIsStatusSubmitting(false);
+
+        const params = new URLSearchParams(searchParams);
         await fetchLeaders({
-            dateFrom: searchParams.get('from'),
-            dateTo: searchParams.get('to'),
-            state: searchParams.get('state'),
-            constituency: searchParams.get('constituency'),
-            candidateName: searchParams.get('name'),
+            dateFrom: params.get('from'),
+            dateTo: params.get('to'),
+            state: params.get('state'),
+            constituency: params.get('constituency'),
+            candidateName: params.get('name'),
         });
     };
 
@@ -191,18 +194,16 @@ export default function AdminLeadersPage() {
         startTransition(async () => {
             await deleteLeader(leaderId);
             toast({ variant: 'destructive', title: "Leader Deleted", description: `${leaderName} has been removed from the database.` });
+            
+            const params = new URLSearchParams(searchParams);
             await fetchLeaders({
-                dateFrom: searchParams.get('from'),
-                dateTo: searchParams.get('to'),
-                state: searchParams.get('state'),
-                constituency: searchParams.get('constituency'),
-                candidateName: searchParams.get('name'),
+                dateFrom: params.get('from'),
+                dateTo: params.get('to'),
+                state: params.get('state'),
+                constituency: params.get('constituency'),
+                candidateName: params.get('name'),
             });
         });
-    };
-
-    const handleEdit = (leaderId: string) => {
-        router.push(`/add-leader?edit=${leaderId}`);
     };
     
     const handleNameClick = (userId: string | null | undefined, leaderId: string) => {
@@ -261,10 +262,7 @@ export default function AdminLeadersPage() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </TableCell>
-                        <TableCell className="text-right space-x-2">
-                            <Button variant="ghost" size="sm" onClick={() => handleEdit(leader.id)} disabled={isPending}>
-                                <Edit className="h-4 w-4 mr-1 text-blue-600" /> Edit
-                            </Button>
+                        <TableCell className="text-right">
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={isPending}>

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wrench, Bell, Vote, Video, FileText, Mail } from "lucide-react";
 import Link from "next/link";
@@ -15,24 +15,20 @@ interface ToolCardProps {
 }
 
 const ToolCard = ({ title, description, icon: Icon, href, disabled }: ToolCardProps) => (
-  <Card className="flex flex-col">
-    <CardHeader>
-      <div className="flex items-center gap-4">
-        <div className="p-3 bg-primary/10 rounded-lg">
-          <Icon className="h-6 w-6 text-primary" />
+    <Card className="flex flex-col text-center items-center p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+        <div className="p-4 bg-primary/10 rounded-full">
+            <Icon className="h-10 w-10 text-primary" />
         </div>
-        <div>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
+        <div className="flex-grow mt-6">
+            <h3 className="text-xl font-bold">{title}</h3>
+            <p className="mt-2 text-muted-foreground">{description}</p>
         </div>
-      </div>
-    </CardHeader>
-    <CardContent className="flex-grow flex items-end">
-      <Button asChild disabled={disabled} className="w-full">
-        <Link href={href}>Manage</Link>
-      </Button>
-    </CardContent>
-  </Card>
+        <div className="w-full mt-6">
+            <Button asChild disabled={disabled} className="w-full">
+                <Link href={href}>Manage</Link>
+            </Button>
+        </div>
+    </Card>
 );
 
 export default function AdminToolsPage() {

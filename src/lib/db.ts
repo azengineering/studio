@@ -262,6 +262,11 @@ const schema = `
     createdAt TEXT NOT NULL,
     FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS site_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  );
 `;
 
 db.exec(schema);
@@ -313,46 +318,36 @@ for (const [tableName, columns] of Object.entries(migrations)) {
 
 
 // --- Seeding Logic ---
-const seedLeaders = () => {
-  const count = db.prepare('SELECT COUNT(*) as count FROM leaders').get() as { count: number };
-  if (count.count > 0) {
-    return;
-  }
+const seedDatabase = () => {
+  const transaction = db.transaction(() => {
+    // Seed Leaders
+    const leaderCount = db.prepare('SELECT COUNT(*) as count FROM leaders').get() as { count: number };
+    if (leaderCount.count === 0) {
+      const insertLeader = db.prepare(`
+        INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId, createdAt, status, adminComment)
+        VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId, @createdAt, @status, @adminComment)
+      `);
+      for (const leader of defaultLeaders) {
+        insertLeader.run({
+          id: leader.id, name: leader.name, partyName: leader.partyName, gender: leader.gender, age: leader.age, photoUrl: leader.photoUrl, constituency: leader.constituency, nativeAddress: leader.nativeAddress, electionType: leader.electionType, location_state: leader.location.state, location_district: leader.location.district, rating: leader.rating, reviewCount: leader.reviewCount, previousElections: JSON.stringify(leader.previousElections), manifestoUrl: leader.manifestoUrl, twitterUrl: leader.twitterUrl, addedByUserId: leader.addedByUserId, createdAt: leader.createdAt, status: leader.status, adminComment: leader.adminComment
+        });
+      }
+      console.log('Database seeded with default leaders.');
+    }
 
-  const insertStmt = db.prepare(`
-    INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId, createdAt, status, adminComment)
-    VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId, @createdAt, @status, @adminComment)
-  `);
-
-  const insertMany = db.transaction((leaders: Leader[]) => {
-    for (const leader of leaders) {
-      insertStmt.run({
-        id: leader.id,
-        name: leader.name,
-        partyName: leader.partyName,
-        gender: leader.gender,
-        age: leader.age,
-        photoUrl: leader.photoUrl,
-        constituency: leader.constituency,
-        nativeAddress: leader.nativeAddress,
-        electionType: leader.electionType,
-        location_state: leader.location.state,
-        location_district: leader.location.district,
-        rating: leader.rating,
-        reviewCount: leader.reviewCount,
-        previousElections: JSON.stringify(leader.previousElections),
-        manifestoUrl: leader.manifestoUrl,
-        twitterUrl: leader.twitterUrl,
-        addedByUserId: leader.addedByUserId,
-        createdAt: leader.createdAt,
-        status: leader.status,
-        adminComment: leader.adminComment,
-      });
+    // Seed Site Settings
+    const settingsCount = db.prepare('SELECT COUNT(*) as count FROM site_settings').get() as { count: number };
+    if (settingsCount.count === 0) {
+        const insertSetting = db.prepare('INSERT INTO site_settings (key, value) VALUES (?, ?)');
+        insertSetting.run('maintenance_active', 'false');
+        insertSetting.run('maintenance_start', '');
+        insertSetting.run('maintenance_end', '');
+        insertSetting.run('maintenance_message', 'The site is currently down for maintenance. We will be back online shortly.');
+        console.log('Database seeded with default site settings.');
     }
   });
 
-  insertMany(defaultLeaders);
-  console.log('Database seeded with default leaders.');
+  transaction();
 };
 
-seedLeaders();
+seedDatabase();

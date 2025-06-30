@@ -37,8 +37,8 @@ export default function AdminToolsPage() {
       title: "Site Maintenance",
       description: "Enable or disable site maintenance mode.",
       icon: Wrench,
-      href: "#",
-      disabled: true,
+      href: "/admin/tools/maintenance",
+      disabled: false,
     },
     {
       title: "Display Notifications",

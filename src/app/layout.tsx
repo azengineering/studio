@@ -1,8 +1,10 @@
+
 import type {Metadata} from 'next';
 import { Toaster } from "@/components/ui/toaster"
 import { LanguageProvider } from '@/context/language-context';
 import { AuthProvider } from '@/context/auth-context';
 import AdminMessageManager from '@/components/admin-message-manager';
+import MaintenanceEnforcer from '@/components/maintenance-enforcer';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -25,6 +27,7 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <LanguageProvider>
           <AuthProvider>
+            <MaintenanceEnforcer />
             <AdminMessageManager />
             {children}
             <Toaster />

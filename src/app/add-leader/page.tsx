@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import LeaderCard from "@/components/leader-card";
+import ManifestoDialog from "@/components/manifesto-dialog";
 
 const MAX_PHOTO_SIZE_MB = 1;
 const MAX_MANIFESTO_SIZE_MB = 5;
@@ -98,6 +99,7 @@ function AddLeaderPage() {
   const [matchingLeaders, setMatchingLeaders] = useState<Leader[]>([]);
   const [isMatchingLeadersLoading, setIsMatchingLeadersLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [manifestoForView, setManifestoForView] = useState<{url: string; name: string} | null>(null);
 
   useEffect(() => {
     // Check if the user is an admin
@@ -344,6 +346,7 @@ function AddLeaderPage() {
   );
 
   return (
+    <>
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
@@ -672,9 +675,14 @@ function AddLeaderPage() {
                                             <FormLabel>{t('addLeaderPage.manifestoUrlLabel')}</FormLabel>
                                             {isEditMode && currentLeader?.manifestoUrl && (
                                                 <div className="mb-2">
-                                                    <a href={currentLeader.manifestoUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
+                                                     <Button 
+                                                        type="button" 
+                                                        variant="link" 
+                                                        className="p-0 h-auto text-sm"
+                                                        onClick={() => setManifestoForView({ url: currentLeader.manifestoUrl!, name: currentLeader.name })}
+                                                      >
                                                         View Current Manifesto
-                                                    </a>
+                                                      </Button>
                                                 </div>
                                             )}
                                             <FormControl>
@@ -746,6 +754,14 @@ function AddLeaderPage() {
       </main>
       <Footer />
     </div>
+
+    <ManifestoDialog
+        open={!!manifestoForView}
+        onOpenChange={() => setManifestoForView(null)}
+        manifestoUrl={manifestoForView?.url ?? null}
+        leaderName={manifestoForView?.name ?? ''}
+      />
+    </>
   );
 }
 

@@ -7,7 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import type { Leader as LeaderType } from '@/data/leaders';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Star, Twitter, Eye, Edit, ChevronDown } from 'lucide-react';
+import { Star, Twitter, Eye, Edit, ChevronDown, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/context/language-context';
 import {
@@ -30,6 +30,7 @@ import { Separator } from './ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import ManifestoDialog from './manifesto-dialog';
 
 interface LeaderCardProps {
   leader: LeaderType;
@@ -48,6 +49,7 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
   const [isRatingDialogOpen, setRatingDialogOpen] = useState(false);
   const [isReviewsDialogOpen, setReviewsDialogOpen] = useState(false);
   const [isLoginAlertOpen, setLoginAlertOpen] = useState(false);
+  const [isManifestoDialogOpen, setManifestoDialogOpen] = useState(false);
 
   const genderText = leader.gender.charAt(0).toUpperCase() + leader.gender.slice(1);
   const isCompact = variant === 'compact';
@@ -160,9 +162,13 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
                 <div className="flex justify-between items-center text-sm">
                     <div className="flex items-center gap-4">
                         {leader.manifestoUrl && (
-                            <a href={leader.manifestoUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
+                            <Button 
+                                variant="link" 
+                                className="p-0 h-auto font-medium" 
+                                onClick={() => setManifestoDialogOpen(true)}
+                              >
                                 Manifesto
-                            </a>
+                              </Button>
                         )}
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -320,6 +326,13 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
           }}
         />
       )}
+
+      <ManifestoDialog
+        open={isManifestoDialogOpen}
+        onOpenChange={setManifestoDialogOpen}
+        manifestoUrl={leader.manifestoUrl ?? null}
+        leaderName={leader.name}
+      />
 
       {!isCompact && (
         <AlertDialog open={isLoginAlertOpen} onOpenChange={setLoginAlertOpen}>

@@ -274,6 +274,10 @@ const translations = {
       next: 'Next',
       pageInfo: 'Page {currentPage} of {totalPages}',
     },
+    manifestoDialog: {
+      title: 'Manifesto for {name}',
+      description: 'Viewing the document provided by the candidate.',
+    },
   },
   hi: {
     header: {
@@ -547,6 +551,10 @@ const translations = {
       previous: 'पिछला',
       next: 'अगला',
       pageInfo: 'पेज {totalPages} का {currentPage}',
+    },
+    manifestoDialog: {
+      title: '{name} का घोषणापत्र',
+      description: 'उम्मीदवार द्वारा प्रदान किए गए दस्तावेज़ को देखना।',
     },
   },
 };

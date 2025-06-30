@@ -59,6 +59,7 @@ import { indianStates } from '@/data/locations';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Image from 'next/image';
+import ManifestoDialog from '@/components/manifesto-dialog';
 
 // The User type from the data layer will include these optional counts
 type UserWithCounts = User & {
@@ -158,6 +159,12 @@ export default function AdminUsersPage() {
     const [selectedLeaderForView, setSelectedLeaderForView] = useState<Leader | null>(null);
     const [isEditLeaderDialogOpen, setEditLeaderDialogOpen] = useState(false);
     const [leaderToEdit, setLeaderToEdit] = useState<Leader | null>(null);
+    const [manifestoForView, setManifestoForView] = useState<{url: string; name: string} | null>(null);
+    
+    // State for handling file removal in edit dialog
+    const [photoRemoved, setPhotoRemoved] = useState(false);
+    const [manifestoRemoved, setManifestoRemoved] = useState(false);
+
 
     const blockUserForm = useForm<z.infer<typeof blockFormSchema>>({
       resolver: zodResolver(blockFormSchema),
@@ -359,6 +366,8 @@ export default function AdminUsersPage() {
 
     const handleEditLeader = (leader: Leader) => {
         setLeaderToEdit(leader);
+        setPhotoRemoved(false);
+        setManifestoRemoved(false);
         setEditLeaderDialogOpen(true);
     };
 
@@ -380,7 +389,9 @@ export default function AdminUsersPage() {
           });
     
           let photoDataUrl = leaderToEdit.photoUrl;
-          if (values.photoUrl && values.photoUrl.length > 0) {
+          if (photoRemoved) {
+            photoDataUrl = '';
+          } else if (values.photoUrl && values.photoUrl.length > 0) {
               try {
                   photoDataUrl = await fileToDataUri(values.photoUrl[0]);
               } catch (error) {
@@ -390,7 +401,9 @@ export default function AdminUsersPage() {
           }
     
           let manifestoDataUrl = leaderToEdit.manifestoUrl;
-          if (values.manifestoUrl && values.manifestoUrl.length > 0) {
+          if (manifestoRemoved) {
+            manifestoDataUrl = '';
+          } else if (values.manifestoUrl && values.manifestoUrl.length > 0) {
               try {
                   manifestoDataUrl = await fileToDataUri(values.manifestoUrl[0]);
               } catch (error) {
@@ -743,9 +756,14 @@ export default function AdminUsersPage() {
                                                         <div>
                                                             <Label className="text-sm text-muted-foreground">Manifesto</Label>
                                                             {selectedLeaderForView.manifestoUrl ? (
-                                                                <a href={selectedLeaderForView.manifestoUrl} target="_blank" rel="noopener noreferrer" className="block text-base font-medium text-primary hover:underline truncate">
+                                                                 <Button 
+                                                                    type="button" 
+                                                                    variant="link" 
+                                                                    className="p-0 h-auto block text-base font-medium text-primary hover:underline truncate"
+                                                                    onClick={() => setManifestoForView({ url: selectedLeaderForView.manifestoUrl!, name: selectedLeaderForView.name })}
+                                                                >
                                                                     View Document
-                                                                </a>
+                                                                </Button>
                                                             ) : (
                                                                 <p className="text-base font-medium">N/A</p>
                                                             )}
@@ -1050,20 +1068,18 @@ export default function AdminUsersPage() {
                                 render={({ field: { onChange, value, ...rest } }) => (
                                     <FormItem>
                                         <FormLabel>Candidate's Photo</FormLabel>
-                                        {leaderToEdit?.photoUrl && (
-                                            <div className="mb-2">
-                                                <p className="text-sm text-muted-foreground">Current Photo:</p>
+                                        {!photoRemoved && leaderToEdit?.photoUrl ? (
+                                            <div className="mb-2 flex items-center gap-4">
                                                 <Image src={leaderToEdit.photoUrl} alt="Current leader photo" width={80} height={80} className="rounded-md object-cover mt-1" />
+                                                <Button type="button" variant="destructive" size="sm" onClick={() => setPhotoRemoved(true)}>
+                                                    <Trash2 className="mr-2 h-4 w-4" /> Remove
+                                                </Button>
                                             </div>
+                                        ) : (
+                                            <FormControl>
+                                                <Input type="file" accept="image/*" onChange={(e) => onChange(e.target.files)} {...rest} />
+                                            </FormControl>
                                         )}
-                                        <FormControl>
-                                            <Input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={(e) => onChange(e.target.files)}
-                                                {...rest}
-                                            />
-                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -1074,21 +1090,20 @@ export default function AdminUsersPage() {
                                 render={({ field: { onChange, value, ...rest } }) => (
                                     <FormItem>
                                         <FormLabel>Manifesto/Brochure (PDF)</FormLabel>
-                                        {leaderToEdit?.manifestoUrl && (
-                                            <div className="mb-2">
-                                                <a href={leaderToEdit.manifestoUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
+                                        {!manifestoRemoved && leaderToEdit?.manifestoUrl ? (
+                                            <div className="mb-2 flex items-center gap-4">
+                                                <Button type="button" variant="link" className="p-0 h-auto" onClick={() => setManifestoForView({url: leaderToEdit.manifestoUrl!, name: leaderToEdit.name})}>
                                                     View Current Manifesto
-                                                </a>
+                                                </Button>
+                                                <Button type="button" variant="destructive" size="sm" onClick={() => setManifestoRemoved(true)}>
+                                                    <Trash2 className="mr-2 h-4 w-4" /> Remove
+                                                </Button>
                                             </div>
+                                        ) : (
+                                            <FormControl>
+                                                <Input type="file" accept="application/pdf" onChange={(e) => onChange(e.target.files)} {...rest} />
+                                            </FormControl>
                                         )}
-                                        <FormControl>
-                                            <Input
-                                                type="file"
-                                                accept="application/pdf"
-                                                onChange={(e) => onChange(e.target.files)}
-                                                {...rest}
-                                            />
-                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -1129,6 +1144,12 @@ export default function AdminUsersPage() {
               </DialogContent>
             </Dialog>
 
+             <ManifestoDialog
+                open={!!manifestoForView}
+                onOpenChange={() => setManifestoForView(null)}
+                manifestoUrl={manifestoForView?.url ?? null}
+                leaderName={manifestoForView?.name ?? ''}
+              />
         </div>
     );
 }

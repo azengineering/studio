@@ -35,6 +35,7 @@ export interface Leader {
   createdAt?: string;
   status: 'pending' | 'approved' | 'rejected';
   adminComment?: string | null;
+  userName?: string;
 }
 
 export interface Review {
@@ -83,6 +84,7 @@ function dbToLeader(dbLeader: any): Leader {
         createdAt: dbLeader.createdAt,
         status: dbLeader.status,
         adminComment: dbLeader.adminComment,
+        userName: dbLeader.userName,
     };
 }
 
@@ -132,7 +134,7 @@ export async function getLeaders(): Promise<Leader[]> {
   return Promise.resolve(dbLeaders.map(dbToLeader));
 }
 
-export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment'>, userId: string): Promise<void> {
+export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment' | 'userName'>, userId: string): Promise<void> {
     const newLeader: Leader = {
         ...leaderData,
         id: new Date().getTime().toString(),
@@ -184,7 +186,7 @@ export async function getLeaderById(id: string): Promise<Leader | null> {
     return Promise.resolve(null);
 }
 
-export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment'>, userId: string, isAdmin: boolean = false): Promise<Leader | null> {
+export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment' | 'userName'>, userId: string, isAdmin: boolean = false): Promise<Leader | null> {
     const leaderToUpdate = await getLeaderById(leaderId);
 
     if (!leaderToUpdate) {
@@ -431,18 +433,49 @@ export async function getRatingCount(filters?: { startDate?: string, endDate?: s
 }
 
 // --- Admin Functions ---
+export async function getLeadersForAdminPanel(filters: {
+    dateFrom?: string;
+    dateTo?: string;
+    state?: string;
+    constituency?: string;
+    candidateName?: string;
+}): Promise<Leader[]> {
+  let query = `
+    SELECT l.*, u.name as userName
+    FROM leaders l
+    LEFT JOIN users u ON l.addedByUserId = u.id
+  `;
+  const params: (string | number)[] = [];
+  const conditions: string[] = [];
 
-export async function getPendingLeaders(): Promise<Leader[]> {
-  const stmt = db.prepare("SELECT * FROM leaders WHERE status = 'pending' ORDER BY createdAt DESC");
-  const dbLeaders = stmt.all() as any[];
+  if (filters.dateFrom && filters.dateTo) {
+    conditions.push('l.createdAt >= ? AND l.createdAt <= ?');
+    params.push(filters.dateFrom, filters.dateTo);
+  }
+  if (filters.state) {
+    conditions.push('l.location_state = ?');
+    params.push(filters.state);
+  }
+  if (filters.constituency) {
+    conditions.push('l.constituency LIKE ?');
+    params.push(`%${filters.constituency}%`);
+  }
+  if (filters.candidateName) {
+    conditions.push('l.name LIKE ?');
+    params.push(`%${filters.candidateName}%`);
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+
+  query += ' ORDER BY l.createdAt DESC';
+  
+  const stmt = db.prepare(query);
+  const dbLeaders = stmt.all(...params) as any[];
   return Promise.resolve(dbLeaders.map(dbToLeader));
 }
 
-export async function getApprovedLeaders(): Promise<Leader[]> {
-  const stmt = db.prepare("SELECT * FROM leaders WHERE status = 'approved' ORDER BY createdAt DESC");
-  const dbLeaders = stmt.all() as any[];
-  return Promise.resolve(dbLeaders.map(dbToLeader));
-}
 
 export async function approveLeader(leaderId: string): Promise<void> {
   const stmt = db.prepare("UPDATE leaders SET status = 'approved', adminComment = 'Approved by admin.' WHERE id = ?");

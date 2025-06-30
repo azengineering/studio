@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { addDays } from 'date-fns';
 
 import { getUsers, type User, blockUser, unblockUser, addAdminMessage, getAdminMessages, deleteAdminMessage, type AdminMessage } from "@/data/users";
@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, RotateCw, X, Star, MoreVertical, Ban, Unlock, MessageSquareWarning, Trash2, Edit, UserCheck, PlusCircle, ChevronDown, Info } from 'lucide-react';
+import { Search, Loader2, RotateCw, X, Star, MoreVertical, Ban, Unlock, MessageSquareWarning, Trash2, Edit, UserCheck, PlusCircle, ChevronDown, Info, ChevronLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -141,6 +141,7 @@ const ProfileInfo = ({ label, value }: {label: string, value: string | number | 
 
 export default function AdminUsersPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [users, setUsers] = useState<UserWithCounts[]>([]);
     const [selectedUser, setSelectedUser] = useState<UserWithCounts | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -213,15 +214,49 @@ export default function AdminUsersPage() {
             });
         }
     }, [leaderToEdit, editLeaderForm]);
+    
+    const handleSelectUser = useCallback((user: UserWithCounts, tab: SelectedTab = 'profile') => {
+        if (selectedUser?.id === user.id) {
+          // If already selected, just switch tab
+          setSelectedTab(tab);
+        } else {
+          // If new user selected, reset everything
+          setSelectedUser(user);
+          setSelectedTab(tab);
+          setUserActivities([]);
+          setUserAddedLeaders([]);
+          setUserAdminMessages([]);
+          setSelectedLeaderForView(null);
+        }
+    }, [selectedUser?.id]);
 
-    const fetchUsers = async (query?: string) => {
+    const fetchUsers = useCallback(async (query?: string) => {
         setIsLoading(true);
         setSelectedUser(null);
         setSelectedLeaderForView(null);
         const fetchedUsers = await getUsers(query);
         setUsers(fetchedUsers as UserWithCounts[]);
         setIsLoading(false);
-    };
+        return fetchedUsers as UserWithCounts[];
+    }, []);
+
+     useEffect(() => {
+        const userIdFromQuery = searchParams.get('userId');
+        if (userIdFromQuery && !hasSearched) {
+            const preselectUser = async () => {
+                setIsLoading(true);
+                setSearchTerm(userIdFromQuery);
+                const fetchedUsers = await fetchUsers(userIdFromQuery);
+                if (fetchedUsers.length > 0) {
+                    handleSelectUser(fetchedUsers[0], 'leaders');
+                }
+                setHasSearched(true);
+                setIsLoading(false);
+            };
+            preselectUser();
+        }
+    }, [searchParams, hasSearched, fetchUsers, handleSelectUser]);
+
 
     const handleSearch = () => {
         if (!hasSearched) setHasSearched(true);
@@ -240,21 +275,6 @@ export default function AdminUsersPage() {
         setHasSearched(false);
         setSelectedUser(null);
         setSelectedLeaderForView(null);
-    };
-
-    const handleSelectUser = (user: UserWithCounts, tab: SelectedTab = 'profile') => {
-        if (selectedUser?.id === user.id) {
-          // If already selected, just switch tab
-          setSelectedTab(tab);
-        } else {
-          // If new user selected, reset everything
-          setSelectedUser(user);
-          setSelectedTab(tab);
-          setUserActivities([]);
-          setUserAddedLeaders([]);
-          setUserAdminMessages([]);
-          setSelectedLeaderForView(null);
-        }
     };
 
     const fetchUserRatings = useCallback(async (userId: string) => {
@@ -522,9 +542,16 @@ export default function AdminUsersPage() {
 
     return (
         <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold font-headline">User Management</h1>
+                <Button variant="outline" onClick={() => router.back()}>
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    Back
+                </Button>
+            </div>
             <Card>
                 <CardHeader>
-                    <CardTitle>User Management</CardTitle>
+                    <CardTitle>User Search</CardTitle>
                     <CardDescription>Search for registered users and perform administrative actions.</CardDescription>
                 </CardHeader>
                 <CardContent>

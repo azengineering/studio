@@ -3,13 +3,12 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { getApprovedLeaders, getPendingLeaders, approveLeader, deleteLeader, type Leader } from "@/data/leaders";
+import { getLeadersForAdminPanel, deleteLeader, updateLeaderStatus, type Leader } from "@/data/leaders";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, XCircle, Edit, Trash2, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Edit, Trash2, Clock, Calendar as CalendarIcon, RotateCcw, Loader2, Search, ChevronDown, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -22,33 +21,101 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import type { DateRange } from "react-day-picker";
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { indianStates } from '@/data/locations';
+import { Dialog, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+
+type LeaderStatus = 'pending' | 'approved' | 'rejected';
 
 export default function AdminLeadersPage() {
+    const [allFoundLeaders, setAllFoundLeaders] = useState<Leader[]>([]);
     const [pendingLeaders, setPendingLeaders] = useState<Leader[]>([]);
     const [approvedLeaders, setApprovedLeaders] = useState<Leader[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [rejectedLeaders, setRejectedLeaders] = useState<Leader[]>([]);
+    
+    const [isSearching, setIsSearching] = useState(false);
+    const [hasSearched, setHasSearched] = useState(false);
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const { toast } = useToast();
 
-    const fetchLeaders = async () => {
-        setIsLoading(true);
-        const [pending, approved] = await Promise.all([getPendingLeaders(), getApprovedLeaders()]);
-        setPendingLeaders(pending);
-        setApprovedLeaders(approved);
-        setIsLoading(false);
-    };
+    // Filter states
+    const [date, setDate] = useState<DateRange | undefined>(undefined);
+    const [selectedState, setSelectedState] = useState<string>('');
+    const [constituency, setConstituency] = useState<string>('');
+    const [candidateName, setCandidateName] = useState<string>('');
+    
+    // Dialog states
+    const [statusChangeInfo, setStatusChangeInfo] = useState<{ leaderId: string; newStatus: LeaderStatus } | null>(null);
+    const [statusChangeComment, setStatusChangeComment] = useState('');
+    const [isStatusSubmitting, setIsStatusSubmitting] = useState(false);
 
     useEffect(() => {
-        fetchLeaders();
-    }, []);
+        setPendingLeaders(allFoundLeaders.filter(l => l.status === 'pending'));
+        setApprovedLeaders(allFoundLeaders.filter(l => l.status === 'approved'));
+        setRejectedLeaders(allFoundLeaders.filter(l => l.status === 'rejected'));
+    }, [allFoundLeaders]);
 
-    const handleApprove = (leaderId: string) => {
-        startTransition(async () => {
-            await approveLeader(leaderId);
-            toast({ title: "Leader Approved", description: "The leader is now visible on the public site." });
-            await fetchLeaders();
-        });
+    const fetchLeaders = async () => {
+        setIsSearching(true);
+        setHasSearched(true);
+        const filters = {
+            dateFrom: date?.from ? format(date.from, 'yyyy-MM-dd') + 'T00:00:00.000Z' : undefined,
+            dateTo: date?.to ? format(date.to, 'yyyy-MM-dd') + 'T23:59:59.999Z' : undefined,
+            state: selectedState || undefined,
+            constituency: constituency.trim() || undefined,
+            candidateName: candidateName.trim() || undefined,
+        };
+        const leaders = await getLeadersForAdminPanel(filters);
+        setAllFoundLeaders(leaders);
+        setIsSearching(false);
+    };
+
+    const handleReset = () => {
+        setDate(undefined);
+        setSelectedState('');
+        setConstituency('');
+        setCandidateName('');
+        setAllFoundLeaders([]);
+        setHasSearched(false);
+    };
+    
+    const handleStatusChangeClick = (leaderId: string, currentComment: string | null | undefined, newStatus: LeaderStatus) => {
+        setStatusChangeInfo({ leaderId, newStatus });
+        setStatusChangeComment(currentComment || '');
+    };
+
+    const handleStatusUpdate = async () => {
+        if (!statusChangeInfo) return;
+        if (!statusChangeComment.trim() && statusChangeInfo.newStatus === 'rejected') {
+            toast({ variant: 'destructive', title: 'Comment Required', description: 'A comment is required to reject a submission.' });
+            return;
+        }
+
+        setIsStatusSubmitting(true);
+        await updateLeaderStatus(statusChangeInfo.leaderId, statusChangeInfo.newStatus, statusChangeComment);
+        toast({ title: "Leader Status Updated" });
+        
+        setStatusChangeInfo(null);
+        setStatusChangeComment('');
+        setIsStatusSubmitting(false);
+        await fetchLeaders(); // Re-fetch to update lists
     };
 
     const handleDelete = (leaderId: string, leaderName: string) => {
@@ -62,31 +129,64 @@ export default function AdminLeadersPage() {
     const handleEdit = (leaderId: string) => {
         router.push(`/add-leader?edit=${leaderId}`);
     };
+    
+    const handleNameClick = (userId: string | null | undefined) => {
+        if (userId) {
+            router.push(`/admin/users?userId=${userId}`);
+        } else {
+            toast({
+                variant: 'destructive',
+                title: "No User Associated",
+                description: "This leader was not added by a registered user."
+            });
+        }
+    };
 
-    const LeaderTable = ({ leaders, isPendingTab }: { leaders: Leader[], isPendingTab: boolean }) => (
+    const LeaderTable = ({ leaders }: { leaders: Leader[] }) => (
         <Table>
             <TableHeader>
                 <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Party</TableHead>
+                    <TableHead>Added By</TableHead>
                     <TableHead>Constituency</TableHead>
-                    <TableHead>Added On</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
                 {leaders.length > 0 ? leaders.map((leader: Leader) => (
                     <TableRow key={leader.id}>
-                        <TableCell className="font-medium">{leader.name}</TableCell>
-                        <TableCell>{leader.partyName}</TableCell>
+                        <TableCell>
+                            <Button variant="link" className="p-0 h-auto font-medium" onClick={() => handleNameClick(leader.addedByUserId)}>
+                                {leader.name}
+                            </Button>
+                            <div className="text-sm text-muted-foreground">{leader.partyName}</div>
+                        </TableCell>
+                        <TableCell>
+                            <Button variant="link" className="p-0 h-auto text-muted-foreground" onClick={() => handleNameClick(leader.addedByUserId)}>
+                                {leader.userName || 'Admin/System'}
+                            </Button>
+                        </TableCell>
                         <TableCell>{leader.constituency}</TableCell>
-                        <TableCell>{leader.createdAt ? new Date(leader.createdAt).toLocaleDateString() : 'N/A'}</TableCell>
+                        <TableCell>
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm" className={cn("w-32 justify-between",
+                                        leader.status === 'approved' && 'border-green-500 text-green-600',
+                                        leader.status === 'rejected' && 'border-red-500 text-red-600'
+                                    )}>
+                                        <span className="capitalize">{leader.status}</span>
+                                        <ChevronDown className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onSelect={() => handleStatusChangeClick(leader.id, leader.adminComment, 'approved')}>Approved</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleStatusChangeClick(leader.id, leader.adminComment, 'pending')}>Pending</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleStatusChangeClick(leader.id, leader.adminComment, 'rejected')}>Rejected</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </TableCell>
                         <TableCell className="text-right space-x-2">
-                             {isPendingTab && (
-                                <Button variant="ghost" size="sm" onClick={() => handleApprove(leader.id)} disabled={isPending}>
-                                    <CheckCircle className="h-4 w-4 mr-1 text-green-600" /> Approve
-                                </Button>
-                            )}
                             <Button variant="ghost" size="sm" onClick={() => handleEdit(leader.id)} disabled={isPending}>
                                 <Edit className="h-4 w-4 mr-1 text-blue-600" /> Edit
                             </Button>
@@ -116,7 +216,7 @@ export default function AdminLeadersPage() {
                 )) : (
                     <TableRow>
                         <TableCell colSpan={5} className="h-24 text-center">
-                            {isPendingTab ? "No leaders pending approval." : "No approved leaders found."}
+                            No leaders match the current criteria.
                         </TableCell>
                     </TableRow>
                 )}
@@ -124,34 +224,132 @@ export default function AdminLeadersPage() {
         </Table>
     );
 
+    const TableSkeleton = () => (
+         <div className="border rounded-md">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        {[...Array(5)].map((_, i) => <TableHead key={i}><Skeleton className="h-5 w-full" /></TableHead>)}
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {[...Array(5)].map((_, i) => (
+                        <TableRow key={i}>
+                            {[...Array(5)].map((_, j) => <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>)}
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
+
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Leader Management</CardTitle>
-                <CardDescription>Approve, edit, or delete leader submissions.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Tabs defaultValue="pending">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="pending">
-                            <Clock className="mr-2 h-4 w-4"/>
-                            Pending Approval
-                            <Badge variant="secondary" className="ml-2">{pendingLeaders.length}</Badge>
-                        </TabsTrigger>
-                        <TabsTrigger value="approved">
-                             <CheckCircle className="mr-2 h-4 w-4"/>
-                            Approved Leaders
-                            <Badge variant="secondary" className="ml-2">{approvedLeaders.length}</Badge>
-                        </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="pending" className="mt-4">
-                        {isLoading ? <p>Loading...</p> : <LeaderTable leaders={pendingLeaders} isPendingTab={true} />}
-                    </TabsContent>
-                    <TabsContent value="approved" className="mt-4">
-                        {isLoading ? <p>Loading...</p> : <LeaderTable leaders={approvedLeaders} isPendingTab={false} />}
-                    </TabsContent>
-                </Tabs>
-            </CardContent>
-        </Card>
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Leader Management & Search</CardTitle>
+                    <CardDescription>Filter, search, and manage all leader submissions.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                        <div className="grid gap-2 lg:col-span-2">
+                            <Label>Date Range</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal",!date && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {date?.from ? (date.to ? (<>{format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}</>) : (format(date.from, "LLL dd, y"))) : (<span>Pick a date range</span>)}
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar initialFocus mode="range" defaultMonth={date?.from} selected={date} onSelect={setDate} numberOfMonths={2}/>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="state-filter">State</Label>
+                            <Select value={selectedState} onValueChange={setSelectedState}>
+                                <SelectTrigger id="state-filter" className="bg-background"><SelectValue placeholder="All States" /></SelectTrigger>
+                                <SelectContent><SelectItem value="">All States</SelectItem>{indianStates.map(state => (<SelectItem key={state} value={state}>{state}</SelectItem>))}</SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="constituency-filter">Constituency</Label>
+                            <Input id="constituency-filter" value={constituency} onChange={(e) => setConstituency(e.target.value)} placeholder="Constituency name" className="bg-background"/>
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end mt-4">
+                         <div className="grid gap-2 lg:col-span-2">
+                            <Label htmlFor="candidate-filter">Candidate Name</Label>
+                            <Input id="candidate-filter" value={candidateName} onChange={(e) => setCandidateName(e.target.value)} placeholder="Enter candidate name..." className="bg-background"/>
+                        </div>
+                         <div className="flex gap-2 self-end lg:col-start-5">
+                            <Button onClick={fetchLeaders} disabled={isSearching} className="w-full">
+                                {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                                Search
+                            </Button>
+                            <Button onClick={handleReset} variant="outline" disabled={isSearching} size="icon">
+                                <RotateCcw className="h-4 w-4" />
+                            </Button>
+                        </div>
+                     </div>
+                </CardContent>
+            </Card>
+
+            {hasSearched && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Search Results</CardTitle>
+                        <CardDescription>Showing all leaders matching your criteria.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Tabs defaultValue="pending">
+                            <TabsList className="grid w-full grid-cols-3">
+                                <TabsTrigger value="pending">
+                                    <Clock className="mr-2 h-4 w-4"/>Pending <Badge variant="secondary" className="ml-2">{pendingLeaders.length}</Badge>
+                                </TabsTrigger>
+                                <TabsTrigger value="approved">
+                                    <CheckCircle className="mr-2 h-4 w-4"/>Approved <Badge variant="secondary" className="ml-2">{approvedLeaders.length}</Badge>
+                                </TabsTrigger>
+                                 <TabsTrigger value="rejected">
+                                    <XCircle className="mr-2 h-4 w-4"/>Rejected <Badge variant="secondary" className="ml-2">{rejectedLeaders.length}</Badge>
+                                </TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="pending" className="mt-4">
+                                {isSearching ? <TableSkeleton /> : <LeaderTable leaders={pendingLeaders} />}
+                            </TabsContent>
+                            <TabsContent value="approved" className="mt-4">
+                                {isSearching ? <TableSkeleton /> : <LeaderTable leaders={approvedLeaders} />}
+                            </TabsContent>
+                             <TabsContent value="rejected" className="mt-4">
+                                {isSearching ? <TableSkeleton /> : <LeaderTable leaders={rejectedLeaders} />}
+                            </TabsContent>
+                        </Tabs>
+                    </CardContent>
+                </Card>
+            )}
+
+            <Dialog open={!!statusChangeInfo} onOpenChange={() => setStatusChangeInfo(null)}>
+              <DialogContent>
+                <CardHeader>
+                  <CardTitle>Update Leader Status</CardTitle>
+                  <CardDescription>
+                    You are changing the status to <span className="font-bold capitalize">{statusChangeInfo?.newStatus}</span>. A comment is required for rejection.
+                  </CardDescription>
+                </CardHeader>
+                <div className="px-6 py-4">
+                  <Label htmlFor="status-comment">Admin Comment</Label>
+                  <Textarea id="status-comment" value={statusChangeComment} onChange={(e) => setStatusChangeComment(e.target.value)} placeholder="Provide a reason for this status change..." className="mt-2"/>
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setStatusChangeInfo(null)}>Cancel</Button>
+                  <Button onClick={handleStatusUpdate} disabled={isStatusSubmitting}>
+                    {isStatusSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Confirm Update
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+        </div>
     );
 }

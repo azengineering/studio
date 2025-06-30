@@ -730,7 +730,26 @@ export default function AdminUsersPage() {
                                                         <ProfileInfo label="Gender" value={selectedLeaderForView.gender} />
                                                         <ProfileInfo label="Age" value={selectedLeaderForView.age} />
                                                         <ProfileInfo label="Address" value={selectedLeaderForView.nativeAddress} />
-                                                        <ProfileInfo label="Twitter" value={selectedLeaderForView.twitterUrl} />
+                                                        <div>
+                                                            <Label className="text-sm text-muted-foreground">Twitter</Label>
+                                                            {selectedLeaderForView.twitterUrl ? (
+                                                                <a href={selectedLeaderForView.twitterUrl} target="_blank" rel="noopener noreferrer" className="block text-base font-medium text-primary hover:underline truncate">
+                                                                    View Profile
+                                                                </a>
+                                                            ) : (
+                                                                <p className="text-base font-medium">N/A</p>
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <Label className="text-sm text-muted-foreground">Manifesto</Label>
+                                                            {selectedLeaderForView.manifestoUrl ? (
+                                                                <a href={selectedLeaderForView.manifestoUrl} target="_blank" rel="noopener noreferrer" className="block text-base font-medium text-primary hover:underline truncate">
+                                                                    View Document
+                                                                </a>
+                                                            ) : (
+                                                                <p className="text-base font-medium">N/A</p>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     <Separator className="my-4"/>
                                                     <h4 className="font-semibold mb-2">Previous Election History</h4>

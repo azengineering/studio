@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, Trash2, ChevronLeft, Loader2, Save } from 'lucide-react';
+import { PlusCircle, Trash2, ChevronLeft, Loader2, Save, CalendarIcon } from 'lucide-react';
 
 const optionSchema = z.object({
   id: z.string().optional(),
@@ -34,6 +34,14 @@ const questionSchema = z.object({
   question_text: z.string().min(1, 'Question text cannot be empty.'),
   question_type: z.enum(['yes_no', 'multiple_choice']),
   options: z.array(optionSchema),
+}).refine(data => {
+    if (data.question_type === 'multiple_choice') {
+        return data.options.length >= 2;
+    }
+    return true;
+}, {
+    message: 'Multiple choice questions must have at least 2 options.',
+    path: ['options'],
 });
 
 const pollFormSchema = z.object({
@@ -203,7 +211,7 @@ export default function PollEditorPage() {
                         <Popover><PopoverTrigger asChild><FormControl>
                             <Button variant="outline" className={cn('w-[240px] pl-3 text-left font-normal',!field.value && 'text-muted-foreground')}>
                                 {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                                <ChevronLeft className="ml-auto h-4 w-4 opacity-0" />
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                         </FormControl></PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/></PopoverContent>
@@ -240,6 +248,7 @@ export default function PollEditorPage() {
                         {form.watch(`questions.${qIndex}.question_type`) === 'multiple_choice' && (
                            <OptionsArray qIndex={qIndex} />
                         )}
+                        <FormMessage>{form.formState.errors.questions?.[qIndex]?.options?.message}</FormMessage>
                     </div>
                 ))}
                 <Button type="button" variant="outline" onClick={addQuestion}><PlusCircle className="mr-2 h-4 w-4" />Add Question</Button>

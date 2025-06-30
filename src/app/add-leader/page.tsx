@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
 import { useRouter, useSearchParams } from 'next/navigation';
-import { PlusCircle, Trash2, RotateCw } from 'lucide-react';
+import { PlusCircle, Trash2, RotateCw, Loader2 } from 'lucide-react';
 import { useState, useEffect } from "react";
 import Image from "next/image";
 
@@ -22,7 +22,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
-import withAuth from '@/components/with-auth';
 import { useLanguage } from '@/context/language-context';
 import { useToast } from "@/hooks/use-toast";
 import { addLeader, getLeaderById, updateLeader, type Leader, getLeaders } from '@/data/leaders';
@@ -90,7 +89,7 @@ function AddLeaderPage() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   const [isEditMode, setIsEditMode] = useState(false);
   const [leaderId, setLeaderId] = useState<string | null>(null);
@@ -100,13 +99,19 @@ function AddLeaderPage() {
   const [isMatchingLeadersLoading, setIsMatchingLeadersLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [manifestoForView, setManifestoForView] = useState<{url: string; name: string} | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    // Check if the user is an admin
-    if (localStorage.getItem('admin_auth') === 'true') {
-        setIsAdmin(true);
+    if (!authLoading) {
+      const adminAuth = localStorage.getItem('admin_auth') === 'true';
+      setIsAdmin(adminAuth);
+      if (user || adminAuth) {
+        setIsAuthorized(true);
+      } else {
+        router.push('/login?redirect=/add-leader');
+      }
     }
-  }, []);
+  }, [user, authLoading, router]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -163,8 +168,10 @@ function AddLeaderPage() {
         setIsMatchingLeadersLoading(false);
       }
     };
-    fetchMatchingLeaders();
-  }, [user]);
+    if (isAuthorized) {
+        fetchMatchingLeaders();
+    }
+  }, [user, isAuthorized]);
 
   useEffect(() => {
     const editId = searchParams.get('edit');
@@ -207,11 +214,13 @@ function AddLeaderPage() {
             setIsLoading(false);
         }
       };
-      fetchLeaderData();
+      if (isAuthorized) {
+        fetchLeaderData();
+      }
     } else {
         setIsLoading(false);
     }
-  }, [searchParams, form, router, toast, user, isAdmin]);
+  }, [searchParams, form, router, toast, user, isAdmin, isAuthorized]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -226,7 +235,7 @@ function AddLeaderPage() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
+    if (!user && !isAdmin) {
         toast({ variant: 'destructive', title: 'You must be logged in to perform this action.' });
         return;
     }
@@ -284,7 +293,7 @@ function AddLeaderPage() {
 
     try {
         if (isEditMode && leaderId) {
-            await updateLeader(leaderId, leaderPayload, user.id, isAdmin);
+            await updateLeader(leaderId, leaderPayload, user?.id ?? null, isAdmin);
             toast({ title: t('addLeaderPage.updateSuccessMessage') });
             if (isAdmin) {
                 router.push('/admin/leaders');
@@ -292,7 +301,7 @@ function AddLeaderPage() {
                 router.push('/my-activities');
             }
         } else {
-            await addLeader(leaderPayload, user.id);
+            await addLeader(leaderPayload, user?.id ?? null);
             toast({ title: t('addLeaderPage.successMessage'), description: "Your submission is pending admin approval." });
             form.reset();
             router.push('/rate-leader');
@@ -344,6 +353,18 @@ function AddLeaderPage() {
       ))}
     </div>
   );
+
+  if (!isAuthorized) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <Header />
+        <main className="flex-grow container mx-auto px-4 py-8 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -765,4 +786,4 @@ function AddLeaderPage() {
   );
 }
 
-export default withAuth(AddLeaderPage);
+export default AddLeaderPage;

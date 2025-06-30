@@ -257,6 +257,15 @@ export default function AdminUsersPage() {
         }
     }, [searchParams, hasSearched, fetchUsers, handleSelectUser]);
 
+    useEffect(() => {
+      const leaderIdFromQuery = searchParams.get('leaderId');
+      if (leaderIdFromQuery && selectedTab === 'leaders' && userAddedLeaders.length > 0) {
+          const leaderToView = userAddedLeaders.find(l => l.id === leaderIdFromQuery);
+          if (leaderToView) {
+              setSelectedLeaderForView(leaderToView);
+          }
+      }
+    }, [userAddedLeaders, searchParams, selectedTab]);
 
     const handleSearch = () => {
         if (!hasSearched) setHasSearched(true);

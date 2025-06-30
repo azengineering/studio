@@ -134,7 +134,7 @@ export async function getLeaders(): Promise<Leader[]> {
   return Promise.resolve(dbLeaders.map(dbToLeader));
 }
 
-export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment' | 'userName'>, userId: string): Promise<void> {
+export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment' | 'userName'>, userId: string | null): Promise<void> {
     const newLeader: Leader = {
         ...leaderData,
         id: new Date().getTime().toString(),
@@ -186,7 +186,7 @@ export async function getLeaderById(id: string): Promise<Leader | null> {
     return Promise.resolve(null);
 }
 
-export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment' | 'userName'>, userId: string, isAdmin: boolean = false): Promise<Leader | null> {
+export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment' | 'userName'>, userId: string | null, isAdmin: boolean = false): Promise<Leader | null> {
     const leaderToUpdate = await getLeaderById(leaderId);
 
     if (!leaderToUpdate) {

@@ -130,9 +130,9 @@ export default function AdminLeadersPage() {
         router.push(`/add-leader?edit=${leaderId}`);
     };
     
-    const handleNameClick = (userId: string | null | undefined) => {
+    const handleNameClick = (userId: string | null | undefined, leaderId: string) => {
         if (userId) {
-            router.push(`/admin/users?userId=${userId}`);
+            router.push(`/admin/users?userId=${userId}&leaderId=${leaderId}`);
         } else {
             toast({
                 variant: 'destructive',
@@ -157,13 +157,13 @@ export default function AdminLeadersPage() {
                 {leaders.length > 0 ? leaders.map((leader: Leader) => (
                     <TableRow key={leader.id}>
                         <TableCell>
-                            <Button variant="link" className="p-0 h-auto font-medium" onClick={() => handleNameClick(leader.addedByUserId)}>
+                            <Button variant="link" className="p-0 h-auto font-medium" onClick={() => handleNameClick(leader.addedByUserId, leader.id)}>
                                 {leader.name}
                             </Button>
                             <div className="text-sm text-muted-foreground">{leader.partyName}</div>
                         </TableCell>
                         <TableCell>
-                            <Button variant="link" className="p-0 h-auto text-muted-foreground" onClick={() => handleNameClick(leader.addedByUserId)}>
+                            <Button variant="link" className="p-0 h-auto text-muted-foreground" onClick={() => handleNameClick(leader.addedByUserId, leader.id)}>
                                 {leader.userName || 'Admin/System'}
                             </Button>
                         </TableCell>

@@ -21,11 +21,6 @@ export default function NotificationBanner() {
         }
 
         const fetchNotifications = async () => {
-            const dismissed = sessionStorage.getItem('notification_banner_dismissed') === 'true';
-            if (dismissed) {
-                return;
-            }
-
             const activeNotifications = await getActiveNotifications();
             setNotifications(activeNotifications);
             if (activeNotifications.length > 0) {
@@ -56,7 +51,6 @@ export default function NotificationBanner() {
 
     const handleDismiss = () => {
         setIsVisible(false);
-        sessionStorage.setItem('notification_banner_dismissed', 'true');
     };
 
     return (

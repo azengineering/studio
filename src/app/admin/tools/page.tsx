@@ -44,8 +44,8 @@ export default function AdminToolsPage() {
       title: "Display Notifications",
       description: "Create and manage site-wide notifications.",
       icon: Bell,
-      href: "#",
-      disabled: true,
+      href: "/admin/tools/notifications",
+      disabled: false,
     },
     {
       title: "Add Polls",

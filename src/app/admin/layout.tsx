@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { UserCheck, LogOut, LayoutDashboard, Scale, Users, Menu, Wrench } from 'lucide-react';
+import { UserCheck, LogOut, LayoutDashboard, Scale, Users, Menu, Wrench, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/components/ui/sheet';
@@ -59,7 +59,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             href={item.href}
             className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                pathname.startsWith(item.href) && item.href !== '/admin' || pathname === item.href ? "bg-secondary text-primary" : ""
+                pathname.startsWith(item.href) && (item.href !== '/admin' || pathname === item.href) ? "bg-secondary text-primary" : ""
             )}
         >
             <item.icon className="h-4 w-4" />
@@ -117,7 +117,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                   href={item.href}
                                   className={cn(
                                       "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                                      pathname.startsWith(item.href) && item.href !== '/admin' || pathname === item.href ? "bg-secondary text-primary" : ""
+                                      pathname.startsWith(item.href) && (item.href !== '/admin' || pathname === item.href) ? "bg-secondary text-primary" : ""
                                   )}
                               >
                                   <item.icon className="h-4 w-4" />

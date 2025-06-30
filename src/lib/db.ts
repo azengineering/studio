@@ -267,6 +267,15 @@ const schema = `
     key TEXT PRIMARY KEY,
     value TEXT
   );
+  
+  CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY,
+    message TEXT NOT NULL,
+    start_time TEXT,
+    end_time TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL
+  );
 `;
 
 db.exec(schema);

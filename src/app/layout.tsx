@@ -5,6 +5,7 @@ import { LanguageProvider } from '@/context/language-context';
 import { AuthProvider } from '@/context/auth-context';
 import AdminMessageManager from '@/components/admin-message-manager';
 import MaintenanceEnforcer from '@/components/maintenance-enforcer';
+import NotificationBanner from '@/components/notification-banner';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({
         <LanguageProvider>
           <AuthProvider>
             <MaintenanceEnforcer />
+            <NotificationBanner />
             <AdminMessageManager />
             {children}
             <Toaster />

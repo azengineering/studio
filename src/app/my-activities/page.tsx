@@ -83,7 +83,7 @@ function MyActivitiesPage() {
   );
 
   const LeaderListSkeleton = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
       {Array.from({ length: 4 }).map((_, index) => (
         <div key={index} className="flex flex-col space-y-3">
           <Skeleton className="h-[125px] w-full rounded-xl" />
@@ -163,7 +163,7 @@ function MyActivitiesPage() {
                     {isLoadingLeaders ? (
                       <LeaderListSkeleton />
                     ) : addedLeaders.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                         {addedLeaders.map((leader) => (
                           <LeaderCard
                             key={leader.id}

@@ -57,7 +57,7 @@ export default function AdminLeadersPage() {
 
     // Filter states
     const [date, setDate] = useState<DateRange | undefined>(undefined);
-    const [selectedState, setSelectedState] = useState<string>('');
+    const [selectedState, setSelectedState] = useState<string>('all-states');
     const [constituency, setConstituency] = useState<string>('');
     const [candidateName, setCandidateName] = useState<string>('');
     
@@ -78,7 +78,7 @@ export default function AdminLeadersPage() {
         const filters = {
             dateFrom: date?.from ? format(date.from, 'yyyy-MM-dd') + 'T00:00:00.000Z' : undefined,
             dateTo: date?.to ? format(date.to, 'yyyy-MM-dd') + 'T23:59:59.999Z' : undefined,
-            state: selectedState || undefined,
+            state: selectedState === 'all-states' ? undefined : selectedState,
             constituency: constituency.trim() || undefined,
             candidateName: candidateName.trim() || undefined,
         };
@@ -89,7 +89,7 @@ export default function AdminLeadersPage() {
 
     const handleReset = () => {
         setDate(undefined);
-        setSelectedState('');
+        setSelectedState('all-states');
         setConstituency('');
         setCandidateName('');
         setAllFoundLeaders([]);
@@ -270,7 +270,10 @@ export default function AdminLeadersPage() {
                             <Label htmlFor="state-filter">State</Label>
                             <Select value={selectedState} onValueChange={setSelectedState}>
                                 <SelectTrigger id="state-filter" className="bg-background"><SelectValue placeholder="All States" /></SelectTrigger>
-                                <SelectContent><SelectItem value="">All States</SelectItem>{indianStates.map(state => (<SelectItem key={state} value={state}>{state}</SelectItem>))}</SelectContent>
+                                <SelectContent>
+                                    <SelectItem value="all-states">All States</SelectItem>
+                                    {indianStates.map(state => (<SelectItem key={state} value={state}>{state}</SelectItem>))}
+                                </SelectContent>
                             </Select>
                         </div>
                         <div className="grid gap-2">
@@ -353,5 +356,3 @@ export default function AdminLeadersPage() {
         </div>
     );
 }
-
-    

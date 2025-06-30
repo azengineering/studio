@@ -302,16 +302,27 @@ export default function SiteContactsPage() {
                         <CardContent>
                             {isLoadingStats ? <AnalyticsSkeleton /> : ticketStats ? (
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                                    <div className="min-h-[300px]">
-                                        <ChartContainer config={chartConfig} className="w-full h-full aspect-square">
-                                            <ResponsiveContainer width="100%" height={300}>
-                                                <PieChart>
-                                                    <Tooltip cursor={false} content={<ChartTooltipContent hideIndicator />} />
-                                                    <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={5} />
-                                                    <Legend content={<ChartLegendContent />} />
-                                                </PieChart>
-                                            </ResponsiveContainer>
-                                        </ChartContainer>
+                                    <div className="min-h-[300px] flex items-center justify-center">
+                                        {chartData.length > 0 ? (
+                                            <ChartContainer config={chartConfig} className="w-full h-full aspect-square">
+                                                <ResponsiveContainer width="100%" height={300}>
+                                                    <PieChart>
+                                                        <Tooltip cursor={false} content={<ChartTooltipContent hideIndicator />} />
+                                                        <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={5}>
+                                                          {chartData.map((entry) => (
+                                                            <Cell key={`cell-${entry.name}`} fill={entry.fill as string} />
+                                                          ))}
+                                                        </Pie>
+                                                        <Legend content={<ChartLegendContent />} />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </ChartContainer>
+                                        ) : (
+                                            <div className="text-center text-muted-foreground">
+                                                <Inbox className="h-12 w-12 mx-auto" />
+                                                <p className="mt-2">No ticket data available for analytics.</p>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <StatCard title="Total Tickets" value={ticketStats.total} icon={Ticket} />
@@ -367,18 +378,18 @@ export default function SiteContactsPage() {
                                 <Label>Status</Label>
                                 <Select value={selectedStatus} onValueChange={(v) => setSelectedStatus(v as TicketStatus)}>
                                     <SelectTrigger>
-                                        <span className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2">
                                             {React.createElement(statusConfig[selectedStatus].icon, { className: "h-4 w-4" })}
-                                            <span className="capitalize">{statusConfig[selectedStatus].name}</span>
-                                        </span>
+                                            <span>{statusConfig[selectedStatus].name}</span>
+                                        </div>
                                     </SelectTrigger>
                                     <SelectContent>
                                         {Object.entries(statusConfig).map(([status, { icon, name }]) => (
                                             <SelectItem key={status} value={status}>
-                                                <span className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2">
                                                     {React.createElement(icon, { className: "h-4 w-4" })}
-                                                    <span className="capitalize">{name}</span>
-                                                </span>
+                                                    <span>{name}</span>
+                                                </div>
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -410,3 +421,4 @@ export default function SiteContactsPage() {
         </div>
     );
 }
+

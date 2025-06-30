@@ -46,6 +46,16 @@ export async function createSupportTicket(data: Omit<SupportTicket, 'id' | 'stat
 }
 
 export async function getSupportTickets(filters: { status?: TicketStatus, dateFrom?: string, dateTo?: string } = {}): Promise<SupportTicket[]> {
+    // --- Automated Deletion ---
+    // Simulate a cron job that permanently deletes old, inactive tickets.
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    db.prepare(`
+        DELETE FROM support_tickets
+        WHERE (status = 'in-progress' OR status = 'resolved' OR status = 'closed')
+          AND updated_at < ?
+    `).run(thirtyDaysAgo);
+
+    // --- Fetch Remaining Tickets ---
     let query = 'SELECT * FROM support_tickets';
     const params: string[] = [];
     const conditions: string[] = [];
@@ -62,23 +72,13 @@ export async function getSupportTickets(filters: { status?: TicketStatus, dateFr
     if (conditions.length > 0) {
         query += ' WHERE ' + conditions.join(' AND ');
     }
-    query += ' ORDER BY created_at DESC';
+    // Order by most recently updated first
+    query += ' ORDER BY updated_at DESC';
 
     const stmt = db.prepare(query);
     const rows = stmt.all(...params) as any[];
-
-    // This simulates a cron job that would otherwise run on the server to clean up old tickets.
-    // We filter out old tickets here to keep the admin UI clean and performant.
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     
-    const activeTickets = rows.filter(ticket => {
-        const isOldAndClosed = (ticket.status === 'resolved' || ticket.status === 'closed') &&
-                               ticket.resolved_at &&
-                               ticket.resolved_at < thirtyDaysAgo;
-        return !isOldAndClosed;
-    });
-    
-    return activeTickets.map(dbToTicket);
+    return rows.map(dbToTicket);
 }
 
 export async function updateTicketStatus(ticketId: string, status: TicketStatus, adminNotes: string | null): Promise<void> {

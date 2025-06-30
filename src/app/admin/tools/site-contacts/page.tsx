@@ -137,7 +137,8 @@ export default function SiteContactsPage() {
                 <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Subject</TableHead>
-                    <TableHead>Last Activity</TableHead>
+                    <TableHead>Ticket Raised</TableHead>
+                    <TableHead>Last Updated</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
             </TableHeader>
@@ -147,6 +148,10 @@ export default function SiteContactsPage() {
                         <TableCell><div className="font-medium">{ticket.user_name}</div><div className="text-sm text-muted-foreground">{ticket.user_email}</div></TableCell>
                         <TableCell>{ticket.subject}</TableCell>
                         <TableCell>
+                            <div className="font-medium">{format(new Date(ticket.created_at), 'PP')}</div>
+                            <div className="text-sm text-muted-foreground">{format(new Date(ticket.created_at), 'p')}</div>
+                        </TableCell>
+                        <TableCell>
                             <div className="font-medium">{format(new Date(ticket.updated_at), 'PP')}</div>
                             <div className="text-sm text-muted-foreground">{format(new Date(ticket.updated_at), 'p')}</div>
                         </TableCell>
@@ -154,7 +159,7 @@ export default function SiteContactsPage() {
                             <Button variant="ghost" size="icon" onClick={() => handleViewTicket(ticket)}><Eye className="h-4 w-4"/></Button>
                         </TableCell>
                     </TableRow>
-                )) : <TableRow><TableCell colSpan={4} className="h-24 text-center">No tickets in this category.</TableCell></TableRow>}
+                )) : <TableRow><TableCell colSpan={5} className="h-24 text-center">No tickets in this category.</TableCell></TableRow>}
             </TableBody>
         </Table>
     );

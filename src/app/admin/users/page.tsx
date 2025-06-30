@@ -87,6 +87,11 @@ const messageFormSchema = z.object({
   message: z.string().min(10, { message: "Message must be at least 10 characters." }),
 });
 
+const MAX_PHOTO_SIZE_MB = 1;
+const MAX_MANIFESTO_SIZE_MB = 5;
+const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
+const MAX_MANIFESTO_SIZE_BYTES = MAX_MANIFESTO_SIZE_MB * 1024 * 1024;
+
 const leaderEditSchema = z.object({
   name: z.string().min(1, { message: "Name is required." }),
   partyName: z.string().min(1, { message: "Party name is required." }),
@@ -105,6 +110,16 @@ const leaderEditSchema = z.object({
     partyName: z.string().min(1, { message: "Required" }),
   })).optional(),
   twitterUrl: z.string().url({ message: "Please enter a valid X/Twitter URL." }).optional().or(z.literal('')),
+  photoUrl: z.any()
+    .optional()
+    .refine((files) => !files || files.length === 0 || files[0].size <= MAX_PHOTO_SIZE_BYTES,
+      { message: `Max photo size is ${MAX_PHOTO_SIZE_MB}MB.` }
+    ),
+  manifestoUrl: z.any()
+    .optional()
+    .refine((files) => !files || files.length === 0 || files[0].size <= MAX_MANIFESTO_SIZE_BYTES,
+      { message: `Max manifesto size is ${MAX_MANIFESTO_SIZE_MB}MB.` }
+    ),
 }).refine(data => {
     if (data.electionType === 'state' || data.electionType === 'panchayat') {
         return !!data.state;
@@ -159,6 +174,7 @@ export default function AdminUsersPage() {
       defaultValues: {
         name: "", partyName: "", constituency: "", nativeAddress: "",
         state: "", age: undefined, previousElections: [], twitterUrl: "",
+        photoUrl: undefined, manifestoUrl: undefined,
       },
     });
 
@@ -180,6 +196,8 @@ export default function AdminUsersPage() {
               state: leaderToEdit.location.state || '',
               previousElections: leaderToEdit.previousElections || [],
               twitterUrl: leaderToEdit.twitterUrl || '',
+              photoUrl: undefined,
+              manifestoUrl: undefined,
             });
         }
     }, [leaderToEdit, editLeaderForm]);
@@ -348,6 +366,39 @@ export default function AdminUsersPage() {
       if (!leaderToEdit || !selectedUser) return;
       startTransition(async () => {
         try {
+          const fileToDataUri = (file: File) => new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (event.target?.result) {
+                    resolve(event.target.result as string);
+                } else {
+                    reject(new Error("Failed to read file."));
+                }
+            };
+            reader.onerror = (error) => reject(error);
+            reader.readAsDataURL(file);
+          });
+    
+          let photoDataUrl = leaderToEdit.photoUrl;
+          if (values.photoUrl && values.photoUrl.length > 0) {
+              try {
+                  photoDataUrl = await fileToDataUri(values.photoUrl[0]);
+              } catch (error) {
+                  toast({ variant: 'destructive', title: 'Error uploading photo.' });
+                  return;
+              }
+          }
+    
+          let manifestoDataUrl = leaderToEdit.manifestoUrl;
+          if (values.manifestoUrl && values.manifestoUrl.length > 0) {
+              try {
+                  manifestoDataUrl = await fileToDataUri(values.manifestoUrl[0]);
+              } catch (error) {
+                  toast({ variant: 'destructive', title: 'Error uploading manifesto.' });
+                  return;
+              }
+          }
+
           const leaderPayload = {
             name: values.name,
             partyName: values.partyName,
@@ -358,13 +409,12 @@ export default function AdminUsersPage() {
             nativeAddress: values.nativeAddress,
             location: {
               state: values.state,
-              district: leaderToEdit.location.district, // Keep original district unless editing is added
+              district: leaderToEdit.location.district,
             },
             previousElections: values.previousElections || [],
             twitterUrl: values.twitterUrl,
-            // Keep fields not in the edit form from the original leader object
-            photoUrl: leaderToEdit.photoUrl,
-            manifestoUrl: leaderToEdit.manifestoUrl,
+            photoUrl: photoDataUrl,
+            manifestoUrl: manifestoDataUrl,
           };
           
           await updateLeader(leaderToEdit.id, leaderPayload, selectedUser.id, true);
@@ -974,6 +1024,57 @@ export default function AdminUsersPage() {
                             <FormField control={editLeaderForm.control} name="age" render={({ field }) => (<FormItem><FormLabel>Age</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={editLeaderForm.control} name="twitterUrl" render={({ field }) => (<FormItem><FormLabel>X/Twitter URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <FormField
+                                control={editLeaderForm.control}
+                                name="photoUrl"
+                                render={({ field: { onChange, value, ...rest } }) => (
+                                    <FormItem>
+                                        <FormLabel>Candidate's Photo</FormLabel>
+                                        {leaderToEdit?.photoUrl && (
+                                            <div className="mb-2">
+                                                <p className="text-sm text-muted-foreground">Current Photo:</p>
+                                                <Image src={leaderToEdit.photoUrl} alt="Current leader photo" width={80} height={80} className="rounded-md object-cover mt-1" />
+                                            </div>
+                                        )}
+                                        <FormControl>
+                                            <Input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => onChange(e.target.files)}
+                                                {...rest}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={editLeaderForm.control}
+                                name="manifestoUrl"
+                                render={({ field: { onChange, value, ...rest } }) => (
+                                    <FormItem>
+                                        <FormLabel>Manifesto/Brochure (PDF)</FormLabel>
+                                        {leaderToEdit?.manifestoUrl && (
+                                            <div className="mb-2">
+                                                <a href={leaderToEdit.manifestoUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
+                                                    View Current Manifesto
+                                                </a>
+                                            </div>
+                                        )}
+                                        <FormControl>
+                                            <Input
+                                                type="file"
+                                                accept="application/pdf"
+                                                onChange={(e) => onChange(e.target.files)}
+                                                {...rest}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                         <div className="space-y-4">
                             <div className="border-b pb-2"><h3 className="text-lg font-medium">Previous Elections</h3></div>
                             <div className="space-y-4">
@@ -1012,5 +1113,3 @@ export default function AdminUsersPage() {
         </div>
     );
 }
-
-    

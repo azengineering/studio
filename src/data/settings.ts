@@ -8,6 +8,11 @@ export interface SiteSettings {
     maintenance_start: string | null;
     maintenance_end: string | null;
     maintenance_message: string | null;
+    contact_email: string | null;
+    contact_phone: string | null;
+    contact_twitter: string | null;
+    contact_linkedin: string | null;
+    contact_youtube: string | null;
 }
 
 const defaultSettings: SiteSettings = {
@@ -15,6 +20,11 @@ const defaultSettings: SiteSettings = {
     maintenance_start: null,
     maintenance_end: null,
     maintenance_message: 'The site is currently down for maintenance. We will be back shortly.',
+    contact_email: 'support@politirate.com',
+    contact_phone: null,
+    contact_twitter: null,
+    contact_linkedin: null,
+    contact_youtube: null,
 };
 
 /**

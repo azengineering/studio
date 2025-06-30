@@ -1,5 +1,4 @@
 
-
 const translations = {
   en: {
     header: {
@@ -278,6 +277,20 @@ const translations = {
       title: 'Manifesto for {name}',
       description: 'Viewing the document provided by the candidate.',
     },
+    contactPage: {
+        link: 'Contact Us',
+        title: 'Get in Touch',
+        description: "Have questions, suggestions, or need support? We're here to help.",
+        formTitle: 'Send us a Message',
+        nameLabel: 'Your Name',
+        emailLabel: 'Your Email',
+        subjectLabel: 'Subject',
+        messageLabel: 'Your Message',
+        submitButton: 'Send Message',
+        infoTitle: 'Contact Information',
+        noteTitle: 'Please Note',
+        noteDescription: 'This form is for site support and inquiries only. To provide feedback on a political leader, please find and rate them on their profile page.',
+    },
   },
   hi: {
     header: {
@@ -555,6 +568,20 @@ const translations = {
     manifestoDialog: {
       title: '{name} का घोषणापत्र',
       description: 'उम्मीदवार द्वारा प्रदान किए गए दस्तावेज़ को देखना।',
+    },
+    contactPage: {
+        link: 'संपर्क करें',
+        title: 'संपर्क में रहें',
+        description: 'कोई प्रश्न, सुझाव, या समर्थन की आवश्यकता है? हम सहायता के लिए यहां हैं।',
+        formTitle: 'हमें एक संदेश भेजें',
+        nameLabel: 'आपका नाम',
+        emailLabel: 'आपका ईमेल',
+        subjectLabel: 'विषय',
+        messageLabel: 'आपका संदेश',
+        submitButton: 'संदेश भेजें',
+        infoTitle: 'संपर्क जानकारी',
+        noteTitle: 'कृपया ध्यान दें',
+        noteDescription: 'यह फ़ॉर्म केवल साइट समर्थन और पूछताछ के लिए है। किसी राजनीतिक नेता पर प्रतिक्रिया देने के लिए, कृपया उनकी प्रोफ़ाइल पृष्ठ पर उन्हें खोजें और रेट करें।',
     },
   },
 };

@@ -72,8 +72,8 @@ export default function AdminToolsPage() {
       title: "Site Contacts",
       description: "View and manage contact form submissions.",
       icon: Mail,
-      href: "#",
-      disabled: true,
+      href: "/admin/tools/site-contacts",
+      disabled: false,
     },
   ];
 

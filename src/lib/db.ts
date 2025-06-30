@@ -322,6 +322,20 @@ const schema = `
     FOREIGN KEY(response_id) REFERENCES poll_responses(id) ON DELETE CASCADE,
     FOREIGN KEY(question_id) REFERENCES poll_questions(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS support_tickets (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    user_name TEXT NOT NULL,
+    user_email TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    message TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    resolved_at TEXT,
+    admin_notes TEXT,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+  );
 `;
 
 db.exec(schema);
@@ -352,6 +366,13 @@ const migrations = {
     },
     notifications: {
         link: 'TEXT'
+    },
+    site_settings: {
+        contact_email: 'TEXT',
+        contact_phone: 'TEXT',
+        contact_twitter: 'TEXT',
+        contact_linkedin: 'TEXT',
+        contact_youtube: 'TEXT',
     }
 };
 
@@ -401,6 +422,7 @@ const seedDatabase = () => {
         insertSetting.run('maintenance_start', '');
         insertSetting.run('maintenance_end', '');
         insertSetting.run('maintenance_message', 'The site is currently down for maintenance. We will be back online shortly.');
+        insertSetting.run('contact_email', 'support@politirate.com');
         console.log('Database seeded with default site settings.');
     }
   });

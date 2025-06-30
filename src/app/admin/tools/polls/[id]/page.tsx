@@ -126,6 +126,7 @@ export default function PollEditorPage() {
         if (pollData) {
           form.reset({
             ...pollData,
+            description: pollData.description || '',
             active_until: pollData.active_until ? new Date(pollData.active_until) : undefined,
           });
         } else {

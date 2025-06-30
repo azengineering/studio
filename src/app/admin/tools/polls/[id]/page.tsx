@@ -240,17 +240,30 @@ export default function PollEditorPage() {
                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(qIndex)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
                         <FormField control={form.control} name={`questions.${qIndex}.question_text`} render={({ field }) => (<FormItem><FormLabel>Question Text</FormLabel><FormControl><Input {...field} placeholder="Enter the question..." /></FormControl><FormMessage /></FormItem>)}/>
-                        <FormField control={form.control} name={`questions.${qIndex}.question_type`} render={({ field }) => (
-                            <FormItem><FormLabel>Question Type</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-                                        <SelectItem value="yes_no">Yes / No</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            <FormMessage /></FormItem>
-                        )}/>
+                        <FormField
+                          control={form.control}
+                          name={`questions.${qIndex}.question_type`}
+                          render={({ field }) => (
+                              <FormItem><FormLabel>Question Type</FormLabel>
+                                  <Select
+                                      onValueChange={(value) => {
+                                          field.onChange(value);
+                                          // When switching to yes/no, clear the options array to prevent validation errors on stale data
+                                          if (value === 'yes_no') {
+                                              form.setValue(`questions.${qIndex}.options`, []);
+                                          }
+                                      }}
+                                      defaultValue={field.value}
+                                  >
+                                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                      <SelectContent>
+                                          <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+                                          <SelectItem value="yes_no">Yes / No</SelectItem>
+                                      </SelectContent>
+                                  </Select>
+                              <FormMessage /></FormItem>
+                          )}
+                        />
                         {form.watch(`questions.${qIndex}.question_type`) === 'multiple_choice' && (
                            <OptionsArray qIndex={qIndex} />
                         )}

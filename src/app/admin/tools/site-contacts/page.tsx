@@ -6,7 +6,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getSupportTicketStats, updateSiteSettings, type SiteSettings, getSupportTickets, updateTicketStatus, type SupportTicket, type TicketStatus, type SupportTicketStats } from '@/data/support';
+import { getSupportTicketStats, getSupportTickets, updateTicketStatus, type SupportTicket, type TicketStatus, type SupportTicketStats } from '@/data/support';
+import { getSiteSettings, updateSiteSettings, type SiteSettings } from '@/data/settings';
 import { useToast } from '@/hooks/use-toast';
 import React from 'react';
 
@@ -82,7 +83,7 @@ export default function SiteContactsPage() {
     };
 
     const fetchContactInfo = async () => {
-        const settings = await getSupportTicketStats();
+        const settings = await getSiteSettings();
         contactForm.reset({
             contact_email: settings.contact_email || '',
             contact_phone: settings.contact_phone || '',

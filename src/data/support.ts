@@ -159,7 +159,7 @@ export async function getSupportTicketStats(): Promise<SupportTicketStats> {
     const result = avgTimeStmt.get() as { avg_seconds: number | null };
     const avgResolutionHours = result?.avg_seconds ? result.avg_seconds / 3600 : null;
     
-    const settingsStmt = db.prepare('SELECT key, value FROM site_settings WHERE key LIKE "contact_%"');
+    const settingsStmt = db.prepare("SELECT key, value FROM site_settings WHERE key LIKE 'contact_%'");
     const settingsRows = settingsStmt.all() as { key: string; value: string }[];
     const contactSettings: Partial<SupportTicketStats> = {};
      for (const row of settingsRows) {

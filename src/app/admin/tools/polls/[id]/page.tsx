@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, useFieldArray, useFormContext } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
@@ -45,6 +45,44 @@ const pollFormSchema = z.object({
 });
 
 type PollFormData = z.infer<typeof pollFormSchema>;
+
+
+function OptionsArray({ qIndex }: { qIndex: number }) {
+  const { control } = useFormContext<PollFormData>();
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: `questions.${qIndex}.options`,
+  });
+
+  return (
+    <div className="space-y-2 pl-4 border-l-2">
+      <Label>Options</Label>
+      {fields.map((option, oIndex) => (
+        <div key={option.id} className="flex items-center gap-2">
+            <FormField
+              control={control}
+              name={`questions.${qIndex}.options.${oIndex}.option_text`}
+              render={({ field }) => (
+                <FormItem className="flex-grow">
+                  <FormControl>
+                    <Input {...field} placeholder={`Option ${oIndex + 1}`} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="button" variant="ghost" size="icon" onClick={() => remove(oIndex)} disabled={fields.length <= 2}>
+                <Trash2 className="h-4 w-4" />
+            </Button>
+        </div>
+      ))}
+      <Button type="button" size="sm" variant="ghost" onClick={() => append({ option_text: '' })}>
+        <PlusCircle className="mr-2 h-4 w-4"/>Add Option
+      </Button>
+    </div>
+  );
+}
+
 
 export default function PollEditorPage() {
   const router = useRouter();
@@ -165,6 +203,7 @@ export default function PollEditorPage() {
                         <Popover><PopoverTrigger asChild><FormControl>
                             <Button variant="outline" className={cn('w-[240px] pl-3 text-left font-normal',!field.value && 'text-muted-foreground')}>
                                 {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                                <ChevronLeft className="ml-auto h-4 w-4 opacity-0" />
                             </Button>
                         </FormControl></PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/></PopoverContent>
@@ -199,12 +238,12 @@ export default function PollEditorPage() {
                             <FormMessage /></FormItem>
                         )}/>
                         {form.watch(`questions.${qIndex}.question_type`) === 'multiple_choice' && (
-                            <Controller control={form.control} name={`questions.${qIndex}.options`} render={({ field }) => <OptionsArray qIndex={qIndex} />} />
+                           <OptionsArray qIndex={qIndex} />
                         )}
                     </div>
                 ))}
-                <Button type="button" variant="outline" onClick={addQuestion}><PlusCircle className="mr-2" />Add Question</Button>
-                <FormMessage>{form.formState.errors.questions?.message}</FormMessage>
+                <Button type="button" variant="outline" onClick={addQuestion}><PlusCircle className="mr-2 h-4 w-4" />Add Question</Button>
+                <FormMessage>{form.formState.errors.questions?.root?.message || form.formState.errors.questions?.message}</FormMessage>
             </CardContent>
              <CardFooter className="flex justify-end">
                 <Button type="submit" disabled={isSaving}>
@@ -215,29 +254,6 @@ export default function PollEditorPage() {
           </Card>
         </form>
       </Form>
-    </div>
-  );
-}
-
-function OptionsArray({ qIndex }: { qIndex: number }) {
-  const { control, formState } = useForm<PollFormData>();
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: `questions.${qIndex}.options`,
-  });
-
-  return (
-    <div className="space-y-2 pl-4 border-l-2">
-      <Label>Options</Label>
-      {fields.map((option, oIndex) => (
-        <div key={option.id} className="flex items-center gap-2">
-            <FormField control={control} name={`questions.${qIndex}.options.${oIndex}.option_text`} render={({ field }) => (<FormItem className="flex-grow"><FormControl><Input {...field} placeholder={`Option ${oIndex + 1}`} /></FormControl><FormMessage /></FormItem>)} />
-            <Button type="button" variant="ghost" size="icon" onClick={() => remove(oIndex)} disabled={fields.length <= 2}>
-                <Trash2 className="h-4 w-4" />
-            </Button>
-        </div>
-      ))}
-      <Button type="button" size="sm" variant="ghost" onClick={() => append({ option_text: '' })}><PlusCircle className="mr-2"/>Add Option</Button>
     </div>
   );
 }

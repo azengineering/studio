@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useTransition, useCallback } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { getLeadersForAdminPanel, deleteLeader, updateLeaderStatus, type Leader } from "@/data/leaders";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,7 +52,10 @@ export default function AdminLeadersPage() {
     const [isSearching, setIsSearching] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
     const [isPending, startTransition] = useTransition();
+
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { toast } = useToast();
 
     // Filter states
@@ -66,34 +69,94 @@ export default function AdminLeadersPage() {
     const [statusChangeComment, setStatusChangeComment] = useState('');
     const [isStatusSubmitting, setIsStatusSubmitting] = useState(false);
 
+    const fetchLeaders = useCallback(async (filters: {
+        dateFrom?: string | null;
+        dateTo?: string | null;
+        state?: string | null;
+        constituency?: string | null;
+        candidateName?: string | null;
+    }) => {
+        setIsSearching(true);
+        setHasSearched(true);
+        const leaders = await getLeadersForAdminPanel({
+            dateFrom: filters.dateFrom ? filters.dateFrom + 'T00:00:00.000Z' : undefined,
+            dateTo: filters.dateTo ? filters.dateTo + 'T23:59:59.999Z' : undefined,
+            state: (filters.state === 'all-states' || !filters.state) ? undefined : filters.state,
+            constituency: filters.constituency?.trim() || undefined,
+            candidateName: filters.candidateName?.trim() || undefined,
+        });
+        setAllFoundLeaders(leaders);
+        setIsSearching(false);
+    }, []);
+
+    useEffect(() => {
+        const fromParam = searchParams.get('from');
+        const toParam = searchParams.get('to');
+        const stateParam = searchParams.get('state');
+        const constiParam = searchParams.get('constituency');
+        const nameParam = searchParams.get('name');
+
+        // Sync URL params to local state for the input fields
+        if (fromParam) {
+            setDate({ from: new Date(fromParam), to: toParam ? new Date(toParam) : undefined });
+        } else {
+            setDate(undefined);
+        }
+        setSelectedState(stateParam || 'all-states');
+        setConstituency(constiParam || '');
+        setCandidateName(nameParam || '');
+
+        if (fromParam || toParam || stateParam || constiParam || nameParam) {
+            fetchLeaders({ dateFrom: fromParam, dateTo: toParam, state: stateParam, constituency: constiParam, candidateName: nameParam });
+        } else {
+            setAllFoundLeaders([]);
+            setHasSearched(false);
+        }
+    }, [searchParams, fetchLeaders]);
+
     useEffect(() => {
         setPendingLeaders(allFoundLeaders.filter(l => l.status === 'pending'));
         setApprovedLeaders(allFoundLeaders.filter(l => l.status === 'approved'));
         setRejectedLeaders(allFoundLeaders.filter(l => l.status === 'rejected'));
     }, [allFoundLeaders]);
 
-    const fetchLeaders = async () => {
-        setIsSearching(true);
-        setHasSearched(true);
-        const filters = {
-            dateFrom: date?.from ? format(date.from, 'yyyy-MM-dd') + 'T00:00:00.000Z' : undefined,
-            dateTo: date?.to ? format(date.to, 'yyyy-MM-dd') + 'T23:59:59.999Z' : undefined,
-            state: selectedState === 'all-states' ? undefined : selectedState,
-            constituency: constituency.trim() || undefined,
-            candidateName: candidateName.trim() || undefined,
-        };
-        const leaders = await getLeadersForAdminPanel(filters);
-        setAllFoundLeaders(leaders);
-        setIsSearching(false);
+    const handleSearch = () => {
+        const params = new URLSearchParams(searchParams);
+        if (date?.from) {
+             params.set('from', date.from.toISOString().split('T')[0]);
+             if (date.to) {
+                 params.set('to', date.to.toISOString().split('T')[0]);
+             } else {
+                 params.delete('to');
+             }
+        } else {
+            params.delete('from');
+            params.delete('to');
+        }
+
+        if (selectedState && selectedState !== 'all-states') {
+             params.set('state', selectedState);
+        } else {
+             params.delete('state');
+        }
+
+        if (constituency.trim()) {
+            params.set('constituency', constituency.trim());
+        } else {
+            params.delete('constituency');
+        }
+
+        if (candidateName.trim()) {
+            params.set('name', candidateName.trim());
+        } else {
+            params.delete('name');
+        }
+        
+        router.push(`${pathname}?${params.toString()}`);
     };
 
     const handleReset = () => {
-        setDate(undefined);
-        setSelectedState('all-states');
-        setConstituency('');
-        setCandidateName('');
-        setAllFoundLeaders([]);
-        setHasSearched(false);
+        router.push(pathname);
     };
     
     const handleStatusChangeClick = (leaderId: string, currentComment: string | null | undefined, newStatus: LeaderStatus) => {
@@ -115,14 +178,26 @@ export default function AdminLeadersPage() {
         setStatusChangeInfo(null);
         setStatusChangeComment('');
         setIsStatusSubmitting(false);
-        await fetchLeaders(); // Re-fetch to update lists
+        await fetchLeaders({
+            dateFrom: searchParams.get('from'),
+            dateTo: searchParams.get('to'),
+            state: searchParams.get('state'),
+            constituency: searchParams.get('constituency'),
+            candidateName: searchParams.get('name'),
+        });
     };
 
     const handleDelete = (leaderId: string, leaderName: string) => {
         startTransition(async () => {
             await deleteLeader(leaderId);
             toast({ variant: 'destructive', title: "Leader Deleted", description: `${leaderName} has been removed from the database.` });
-            await fetchLeaders();
+            await fetchLeaders({
+                dateFrom: searchParams.get('from'),
+                dateTo: searchParams.get('to'),
+                state: searchParams.get('state'),
+                constituency: searchParams.get('constituency'),
+                candidateName: searchParams.get('name'),
+            });
         });
     };
 
@@ -287,7 +362,7 @@ export default function AdminLeadersPage() {
                             <Input id="candidate-filter" value={candidateName} onChange={(e) => setCandidateName(e.target.value)} placeholder="Enter candidate name..." className="bg-background"/>
                         </div>
                          <div className="flex gap-2 self-end lg:col-start-5">
-                            <Button onClick={fetchLeaders} disabled={isSearching} className="w-full">
+                            <Button onClick={handleSearch} disabled={isSearching} className="w-full">
                                 {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                                 Search
                             </Button>

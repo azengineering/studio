@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -61,30 +60,36 @@ export default function NotificationBanner() {
     };
 
     return (
-        <div className="relative isolate flex items-center gap-x-6 overflow-hidden bg-accent/90 px-6 py-2.5 sm:px-3.5 sm:before:flex-1 text-accent-foreground shadow-md backdrop-blur-sm">
-            <div className="flex items-center gap-x-2">
-                <Megaphone className="h-5 w-5" aria-hidden="true" />
-                <p className="text-sm font-semibold leading-6">
-                    {notifications.length === 1 ? (
-                        notifications[0].message
-                    ) : (
-                        <Carousel setApi={setApi} className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl">
-                            <CarouselContent>
-                                {notifications.map((n) => (
-                                    <CarouselItem key={n.id}>
-                                        <p className="truncate">{n.message}</p>
-                                    </CarouselItem>
-                                ))}
-                            </CarouselContent>
-                        </Carousel>
-                    )}
-                </p>
-            </div>
-            <div className="flex flex-1 justify-end">
-                <Button variant="ghost" size="icon" className="-m-3 h-7 w-7" onClick={handleDismiss}>
-                    <span className="sr-only">Dismiss</span>
-                    <X className="h-5 w-5" aria-hidden="true" />
-                </Button>
+        <div className="bg-primary/10 text-primary animate-in fade-in-0 slide-in-from-top-4 duration-500">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between p-2.5 gap-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <span className="hidden sm:flex items-center justify-center p-2 bg-primary/20 rounded-full flex-shrink-0">
+                            <Megaphone className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                        <div className="text-sm font-semibold flex-1 min-w-0">
+                            {notifications.length === 1 ? (
+                                <p className="truncate">{notifications[0].message}</p>
+                            ) : (
+                                <Carousel setApi={setApi} className="w-full">
+                                    <CarouselContent>
+                                        {notifications.map((n) => (
+                                            <CarouselItem key={n.id}>
+                                                <p className="truncate">{n.message}</p>
+                                            </CarouselItem>
+                                        ))}
+                                    </CarouselContent>
+                                </Carousel>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex items-center">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/20 hover:text-primary" onClick={handleDismiss}>
+                            <span className="sr-only">Dismiss</span>
+                            <X className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                    </div>
+                </div>
             </div>
         </div>
     );

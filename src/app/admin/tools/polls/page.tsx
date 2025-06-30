@@ -106,7 +106,7 @@ export default function AdminPollsPage() {
                                             </Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                                                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={isDeleting}>
                                                         {isDeleting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 mr-1" />}
                                                         Delete
                                                     </Button>

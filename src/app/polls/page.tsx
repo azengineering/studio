@@ -66,7 +66,7 @@ const PollCard = ({ poll, onParticipateClick }: PollCardProps) => {
 export default function PollsPage() {
     const { user } = useAuth();
     const router = useRouter();
-    const [polls, setPolls] = useState<(PollListItem & { user_has_voted: boolean })[]>([]);
+    const [polls, setPolls] = useState<(PollListItem & { user_has_voted: boolean; description: string | null; })[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showLoginDialog, setShowLoginDialog] = useState(false);
     const [selectedPollId, setSelectedPollId] = useState<string | null>(null);

@@ -62,7 +62,7 @@ export async function getPollsForAdmin(): Promise<PollListItem[]> {
             p.is_active,
             p.active_until,
             p.created_at,
-            COUNT(pr.id) as response_count
+            COUNT(DISTINCT pr.id) as response_count
         FROM polls p
         LEFT JOIN poll_responses pr ON p.id = pr.poll_id
         GROUP BY p.id
@@ -159,9 +159,9 @@ export async function getActivePollsForUser(userId: string | null): Promise<(Pol
             p.description,
             p.active_until,
             p.created_at,
-            (SELECT COUNT(*) FROM poll_responses pr WHERE pr.poll_id = p.id) as response_count,
+            (SELECT COUNT(DISTINCT pr.user_id) FROM poll_responses pr WHERE pr.poll_id = p.id) as response_count,
             CASE WHEN ? IS NOT NULL THEN (
-                SELECT 1 FROM poll_responses pr WHERE pr.poll_id = p.id AND pr.user_id = ?
+                SELECT 1 FROM poll_responses pr WHERE pr.poll_id = p.id AND pr.user_id = ? LIMIT 1
             ) ELSE 0 END as user_has_voted
         FROM polls p
         WHERE p.is_active = 1 AND (p.active_until IS NULL OR p.active_until >= ?)
@@ -169,7 +169,7 @@ export async function getActivePollsForUser(userId: string | null): Promise<(Pol
     `);
     
     const polls = stmt.all(userId, userId, now) as any[];
-    return polls.map(p => ({ ...p, is_active: true, user_has_voted: p.user_has_voted === 1 }));
+    return polls.map(p => ({ ...p, is_active: true, user_has_voted: p.user_has_voted === 1, description: p.description || '' }));
 }
 
 export async function getPollForParticipation(pollId: string, userId: string | null): Promise<PollForParticipation | null> {
@@ -182,16 +182,6 @@ export async function getPollForParticipation(pollId: string, userId: string | n
         const response = responseStmt.get(pollId, userId);
         hasVoted = !!response;
     }
-    
-    // For Yes/No questions, ensure options exist
-    poll.questions.forEach(q => {
-        if (q.question_type === 'yes_no' && q.options.length === 0) {
-            q.options = [
-                { id: `${q.id}-yes`, question_id: q.id, option_text: 'Yes', option_order: 0 },
-                { id: `${q.id}-no`, question_id: q.id, option_text: 'No', option_order: 1 },
-            ]
-        }
-    });
 
     return { ...poll, user_has_voted: hasVoted };
 }

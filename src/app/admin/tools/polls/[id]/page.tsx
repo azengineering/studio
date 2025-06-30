@@ -161,12 +161,17 @@ export default function PollEditorPage() {
                 question_text: q.question_text,
                 question_type: q.question_type,
                 question_order: qIndex,
-                options: q.question_type === 'yes_no' ? [] : q.options.map((o, oIndex) => ({
-                    id: o.id || '',
-                    question_id: q.id || '',
-                    option_text: o.option_text,
-                    option_order: oIndex,
-                })),
+                options: q.question_type === 'yes_no' 
+                    ? [
+                        { id: '', question_id: '', option_text: 'Yes', option_order: 0 },
+                        { id: '', question_id: '', option_text: 'No', option_order: 1 },
+                      ]
+                    : q.options.map((o, oIndex) => ({
+                        id: o.id || '',
+                        question_id: q.id || '',
+                        option_text: o.option_text,
+                        option_order: oIndex,
+                    })),
             })),
         };
       

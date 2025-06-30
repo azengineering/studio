@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { UserCheck, MessageSquare, LogOut, LayoutDashboard, Scale, Users, Menu } from 'lucide-react';
+import { UserCheck, LogOut, LayoutDashboard, Scale, Users, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/components/ui/sheet';
@@ -36,7 +36,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/users', label: 'Users', icon: Users },
     { href: '/admin/leaders', label: 'Leaders', icon: UserCheck },
-    { href: '/admin/ratings', label: 'Ratings', icon: MessageSquare },
   ];
   
   if (!isClient) {

@@ -106,7 +106,7 @@ export default {
         'balance': 'balance 2.5s ease-in-out infinite',
         'fade-in-out': 'fade-in-out 3s ease-in-out infinite',
         'fade-in-out-slow': 'fade-in-out-slow 2.5s ease-in-out infinite',
-        'marquee': 'marquee 25s linear infinite',
+        'marquee': 'marquee 15s linear infinite',
       },
     },
   },

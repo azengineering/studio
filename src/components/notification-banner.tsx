@@ -7,6 +7,7 @@ import { getActiveNotifications, type SiteNotification } from '@/data/notificati
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import { Button } from './ui/button';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 
 export default function NotificationBanner() {
     const [notifications, setNotifications] = useState<SiteNotification[]>([]);
@@ -50,9 +51,19 @@ export default function NotificationBanner() {
         return null;
     }
 
-    const handleDismiss = () => {
+    const handleDismiss = (e: React.MouseEvent) => {
+        e.preventDefault(); // Prevent link navigation if the dismiss button is inside a link
+        e.stopPropagation();
         setIsVisible(false);
     };
+    
+    const Wrapper = ({ notification, children }: { notification: SiteNotification; children: React.ReactNode }) => {
+      if (notification.link) {
+        return <Link href={notification.link} className="flex-1 min-w-0">{children}</Link>;
+      }
+      return <div className="flex-1 min-w-0">{children}</div>;
+    };
+
 
     return (
         <div className="bg-gradient-to-r from-primary to-accent text-primary-foreground animate-in fade-in-0 slide-in-from-top-4 duration-500 shadow-lg">
@@ -64,18 +75,22 @@ export default function NotificationBanner() {
                         </span>
                         <div className="text-sm font-semibold flex-1 min-w-0">
                             {notifications.length === 1 ? (
-                                <div className="overflow-hidden">
-                                    <div className="flex whitespace-nowrap animate-marquee hover:[animation-play-state:paused]">
-                                        <span className="mx-8">{notifications[0].message}</span>
-                                        <span className="mx-8">{notifications[0].message}</span>
+                                <Wrapper notification={notifications[0]}>
+                                    <div className="overflow-hidden">
+                                        <div className="flex whitespace-nowrap animate-marquee hover:[animation-play-state:paused]">
+                                            <span className="mx-8">{notifications[0].message}</span>
+                                            <span className="mx-8">{notifications[0].message}</span>
+                                        </div>
                                     </div>
-                                </div>
+                                </Wrapper>
                             ) : (
                                 <Carousel setApi={setApi} className="w-full">
                                     <CarouselContent>
                                         {notifications.map((n) => (
-                                            <CarouselItem key={n.id}>
-                                                <p className="truncate">{n.message}</p>
+                                             <CarouselItem key={n.id}>
+                                                <Wrapper notification={n}>
+                                                    <p className="truncate">{n.message}</p>
+                                                </Wrapper>
                                             </CarouselItem>
                                         ))}
                                     </CarouselContent>

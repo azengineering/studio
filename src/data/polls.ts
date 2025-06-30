@@ -61,6 +61,7 @@ export interface PollResult {
         text: string;
         answers: { name: string; value: number }[];
     }[];
+    combinedYesNo?: { name: string; value: number }[];
 }
 
 
@@ -90,7 +91,7 @@ export async function getPollForEdit(pollId: string): Promise<Poll | null> {
     if (!pollData) return null;
 
     const questionsStmt = db.prepare('SELECT * FROM poll_questions WHERE poll_id = ? ORDER BY question_order');
-    const questionsData = questionsStmt.all(pollId);
+    const questionsData = questionsStmt.all(pollId) as PollQuestion[];
 
     const questions: PollQuestion[] = [];
     for (const q of questionsData) {
@@ -161,7 +162,7 @@ export async function upsertPoll(poll: Omit<Poll, 'created_at'>): Promise<Poll> 
 }
 
 export async function getPollResults(pollId: string): Promise<PollResult | null> {
-    const poll = db.prepare('SELECT title FROM polls WHERE id = ?').get(pollId) as { title: string };
+    const poll = db.prepare('SELECT * FROM polls WHERE id = ?').get(pollId) as Poll;
     if (!poll) return null;
 
     const responses = db.prepare('SELECT id, user_id FROM poll_responses WHERE poll_id = ?').all(pollId) as { id: string, user_id: string }[];
@@ -198,8 +199,34 @@ export async function getPollResults(pollId: string): Promise<PollResult | null>
         WHERE pr.poll_id = ?
     `).all(pollId) as { question_id: string, selected_option_id: string }[];
 
-    const questionsData = db.prepare('SELECT id, question_text FROM poll_questions WHERE poll_id = ? ORDER BY question_order').all(pollId) as { id: string, question_text: string }[];
+    const questionsData = db.prepare('SELECT id, question_text, question_type FROM poll_questions WHERE poll_id = ? ORDER BY question_order').all(pollId) as { id: string, question_text: string, question_type: PollQuestionType }[];
+    
     const questions = [];
+    let combinedYesNo: { name: string; value: number }[] | undefined = undefined;
+    
+    const yesNoQuestions = questionsData.filter(q => q.question_type === 'yes_no');
+    if (yesNoQuestions.length > 0) {
+        const yesNoQuestionIds = yesNoQuestions.map(q => q.id);
+        const yesNoQuestionPlaceholders = yesNoQuestionIds.map(() => '?').join(',');
+        
+        const yesNoOptions = db.prepare(`
+            SELECT id, option_text 
+            FROM poll_options 
+            WHERE question_id IN (${yesNoQuestionPlaceholders})
+        `).all(...yesNoQuestionIds) as { id: string, option_text: string}[];
+
+        const yesOptionIds = yesNoOptions.filter(o => o.option_text.toLowerCase() === 'yes').map(o => o.id);
+        const noOptionIds = yesNoOptions.filter(o => o.option_text.toLowerCase() === 'no').map(o => o.id);
+        
+        const yesVotes = allAnswersForPoll.filter(a => yesOptionIds.includes(a.selected_option_id)).length;
+        const noVotes = allAnswersForPoll.filter(a => noOptionIds.includes(a.selected_option_id)).length;
+        
+        combinedYesNo = [
+            { name: 'Total Yes', value: yesVotes },
+            { name: 'Total No', value: noVotes }
+        ];
+    }
+
 
     for (const q of questionsData) {
         const options = db.prepare('SELECT id, option_text FROM poll_options WHERE question_id = ? ORDER BY option_order').all(q.id) as { id: string, option_text: string}[];
@@ -220,7 +247,8 @@ export async function getPollResults(pollId: string): Promise<PollResult | null>
         pollTitle: poll.title,
         totalResponses,
         genderDistribution,
-        questions
+        questions,
+        combinedYesNo
     };
 }
 

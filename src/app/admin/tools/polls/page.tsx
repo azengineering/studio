@@ -4,12 +4,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getPollsForAdmin, deletePoll, type PollListItem } from '@/data/polls';
+import { addNotification } from '@/data/notifications';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit, Trash2, CheckCircle, XCircle, Loader2, BarChart, ChevronLeft } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, CheckCircle, XCircle, Loader2, BarChart, ChevronLeft, Megaphone } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -56,6 +57,21 @@ export default function AdminPollsPage() {
         setTimeout(() => {
             document.getElementById('poll-results-section')?.scrollIntoView({ behavior: 'smooth' });
         }, 100);
+    };
+    
+    const handlePromotePoll = async (pollId: string, pollTitle: string) => {
+        try {
+            await addNotification({
+                message: `New Poll: "${pollTitle}". Click here to participate!`,
+                isActive: true,
+                startTime: new Date().toISOString(),
+                endTime: null, // No end time unless specified
+                link: `/polls/${pollId}`,
+            });
+            toast({ title: "Poll Promoted", description: "A notification has been created for this poll." });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Promotion Failed', description: 'Could not create the notification.' });
+        }
     };
 
     const TableSkeleton = () => (
@@ -109,18 +125,34 @@ export default function AdminPollsPage() {
                                         </TableCell>
                                         <TableCell>{poll.active_until ? format(new Date(poll.active_until), 'MMM dd, yyyy') : 'No limit'}</TableCell>
                                         <TableCell>{poll.response_count}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="sm" onClick={() => handleViewResults(poll.id)} disabled={poll.response_count === 0}>
-                                                <BarChart className="h-4 w-4 mr-1" /> Results
+                                        <TableCell className="text-right space-x-0.5">
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" disabled={!poll.is_active}>
+                                                        <Megaphone className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Promote this Poll?</AlertDialogTitle>
+                                                        <AlertDialogDescription>This will create a site-wide notification banner linking to this poll. Are you sure?</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handlePromotePoll(poll.id, poll.title)}>Confirm & Promote</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                            <Button variant="ghost" size="icon" onClick={() => handleViewResults(poll.id)} disabled={poll.response_count === 0}>
+                                                <BarChart className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="sm" onClick={() => router.push(`/admin/tools/polls/${poll.id}`)}>
-                                                <Edit className="h-4 w-4 mr-1" /> Edit
+                                            <Button variant="ghost" size="icon" onClick={() => router.push(`/admin/tools/polls/${poll.id}`)}>
+                                                <Edit className="h-4 w-4" />
                                             </Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={isDeleting}>
-                                                        {isDeleting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 mr-1" />}
-                                                        Delete
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={isDeleting}>
+                                                        {isDeleting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
                                                     </Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>

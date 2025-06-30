@@ -274,7 +274,8 @@ const schema = `
     start_time TEXT,
     end_time TEXT,
     is_active INTEGER NOT NULL DEFAULT 1,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    link TEXT
   );
 
   CREATE TABLE IF NOT EXISTS polls (
@@ -348,6 +349,9 @@ const migrations = {
     },
     admin_messages: {
         isRead: 'INTEGER DEFAULT 0'
+    },
+    notifications: {
+        link: 'TEXT'
     }
 };
 

@@ -23,7 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronLeft, Loader2, Save, Mail, Eye, Inbox, History, CheckCircle, XCircle } from 'lucide-react';
+import { ChevronLeft, Loader2, Save, Mail, Eye, Inbox, History, CheckCircle, XCircle, Search, RotateCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 
@@ -48,6 +48,7 @@ export default function SiteContactsPage() {
     const [resolvedTickets, setResolvedTickets] = useState<SupportTicket[]>([]);
     const [closedTickets, setClosedTickets] = useState<SupportTicket[]>([]);
     const [isLoadingTickets, setIsLoadingTickets] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // State for ticket dialog
     const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
@@ -65,9 +66,9 @@ export default function SiteContactsPage() {
         },
     });
 
-    const fetchTickets = async () => {
+    const fetchTickets = async (query?: string) => {
         setIsLoadingTickets(true);
-        const allTickets = await getSupportTickets();
+        const allTickets = await getSupportTickets({ searchQuery: query });
         setOpenTickets(allTickets.filter(t => t.status === 'open'));
         setInProgressTickets(allTickets.filter(t => t.status === 'in-progress'));
         setResolvedTickets(allTickets.filter(t => t.status === 'resolved'));
@@ -102,6 +103,15 @@ export default function SiteContactsPage() {
             setIsSavingContacts(false);
         }
     };
+    
+    const handleSearch = () => {
+        fetchTickets(searchQuery);
+    };
+
+    const handleReset = () => {
+        setSearchQuery('');
+        fetchTickets();
+    };
 
     const handleViewTicket = (ticket: SupportTicket) => {
         setSelectedTicket(ticket);
@@ -116,7 +126,7 @@ export default function SiteContactsPage() {
             await updateTicketStatus(selectedTicket.id, selectedStatus, adminNotes);
             toast({ title: 'Ticket Updated' });
             setSelectedTicket(null);
-            await fetchTickets();
+            await fetchTickets(searchQuery); // Refetch with current search query
         } catch (error) {
             toast({ variant: 'destructive', title: "Update Failed", description: "Could not update the ticket status." });
         } finally {
@@ -187,6 +197,21 @@ export default function SiteContactsPage() {
                             <CardDescription>Manage and respond to all user-submitted inquiries.</CardDescription>
                         </CardHeader>
                         <CardContent>
+                             <div className="flex items-center gap-2 mb-4">
+                                <Input
+                                    placeholder="Search by name or email..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="max-w-sm"
+                                />
+                                <Button onClick={handleSearch} disabled={isLoadingTickets}>
+                                    <Search className="mr-2 h-4 w-4" />
+                                    Search
+                                </Button>
+                                <Button onClick={handleReset} variant="outline" disabled={isLoadingTickets} size="icon">
+                                    <RotateCw className="h-4 w-4" />
+                                </Button>
+                            </div>
                              <Tabs defaultValue="open">
                                 <TabsList className="grid w-full grid-cols-4">
                                      <TabsTrigger value="open">

@@ -45,7 +45,7 @@ export async function createSupportTicket(data: Omit<SupportTicket, 'id' | 'stat
     });
 }
 
-export async function getSupportTickets(filters: { status?: TicketStatus, dateFrom?: string, dateTo?: string } = {}): Promise<SupportTicket[]> {
+export async function getSupportTickets(filters: { status?: TicketStatus, dateFrom?: string, dateTo?: string, searchQuery?: string } = {}): Promise<SupportTicket[]> {
     // --- Automated Deletion ---
     // Simulate a cron job that permanently deletes old, inactive tickets.
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -68,6 +68,12 @@ export async function getSupportTickets(filters: { status?: TicketStatus, dateFr
         conditions.push('created_at >= ? AND created_at <= ?');
         params.push(filters.dateFrom, filters.dateTo);
     }
+    if (filters.searchQuery) {
+        conditions.push('(user_name LIKE ? OR user_email LIKE ?)');
+        const searchTerm = `%${filters.searchQuery}%`;
+        params.push(searchTerm, searchTerm);
+    }
+
 
     if (conditions.length > 0) {
         query += ' WHERE ' + conditions.join(' AND ');

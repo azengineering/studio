@@ -28,8 +28,8 @@ export default function ManifestoDialog({ open, onOpenChange, manifestoUrl, lead
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-4xl h-[90vh]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-6xl h-[90vh] flex flex-col p-2">
+        <DialogHeader className="p-4 pb-2">
           <DialogTitle>{t('manifestoDialog.title', { name: leaderName })}</DialogTitle>
           <DialogDescription>{t('manifestoDialog.description')}</DialogDescription>
         </DialogHeader>

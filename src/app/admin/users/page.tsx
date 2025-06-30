@@ -10,12 +10,12 @@ import { useRouter } from 'next/navigation';
 import { addDays } from 'date-fns';
 
 import { getUsers, type User, blockUser, unblockUser, addAdminMessage, getAdminMessages, deleteAdminMessage, type AdminMessage } from "@/data/users";
-import { getActivitiesForUser, getLeadersAddedByUser, type UserActivity, type Leader, deleteRating, approveLeader, deleteLeader as deleteLeaderAction, getLeaderById, updateLeader } from "@/data/leaders";
+import { getActivitiesForUser, getLeadersAddedByUser, type UserActivity, type Leader, deleteRating, approveLeader, deleteLeader as deleteLeaderAction, getLeaderById, updateLeader, updateLeaderStatus } from "@/data/leaders";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, RotateCw, X, Star, MoreVertical, Ban, Unlock, MessageSquareWarning, Trash2, Edit, UserCheck, PlusCircle } from 'lucide-react';
+import { Search, Loader2, RotateCw, X, Star, MoreVertical, Ban, Unlock, MessageSquareWarning, Trash2, Edit, UserCheck, PlusCircle, ChevronDown, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -69,6 +69,7 @@ type UserWithCounts = User & {
 };
 
 type SelectedTab = 'profile' | 'ratings' | 'leaders' | 'messages';
+type LeaderStatus = 'pending' | 'approved' | 'rejected';
 
 const blockFormSchema = z.object({
   durationType: z.enum(['temporary', 'permanent']),
@@ -165,6 +166,10 @@ export default function AdminUsersPage() {
     const [photoRemoved, setPhotoRemoved] = useState(false);
     const [manifestoRemoved, setManifestoRemoved] = useState(false);
 
+    // State for status change dialog
+    const [statusChangeInfo, setStatusChangeInfo] = useState<{ leaderId: string; newStatus: LeaderStatus } | null>(null);
+    const [statusChangeComment, setStatusChangeComment] = useState('');
+    const [isStatusSubmitting, setIsStatusSubmitting] = useState(false);
 
     const blockUserForm = useForm<z.infer<typeof blockFormSchema>>({
       resolver: zodResolver(blockFormSchema),
@@ -352,16 +357,43 @@ export default function AdminUsersPage() {
         }
       });
     };
+    
+    const handleStatusChangeClick = (leaderId: string, newStatus: LeaderStatus) => {
+        const leader = userAddedLeaders.find(l => l.id === leaderId);
+        if (leader) {
+            setStatusChangeInfo({ leaderId, newStatus });
+            setStatusChangeComment(leader.adminComment || '');
+        }
+    };
 
-    const handleApproveLeader = (leaderId: string) => {
-      if (!selectedUser) return;
-      startTransition(async () => {
-        await approveLeader(leaderId);
-        toast({ title: "Leader Approved" });
-        fetchUserLeaders(selectedUser.id);
-        const updatedLeader = await getLeaderById(leaderId);
-        if (updatedLeader) setSelectedLeaderForView(updatedLeader);
-      });
+    const handleStatusUpdate = async () => {
+        if (!statusChangeInfo) return;
+        if (!statusChangeComment.trim()) {
+            toast({ variant: 'destructive', title: 'Comment Required', description: 'A comment is required to update the status.' });
+            return;
+        }
+
+        setIsStatusSubmitting(true);
+        startTransition(async () => {
+            await updateLeaderStatus(statusChangeInfo.leaderId, statusChangeInfo.newStatus, statusChangeComment);
+            toast({ title: "Leader Status Updated" });
+            
+            // Refetch data
+            if (selectedUser) {
+              const updatedLeaders = await getLeadersAddedByUser(selectedUser.id);
+              setUserAddedLeaders(updatedLeaders);
+              
+              const leaderInView = selectedLeaderForView && selectedLeaderForView.id === statusChangeInfo.leaderId;
+              if (leaderInView) {
+                const refreshedLeader = updatedLeaders.find(l => l.id === statusChangeInfo.leaderId);
+                if (refreshedLeader) setSelectedLeaderForView(refreshedLeader);
+              }
+            }
+            
+            setStatusChangeInfo(null);
+            setStatusChangeComment('');
+        });
+        setIsStatusSubmitting(false);
     };
 
     const handleEditLeader = (leader: Leader) => {
@@ -535,7 +567,16 @@ export default function AdminUsersPage() {
                                                 <TableCell onClick={() => handleSelectUser(user, 'profile')}>
                                                     <div className="flex items-center gap-2">
                                                       <span className="font-medium hover:text-primary hover:underline">{user.name || 'N/A'}</span>
-                                                        {user.isBlocked ? <Badge variant="destructive">Blocked</Badge> : null}
+                                                        {user.isBlocked ? (
+                                                          <TooltipProvider>
+                                                            <Tooltip>
+                                                              <TooltipTrigger asChild>
+                                                                <Badge variant="destructive" className="cursor-pointer"><Ban className="h-3 w-3" /></Badge>
+                                                              </TooltipTrigger>
+                                                              <TooltipContent><p>User is Blocked</p></TooltipContent>
+                                                            </Tooltip>
+                                                          </TooltipProvider>
+                                                        ) : null}
                                                         {user.unreadMessageCount && user.unreadMessageCount > 0 ? (
                                                             <TooltipProvider>
                                                                 <Tooltip>
@@ -711,7 +752,22 @@ export default function AdminUsersPage() {
                                                         </TableCell>
                                                         <TableCell>{leader.constituency}</TableCell>
                                                         <TableCell>
-                                                            <Badge variant={leader.status === 'approved' ? 'default' : 'secondary'} className={cn(leader.status === 'approved' && 'bg-green-600')}>{leader.status}</Badge>
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="outline" size="sm" className={cn("w-32 justify-between",
+                                                                        leader.status === 'approved' && 'border-green-500 text-green-600',
+                                                                        leader.status === 'rejected' && 'border-red-500 text-red-600'
+                                                                    )}>
+                                                                        <span className="capitalize">{leader.status}</span>
+                                                                        <ChevronDown className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent>
+                                                                    <DropdownMenuItem onSelect={() => handleStatusChangeClick(leader.id, 'approved')}>Approved</DropdownMenuItem>
+                                                                    <DropdownMenuItem onSelect={() => handleStatusChangeClick(leader.id, 'pending')}>Pending</DropdownMenuItem>
+                                                                    <DropdownMenuItem onSelect={() => handleStatusChangeClick(leader.id, 'rejected')}>Rejected</DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
                                                         </TableCell>
                                                         <TableCell className="text-right">{leader.createdAt ? new Date(leader.createdAt).toLocaleDateString() : 'N/A'}</TableCell>
                                                     </TableRow>
@@ -768,6 +824,12 @@ export default function AdminUsersPage() {
                                                                 <p className="text-base font-medium">N/A</p>
                                                             )}
                                                         </div>
+                                                        {selectedLeaderForView.adminComment && (
+                                                            <div className="col-span-full">
+                                                                <Label className="text-sm text-muted-foreground flex items-center gap-1"><Info className="h-4 w-4" /> Admin Comment</Label>
+                                                                <p className="text-base font-medium p-2 bg-background rounded-md border">{selectedLeaderForView.adminComment}</p>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <Separator className="my-4"/>
                                                     <h4 className="font-semibold mb-2">Previous Election History</h4>
@@ -783,11 +845,6 @@ export default function AdminUsersPage() {
                                                     ) : <p className="text-sm text-muted-foreground">No previous election data available.</p>}
                                                 </CardContent>
                                                 <CardFooter className="flex justify-end gap-2">
-                                                    {selectedLeaderForView.status === 'pending' && (
-                                                        <Button size="sm" onClick={() => handleApproveLeader(selectedLeaderForView.id)} disabled={isPending}>
-                                                            <UserCheck className="mr-2 h-4 w-4" /> Approve
-                                                        </Button>
-                                                    )}
                                                     <Button size="sm" variant="outline" onClick={() => handleEditLeader(selectedLeaderForView)} disabled={isPending}>
                                                         <Edit className="mr-2 h-4 w-4" /> Edit
                                                     </Button>
@@ -1033,6 +1090,35 @@ export default function AdminUsersPage() {
               </DialogContent>
             </Dialog>
 
+            {/* Status Change Comment Dialog */}
+            <Dialog open={!!statusChangeInfo} onOpenChange={() => setStatusChangeInfo(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Update Leader Status</DialogTitle>
+                  <DialogDescription>
+                    You are changing the status to <span className="font-bold capitalize">{statusChangeInfo?.newStatus}</span>. A comment is required.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <Label htmlFor="status-comment">Admin Comment</Label>
+                  <Textarea
+                    id="status-comment"
+                    value={statusChangeComment}
+                    onChange={(e) => setStatusChangeComment(e.target.value)}
+                    placeholder="Provide a reason for this status change..."
+                    className="mt-2"
+                  />
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setStatusChangeInfo(null)}>Cancel</Button>
+                  <Button onClick={handleStatusUpdate} disabled={isStatusSubmitting}>
+                    {isStatusSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Confirm Update
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             {/* Edit Leader Dialog */}
             <Dialog open={isEditLeaderDialogOpen} onOpenChange={setEditLeaderDialogOpen}>
               <DialogContent className="sm:max-w-4xl">
@@ -1071,8 +1157,8 @@ export default function AdminUsersPage() {
                                         {!photoRemoved && leaderToEdit?.photoUrl ? (
                                             <div className="mb-2 flex items-center gap-4">
                                                 <Image src={leaderToEdit.photoUrl} alt="Current leader photo" width={80} height={80} className="rounded-md object-cover mt-1" />
-                                                <Button type="button" variant="destructive" size="sm" onClick={() => setPhotoRemoved(true)}>
-                                                    <Trash2 className="mr-2 h-4 w-4" /> Remove
+                                                <Button type="button" variant="destructive" size="icon" onClick={() => setPhotoRemoved(true)}>
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         ) : (
@@ -1095,8 +1181,8 @@ export default function AdminUsersPage() {
                                                 <Button type="button" variant="link" className="p-0 h-auto" onClick={() => setManifestoForView({url: leaderToEdit.manifestoUrl!, name: leaderToEdit.name})}>
                                                     View Current Manifesto
                                                 </Button>
-                                                <Button type="button" variant="destructive" size="sm" onClick={() => setManifestoRemoved(true)}>
-                                                    <Trash2 className="mr-2 h-4 w-4" /> Remove
+                                                <Button type="button" variant="destructive" size="icon" onClick={() => setManifestoRemoved(true)}>
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         ) : (

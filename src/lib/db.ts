@@ -44,6 +44,7 @@ const defaultLeaders: Leader[] = [
     addedByUserId: null,
     createdAt: now,
     status: 'approved',
+    adminComment: null,
   },
   {
     id: '2',
@@ -63,6 +64,7 @@ const defaultLeaders: Leader[] = [
     addedByUserId: null,
     createdAt: now,
     status: 'approved',
+    adminComment: null,
   },
   {
     id: '3',
@@ -82,6 +84,7 @@ const defaultLeaders: Leader[] = [
     addedByUserId: null,
     createdAt: now,
     status: 'approved',
+    adminComment: null,
   },
   {
     id: '4',
@@ -101,6 +104,7 @@ const defaultLeaders: Leader[] = [
     addedByUserId: null,
     createdAt: now,
     status: 'approved',
+    adminComment: null,
   },
   {
     id: '5',
@@ -120,6 +124,7 @@ const defaultLeaders: Leader[] = [
     addedByUserId: null,
     createdAt: now,
     status: 'approved',
+    adminComment: null,
   },
   {
     id: '6',
@@ -139,6 +144,7 @@ const defaultLeaders: Leader[] = [
     addedByUserId: null,
     createdAt: now,
     status: 'approved',
+    adminComment: null,
   },
    {
     id: '7',
@@ -158,6 +164,7 @@ const defaultLeaders: Leader[] = [
     addedByUserId: null,
     createdAt: now,
     status: 'approved',
+    adminComment: null,
   },
   {
     id: '8',
@@ -177,6 +184,7 @@ const defaultLeaders: Leader[] = [
     addedByUserId: null,
     createdAt: now,
     status: 'approved',
+    adminComment: null,
   }
 ];
 
@@ -219,6 +227,7 @@ const schema = `
     addedByUserId TEXT,
     createdAt TEXT,
     status TEXT NOT NULL DEFAULT 'pending',
+    adminComment TEXT,
     FOREIGN KEY(addedByUserId) REFERENCES users(id) ON DELETE SET NULL
   );
   
@@ -268,7 +277,8 @@ const migrations = {
     leaders: {
         addedByUserId: 'TEXT',
         createdAt: 'TEXT',
-        status: "TEXT NOT NULL DEFAULT 'pending'"
+        status: "TEXT NOT NULL DEFAULT 'pending'",
+        adminComment: 'TEXT'
     },
     ratings: {
         socialBehaviour: 'TEXT',
@@ -310,8 +320,8 @@ const seedLeaders = () => {
   }
 
   const insertStmt = db.prepare(`
-    INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId, createdAt, status)
-    VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId, @createdAt, @status)
+    INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId, createdAt, status, adminComment)
+    VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId, @createdAt, @status, @adminComment)
   `);
 
   const insertMany = db.transaction((leaders: Leader[]) => {
@@ -336,6 +346,7 @@ const seedLeaders = () => {
         addedByUserId: leader.addedByUserId,
         createdAt: leader.createdAt,
         status: leader.status,
+        adminComment: leader.adminComment,
       });
     }
   });

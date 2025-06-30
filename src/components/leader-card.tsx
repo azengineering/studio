@@ -7,7 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import type { Leader as LeaderType } from '@/data/leaders';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Star, Twitter, Eye, Edit, ChevronDown, FileText } from 'lucide-react';
+import { Star, Twitter, Eye, Edit, ChevronDown, FileText, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/context/language-context';
 import {
@@ -31,6 +31,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collap
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import ManifestoDialog from './manifesto-dialog';
+import { TooltipProvider, Tooltip as TooltipComponent, TooltipTrigger as TooltipTriggerComponent, TooltipContent as TooltipContentComponent } from './ui/tooltip';
 
 interface LeaderCardProps {
   leader: LeaderType;
@@ -105,19 +106,45 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
               />
               <div className="flex-1">
                   <div className="flex justify-between items-start">
-                    {isCompact ? (
-                      <Link href={`/rate-leader?candidateName=${encodeURIComponent(leader.name)}`} className="hover:underline hover:text-primary transition-colors">
+                    <div className="flex-1">
+                      {isCompact ? (
+                        <Link href={`/rate-leader?candidateName=${encodeURIComponent(leader.name)}`} className="hover:underline hover:text-primary transition-colors">
+                          <NameComponent />
+                        </Link>
+                      ) : (
                         <NameComponent />
-                      </Link>
-                    ) : (
-                      <NameComponent />
-                    )}
-                      {isEditable && onEdit && (
-                        <Button variant="ghost" size="icon" className={cn("h-8 w-8", isCompact && "h-7 w-7")} onClick={onEdit}>
-                            <Edit className="h-4 w-4 text-primary" />
-                            <span className="sr-only">Edit Leader</span>
-                        </Button>
                       )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {isEditable && (
+                        <>
+                          <Badge variant={leader.status === 'approved' ? 'default' : (leader.status === 'rejected' ? 'destructive' : 'secondary')} className={cn('capitalize', leader.status === 'approved' && 'bg-green-600')}>
+                            {leader.status}
+                          </Badge>
+                          {leader.adminComment && (
+                            <TooltipProvider>
+                              <TooltipComponent>
+                                <TooltipTriggerComponent asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                                    <Info className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTriggerComponent>
+                                <TooltipContentComponent>
+                                  <p className="font-semibold">Admin Comment:</p>
+                                  <p className="max-w-xs">{leader.adminComment}</p>
+                                </TooltipContentComponent>
+                              </TooltipComponent>
+                            </TooltipProvider>
+                          )}
+                          {onEdit && (
+                            <Button variant="ghost" size="icon" className={cn("h-8 w-8", isCompact && "h-7 w-7")} onClick={onEdit}>
+                              <Edit className="h-4 w-4 text-primary" />
+                              <span className="sr-only">Edit Leader</span>
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                   <p className={cn("text-sm text-muted-foreground", isCompact && "text-xs")}>
                       {genderText}, {leader.age} yrs old

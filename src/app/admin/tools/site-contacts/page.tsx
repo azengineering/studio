@@ -27,7 +27,7 @@ import { ChevronLeft, Loader2, Save, Mail, Eye, Inbox, History, CheckCircle, XCi
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
-import { ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { ChartConfig, ChartContainer, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
 
 const contactFormSchema = z.object({
   contact_email: z.string().email().or(z.literal('')),
@@ -201,10 +201,10 @@ export default function SiteContactsPage() {
     };
 
     const chartData = ticketStats ? [
-        { name: 'open', value: ticketStats.open },
-        { name: 'inProgress', value: ticketStats.inProgress },
-        { name: 'resolved', value: ticketStats.resolved },
-        { name: 'closed', value: ticketStats.closed },
+        { name: 'open', value: ticketStats.open, fill: "var(--color-open)" },
+        { name: 'inProgress', value: ticketStats.inProgress, fill: "var(--color-inProgress)" },
+        { name: 'resolved', value: ticketStats.resolved, fill: "var(--color-resolved)" },
+        { name: 'closed', value: ticketStats.closed, fill: "var(--color-closed)" },
     ].filter(item => item.value > 0) : [];
 
     const StatCard = ({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) => (
@@ -306,13 +306,9 @@ export default function SiteContactsPage() {
                                         <ChartContainer config={chartConfig} className="w-full h-full aspect-square">
                                             <ResponsiveContainer width="100%" height={300}>
                                                 <PieChart>
-                                                    <Tooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                                                    <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={5}>
-                                                        {chartData.map((entry) => (
-                                                            <Cell key={entry.name} fill={`var(--color-${entry.name})`} />
-                                                        ))}
-                                                    </Pie>
-                                                    <Legend />
+                                                    <Tooltip cursor={false} content={<ChartTooltipContent hideIndicator />} />
+                                                    <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={5} />
+                                                    <Legend content={<ChartLegendContent />} />
                                                 </PieChart>
                                             </ResponsiveContainer>
                                         </ChartContainer>

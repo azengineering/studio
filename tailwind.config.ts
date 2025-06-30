@@ -95,6 +95,10 @@ export default {
           '85%': { opacity: '1', transform: 'translateY(0)' },
           '100%': { opacity: '0', transform: 'translateY(-20px)' },
         },
+        'marquee': {
+          'from': { transform: 'translateX(0)' },
+          'to': { transform: 'translateX(-50%)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -102,6 +106,7 @@ export default {
         'balance': 'balance 2.5s ease-in-out infinite',
         'fade-in-out': 'fade-in-out 3s ease-in-out infinite',
         'fade-in-out-slow': 'fade-in-out-slow 2.5s ease-in-out infinite',
+        'marquee': 'marquee 40s linear infinite',
       },
     },
   },

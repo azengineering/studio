@@ -64,7 +64,12 @@ export default function NotificationBanner() {
                         </span>
                         <div className="text-sm font-semibold flex-1 min-w-0">
                             {notifications.length === 1 ? (
-                                <p className="truncate">{notifications[0].message}</p>
+                                <div className="overflow-hidden">
+                                    <div className="flex whitespace-nowrap animate-marquee hover:[animation-play-state:paused]">
+                                        <span className="mx-8">{notifications[0].message}</span>
+                                        <span className="mx-8">{notifications[0].message}</span>
+                                    </div>
+                                </div>
                             ) : (
                                 <Carousel setApi={setApi} className="w-full">
                                     <CarouselContent>

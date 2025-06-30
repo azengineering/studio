@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Mail, Phone, Twitter, Linkedin, Youtube, Send, Building, Info } from 'lucide-react';
+import { Mail, Phone, Twitter, Linkedin, Youtube, Send, Building, Info, Loader2 } from 'lucide-react';
 
 import { getSiteSettings, type SiteSettings } from '@/data/settings';
 import { createSupportTicket } from '@/data/support';

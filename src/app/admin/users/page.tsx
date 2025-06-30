@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Link from 'next/link';
@@ -10,12 +10,12 @@ import { useRouter } from 'next/navigation';
 import { addDays } from 'date-fns';
 
 import { getUsers, type User, blockUser, unblockUser, addAdminMessage, getAdminMessages, deleteAdminMessage, type AdminMessage } from "@/data/users";
-import { getActivitiesForUser, getLeadersAddedByUser, type UserActivity, type Leader, deleteRating, approveLeader, deleteLeader as deleteLeaderAction } from "@/data/leaders";
+import { getActivitiesForUser, getLeadersAddedByUser, type UserActivity, type Leader, deleteRating, approveLeader, deleteLeader as deleteLeaderAction, getLeaderById, updateLeader } from "@/data/leaders";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, RotateCw, X, Star, MoreVertical, Ban, Unlock, MessageSquareWarning, Trash2, Edit, UserCheck } from 'lucide-react';
+import { Search, Loader2, RotateCw, X, Star, MoreVertical, Ban, Unlock, MessageSquareWarning, Trash2, Edit, UserCheck, PlusCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -55,7 +55,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
+import { indianStates } from '@/data/locations';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import Image from 'next/image';
 
 // The User type from the data layer will include these optional counts
 type UserWithCounts = User & {
@@ -84,6 +87,34 @@ const messageFormSchema = z.object({
   message: z.string().min(10, { message: "Message must be at least 10 characters." }),
 });
 
+const leaderEditSchema = z.object({
+  name: z.string().min(1, { message: "Name is required." }),
+  partyName: z.string().min(1, { message: "Party name is required." }),
+  electionType: z.enum(['national', 'state', 'panchayat'], { required_error: "Please select an election type."}),
+  constituency: z.string().min(1, { message: "Constituency is required." }),
+  gender: z.enum(['male', 'female', 'other'], { required_error: "Please select a gender."}),
+  age: z.coerce.number().int({ message: "Age must be a whole number." }).positive({ message: "Age must be positive." }).min(25, { message: "Candidate must be at least 25 years old." }),
+  nativeAddress: z.string().min(1, { message: "Native address is required." }),
+  state: z.string().optional(),
+  previousElections: z.array(z.object({
+    electionType: z.string().min(1, { message: "Required" }),
+    constituency: z.string().min(1, { message: "Required" }),
+    state: z.string().optional(),
+    status: z.enum(['winner', 'loser']),
+    electionYear: z.string().min(4, { message: "Invalid year" }).max(4, { message: "Invalid year" }),
+    partyName: z.string().min(1, { message: "Required" }),
+  })).optional(),
+  twitterUrl: z.string().url({ message: "Please enter a valid X/Twitter URL." }).optional().or(z.literal('')),
+}).refine(data => {
+    if (data.electionType === 'state' || data.electionType === 'panchayat') {
+        return !!data.state;
+    }
+    return true;
+}, {
+  message: "State is required",
+  path: ["state"],
+});
+
 const ProfileInfo = ({ label, value }: {label: string, value: string | number | undefined | null}) => (
     <div>
         <Label className="text-sm text-muted-foreground">{label}</Label>
@@ -110,6 +141,8 @@ export default function AdminUsersPage() {
     const [isBlockUserDialogOpen, setBlockUserDialogOpen] = useState(false);
     const [isSendMessageDialogOpen, setSendMessageDialogOpen] = useState(false);
     const [selectedLeaderForView, setSelectedLeaderForView] = useState<Leader | null>(null);
+    const [isEditLeaderDialogOpen, setEditLeaderDialogOpen] = useState(false);
+    const [leaderToEdit, setLeaderToEdit] = useState<Leader | null>(null);
 
     const blockUserForm = useForm<z.infer<typeof blockFormSchema>>({
       resolver: zodResolver(blockFormSchema),
@@ -121,6 +154,36 @@ export default function AdminUsersPage() {
       defaultValues: { message: "" },
     });
     
+    const editLeaderForm = useForm<z.infer<typeof leaderEditSchema>>({
+      resolver: zodResolver(leaderEditSchema),
+      defaultValues: {
+        name: "", partyName: "", constituency: "", nativeAddress: "",
+        state: "", age: undefined, previousElections: [], twitterUrl: "",
+      },
+    });
+
+    const { fields: prevElectionFields, append: appendPrevElection, remove: removePrevElection } = useFieldArray({
+      control: editLeaderForm.control,
+      name: "previousElections"
+    });
+
+    useEffect(() => {
+        if (leaderToEdit) {
+            editLeaderForm.reset({
+              name: leaderToEdit.name,
+              partyName: leaderToEdit.partyName,
+              electionType: leaderToEdit.electionType,
+              constituency: leaderToEdit.constituency,
+              gender: leaderToEdit.gender,
+              age: leaderToEdit.age,
+              nativeAddress: leaderToEdit.nativeAddress,
+              state: leaderToEdit.location.state || '',
+              previousElections: leaderToEdit.previousElections || [],
+              twitterUrl: leaderToEdit.twitterUrl || '',
+            });
+        }
+    }, [leaderToEdit, editLeaderForm]);
+
     const fetchUsers = async (query?: string) => {
         setIsLoading(true);
         setSelectedUser(null);
@@ -271,12 +334,53 @@ export default function AdminUsersPage() {
         await approveLeader(leaderId);
         toast({ title: "Leader Approved" });
         fetchUserLeaders(selectedUser.id);
-        setSelectedLeaderForView(prev => prev && prev.id === leaderId ? { ...prev, status: 'approved' } : prev);
+        const updatedLeader = await getLeaderById(leaderId);
+        if (updatedLeader) setSelectedLeaderForView(updatedLeader);
       });
     };
 
-    const handleEditLeader = (leaderId: string) => {
-        router.push(`/add-leader?edit=${leaderId}`);
+    const handleEditLeader = (leader: Leader) => {
+        setLeaderToEdit(leader);
+        setEditLeaderDialogOpen(true);
+    };
+
+    const onEditLeaderSubmit = async (values: z.infer<typeof leaderEditSchema>) => {
+      if (!leaderToEdit || !selectedUser) return;
+      startTransition(async () => {
+        try {
+          const leaderPayload = {
+            name: values.name,
+            partyName: values.partyName,
+            constituency: values.constituency,
+            electionType: values.electionType,
+            gender: values.gender,
+            age: values.age,
+            nativeAddress: values.nativeAddress,
+            location: {
+              state: values.state,
+              district: leaderToEdit.location.district, // Keep original district unless editing is added
+            },
+            previousElections: values.previousElections || [],
+            twitterUrl: values.twitterUrl,
+            // Keep fields not in the edit form from the original leader object
+            photoUrl: leaderToEdit.photoUrl,
+            manifestoUrl: leaderToEdit.manifestoUrl,
+          };
+          
+          await updateLeader(leaderToEdit.id, leaderPayload, selectedUser.id, true);
+          toast({ title: "Leader Updated Successfully" });
+          setEditLeaderDialogOpen(false);
+          setLeaderToEdit(null);
+
+          // Refresh data in the UI
+          fetchUserLeaders(selectedUser.id);
+          const updatedLeader = await getLeaderById(leaderToEdit.id);
+          if (updatedLeader) setSelectedLeaderForView(updatedLeader);
+
+        } catch(error) {
+          toast({ variant: 'destructive', title: 'Update Failed', description: String(error) });
+        }
+      });
     };
 
     const handleDeleteLeader = (leaderId: string) => {
@@ -555,22 +659,41 @@ export default function AdminUsersPage() {
                                             <Card className="mt-6 bg-secondary/50" key={selectedLeaderForView.id}>
                                                 <CardHeader>
                                                     <div className="flex justify-between items-start">
+                                                      <div className="flex items-start gap-4">
+                                                        <Image src={selectedLeaderForView.photoUrl || 'https://placehold.co/400x400.png'} alt={selectedLeaderForView.name} width={64} height={64} className="rounded-lg object-cover" />
                                                         <div>
                                                             <CardTitle className="flex items-center gap-2">{selectedLeaderForView.name}</CardTitle>
                                                             <CardDescription>{selectedLeaderForView.partyName}</CardDescription>
                                                         </div>
-                                                        <Button variant="ghost" size="icon" onClick={() => setSelectedLeaderForView(null)}>
-                                                            <X className="h-4 w-4" />
-                                                        </Button>
+                                                      </div>
+                                                      <Button variant="ghost" size="icon" onClick={() => setSelectedLeaderForView(null)}>
+                                                          <X className="h-4 w-4" />
+                                                      </Button>
                                                     </div>
                                                 </CardHeader>
                                                 <CardContent>
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                                         <ProfileInfo label="Status" value={selectedLeaderForView.status} />
                                                         <ProfileInfo label="Constituency" value={selectedLeaderForView.constituency} />
                                                         <ProfileInfo label="Election Type" value={selectedLeaderForView.electionType} />
                                                         <ProfileInfo label="State" value={selectedLeaderForView.location.state} />
+                                                        <ProfileInfo label="Gender" value={selectedLeaderForView.gender} />
+                                                        <ProfileInfo label="Age" value={selectedLeaderForView.age} />
+                                                        <ProfileInfo label="Address" value={selectedLeaderForView.nativeAddress} />
+                                                        <ProfileInfo label="Twitter" value={selectedLeaderForView.twitterUrl} />
                                                     </div>
+                                                    <Separator className="my-4"/>
+                                                    <h4 className="font-semibold mb-2">Previous Election History</h4>
+                                                    {selectedLeaderForView.previousElections && selectedLeaderForView.previousElections.length > 0 ? (
+                                                        <Table>
+                                                          <TableHeader><TableRow><TableHead>Year</TableHead><TableHead>Party</TableHead><TableHead>Constituency</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                                                          <TableBody>
+                                                            {selectedLeaderForView.previousElections.map((e, i) => (
+                                                              <TableRow key={i}><TableCell>{e.electionYear}</TableCell><TableCell>{e.partyName}</TableCell><TableCell>{e.constituency}</TableCell><TableCell><Badge variant={e.status === 'winner' ? 'default' : 'destructive'} className={cn(e.status === 'winner' && 'bg-green-600')}>{e.status}</Badge></TableCell></TableRow>
+                                                            ))}
+                                                          </TableBody>
+                                                        </Table>
+                                                    ) : <p className="text-sm text-muted-foreground">No previous election data available.</p>}
                                                 </CardContent>
                                                 <CardFooter className="flex justify-end gap-2">
                                                     {selectedLeaderForView.status === 'pending' && (
@@ -578,7 +701,7 @@ export default function AdminUsersPage() {
                                                             <UserCheck className="mr-2 h-4 w-4" /> Approve
                                                         </Button>
                                                     )}
-                                                    <Button size="sm" variant="outline" onClick={() => handleEditLeader(selectedLeaderForView.id)} disabled={isPending}>
+                                                    <Button size="sm" variant="outline" onClick={() => handleEditLeader(selectedLeaderForView)} disabled={isPending}>
                                                         <Edit className="mr-2 h-4 w-4" /> Edit
                                                     </Button>
                                                     <AlertDialog>
@@ -823,6 +946,71 @@ export default function AdminUsersPage() {
               </DialogContent>
             </Dialog>
 
+            {/* Edit Leader Dialog */}
+            <Dialog open={isEditLeaderDialogOpen} onOpenChange={setEditLeaderDialogOpen}>
+              <DialogContent className="sm:max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle>Edit Leader: {leaderToEdit?.name}</DialogTitle>
+                  <DialogDescription>
+                    Update the details for this leader. Changes will be reflected immediately.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...editLeaderForm}>
+                  <form onSubmit={editLeaderForm.handleSubmit(onEditLeaderSubmit)}>
+                    <ScrollArea className="h-[60vh] p-4">
+                      <div className="space-y-8">
+                        <div className="grid md:grid-cols-3 gap-6">
+                            <FormField control={editLeaderForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={editLeaderForm.control} name="partyName" render={({ field }) => (<FormItem><FormLabel>Party Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={editLeaderForm.control} name="electionType" render={({ field }) => (<FormItem><FormLabel>Election Type</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="national">National</SelectItem><SelectItem value="state">State</SelectItem><SelectItem value="panchayat">Panchayat</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                        </div>
+                        <div className="grid md:grid-cols-3 gap-6">
+                            <FormField control={editLeaderForm.control} name="state" render={({ field }) => (<FormItem><FormLabel>State</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a state" /></SelectTrigger></FormControl><SelectContent>{indianStates.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                            <FormField control={editLeaderForm.control} name="constituency" render={({ field }) => (<FormItem><FormLabel>Constituency</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={editLeaderForm.control} name="nativeAddress" render={({ field }) => (<FormItem><FormLabel>Native Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        </div>
+                        <div className="grid md:grid-cols-3 gap-6">
+                            <FormField control={editLeaderForm.control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                            <FormField control={editLeaderForm.control} name="age" render={({ field }) => (<FormItem><FormLabel>Age</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={editLeaderForm.control} name="twitterUrl" render={({ field }) => (<FormItem><FormLabel>X/Twitter URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        </div>
+                        <div className="space-y-4">
+                            <div className="border-b pb-2"><h3 className="text-lg font-medium">Previous Elections</h3></div>
+                            <div className="space-y-4">
+                              {prevElectionFields.map((item, index) => (
+                                <div key={item.id} className="p-4 border rounded-md space-y-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-2 items-end">
+                                    <FormField control={editLeaderForm.control} name={`previousElections.${index}.electionType`} render={({ field }) => (<FormItem className="col-span-12 md:col-span-2"><FormLabel className="text-xs">Type</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="national">National</SelectItem><SelectItem value="state">State</SelectItem><SelectItem value="panchayat">Panchayat</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
+                                    <FormField control={editLeaderForm.control} name={`previousElections.${index}.state`} render={({ field }) => (<FormItem className="col-span-12 md:col-span-2"><FormLabel className="text-xs">State</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{indianStates.map(s=><SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>)}/>
+                                    <FormField control={editLeaderForm.control} name={`previousElections.${index}.constituency`} render={({ field }) => (<FormItem className="col-span-12 md:col-span-4"><FormLabel className="text-xs">Constituency</FormLabel><Input {...field}/><FormMessage/></FormItem>)}/>
+                                    <FormField control={editLeaderForm.control} name={`previousElections.${index}.partyName`} render={({ field }) => (<FormItem className="col-span-12 md:col-span-3"><FormLabel className="text-xs">Party</FormLabel><Input {...field}/><FormMessage/></FormItem>)}/>
+                                    <Button type="button" variant="ghost" size="icon" className="col-span-12 md:col-span-1" onClick={() => removePrevElection(index)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-2">
+                                    <FormField control={editLeaderForm.control} name={`previousElections.${index}.status`} render={({ field }) => (<FormItem className="col-span-6 md:col-span-2"><FormLabel className="text-xs">Status</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="winner">Winner</SelectItem><SelectItem value="loser">Loser</SelectItem></SelectContent></Select><FormMessage/></FormItem>)}/>
+                                    <FormField control={editLeaderForm.control} name={`previousElections.${index}.electionYear`} render={({ field }) => (<FormItem className="col-span-6 md:col-span-2"><FormLabel className="text-xs">Year</FormLabel><Input {...field}/><FormMessage/></FormItem>)}/>
+                                  </div>
+                                </div>
+                              ))}
+                              <Button type="button" onClick={() => appendPrevElection({ electionType: '', state: '', constituency: '', status: 'winner', electionYear: '', partyName: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Record</Button>
+                            </div>
+                        </div>
+                      </div>
+                    </ScrollArea>
+                    <DialogFooter className="pt-4">
+                      <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
+                      <Button type="submit" disabled={isPending}>
+                        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Changes
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+
         </div>
     );
 }
+
+    

@@ -40,6 +40,7 @@ export interface PollListItem {
     active_until: string | null;
     created_at: string;
     response_count: number;
+    is_promoted?: boolean;
 }
 
 // For user participation page
@@ -75,14 +76,15 @@ export async function getPollsForAdmin(): Promise<PollListItem[]> {
             p.is_active,
             p.active_until,
             p.created_at,
-            (SELECT COUNT(DISTINCT pr.user_id) FROM poll_responses pr WHERE pr.poll_id = p.id) as response_count
+            (SELECT COUNT(DISTINCT pr.user_id) FROM poll_responses pr WHERE pr.poll_id = p.id) as response_count,
+            (SELECT 1 FROM notifications n WHERE n.link = ('/polls/' || p.id) LIMIT 1) as is_promoted
         FROM polls p
         LEFT JOIN poll_responses pr ON p.id = pr.poll_id
         GROUP BY p.id
         ORDER BY p.created_at DESC
     `);
     const polls = stmt.all() as any[];
-    return polls.map(p => ({...p, is_active: p.is_active === 1}));
+    return polls.map(p => ({...p, is_active: p.is_active === 1, is_promoted: p.is_promoted === 1}));
 }
 
 export async function getPollForEdit(pollId: string): Promise<Poll | null> {

@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import PollResults from './results';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function AdminPollsPage() {
     const [polls, setPolls] = useState<PollListItem[]>([]);
@@ -69,6 +70,9 @@ export default function AdminPollsPage() {
                 link: `/polls/${pollId}`,
             });
             toast({ title: "Poll Promoted", description: "A notification has been created for this poll." });
+            setPolls(currentPolls => currentPolls.map(p => 
+                p.id === pollId ? { ...p, is_promoted: true } : p
+            ));
         } catch (error) {
             toast({ variant: 'destructive', title: 'Promotion Failed', description: 'Could not create the notification.' });
         }
@@ -126,23 +130,38 @@ export default function AdminPollsPage() {
                                         <TableCell>{poll.active_until ? format(new Date(poll.active_until), 'MMM dd, yyyy') : 'No limit'}</TableCell>
                                         <TableCell>{poll.response_count}</TableCell>
                                         <TableCell className="text-right space-x-0.5">
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" disabled={!poll.is_active}>
-                                                        <Megaphone className="h-4 w-4" />
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Promote this Poll?</AlertDialogTitle>
-                                                        <AlertDialogDescription>This will create a site-wide notification banner linking to this poll. Are you sure?</AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handlePromotePoll(poll.id, poll.title)}>Confirm & Promote</AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
+                                            {poll.is_promoted ? (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button variant="ghost" size="icon" disabled>
+                                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>This poll has been promoted.</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            ) : (
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="ghost" size="icon" disabled={!poll.is_active}>
+                                                            <Megaphone className="h-4 w-4" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Promote this Poll?</AlertDialogTitle>
+                                                            <AlertDialogDescription>This will create a site-wide notification banner linking to this poll. Are you sure?</AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handlePromotePoll(poll.id, poll.title)}>Confirm & Promote</AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            )}
                                             <Button variant="ghost" size="icon" onClick={() => handleViewResults(poll.id)} disabled={poll.response_count === 0}>
                                                 <BarChart className="h-4 w-4" />
                                             </Button>

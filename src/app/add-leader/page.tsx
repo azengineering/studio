@@ -234,7 +234,7 @@ function AddLeaderPage() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // Check for admin status directly inside the submit handler for security
+    // This check is critical for determining behavior post-submission
     const isAdmin = localStorage.getItem('admin_auth') === 'true';
 
     if (!user && !isAdmin) {
@@ -300,13 +300,16 @@ function AddLeaderPage() {
             
             // Use the securely-checked admin status for redirection
             if (isAdmin) {
+                // ADMIN PATH: Success toast and redirect to admin panel
                 toast({ title: t('addLeaderPage.updateSuccessMessage') });
                 router.push('/admin/leaders');
             } else {
+                // USER PATH: Re-approval toast and redirect to user's activity page
                 toast({ title: "Update Submitted", description: "Your changes have been submitted and are pending re-approval." });
                 router.push('/my-activities');
             }
         } else {
+            // This is for adding a NEW leader, not editing.
             await addLeader(leaderPayload, user?.id ?? null);
             toast({ title: t('addLeaderPage.successMessage'), description: "Your submission is pending admin approval." });
             form.reset();

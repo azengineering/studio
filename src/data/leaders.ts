@@ -186,20 +186,31 @@ export async function getLeaderById(id: string): Promise<Leader | null> {
     return Promise.resolve(null);
 }
 
-export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment' | 'userName'>, userId: string | null, isAdmin: boolean = false): Promise<Leader | null> {
+export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment' | 'userName'>, userId: string | null, isAdmin: boolean): Promise<Leader | null> {
     const leaderToUpdate = await getLeaderById(leaderId);
 
     if (!leaderToUpdate) {
         throw new Error("Leader not found.");
     }
     
+    // Authorization: Only the owner or an admin can edit.
     if (!isAdmin && leaderToUpdate.addedByUserId !== userId) {
         throw new Error("You are not authorized to edit this leader.");
     }
 
-    // If a non-admin edits, reset status to pending for re-approval. Admins can edit without changing status.
-    const newStatus = !isAdmin ? 'pending' : leaderToUpdate.status;
-    const newAdminComment = !isAdmin ? 'User updated details. Pending re-approval.' : leaderToUpdate.adminComment;
+    let newStatus: Leader['status'];
+    let newAdminComment: string | null;
+
+    if (isAdmin) {
+        // Admin is editing, keep the current status unless they change it elsewhere.
+        // The form doesn't change status, so we preserve it.
+        newStatus = leaderToUpdate.status;
+        newAdminComment = leaderToUpdate.adminComment; // Admins manage comments separately
+    } else {
+        // User is editing, so it must be re-approved.
+        newStatus = 'pending';
+        newAdminComment = 'User updated details. Pending re-approval.';
+    }
 
     const stmt = db.prepare(`
         UPDATE leaders
@@ -242,6 +253,7 @@ export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'i
 
     return getLeaderById(leaderId);
 }
+
 
 export async function submitRatingAndComment(leaderId: string, userId: string, newRating: number, comment: string | null, socialBehaviour: string | null): Promise<Leader | null> {
     const transaction = db.transaction(() => {

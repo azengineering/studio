@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -34,6 +33,12 @@ type ContactFormData = z.infer<typeof contactFormSchema>;
 
 const ContactInfoItem = ({ icon, title, text, href, hoverColor }: { icon: React.ReactNode, title: string, text: string | null, href?: string, hoverColor: string }) => {
     if (!text) return null;
+
+    // For social media links that start with http, display the title (e.g., "Follow on X") instead of the raw URL.
+    // For email and phone, display the actual text value.
+    const isHttpLink = typeof text === 'string' && text.startsWith('http');
+    const displayText = isHttpLink ? title : text;
+
     return (
         <a href={href} target="_blank" rel="noopener noreferrer" className={`group flex items-center gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors ${hoverColor}`}>
             <div className="p-3 bg-background rounded-full group-hover:scale-110 transition-transform">
@@ -41,7 +46,7 @@ const ContactInfoItem = ({ icon, title, text, href, hoverColor }: { icon: React.
             </div>
             <div>
                 <h4 className="font-semibold text-foreground">{title}</h4>
-                <p className="text-sm text-muted-foreground truncate group-hover:text-primary">{text}</p>
+                <p className="text-sm text-muted-foreground truncate group-hover:text-primary">{displayText}</p>
             </div>
         </a>
     );

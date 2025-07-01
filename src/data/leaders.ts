@@ -63,6 +63,11 @@ export interface RatingDistribution {
   count: number;
 }
 
+export interface SocialBehaviourDistribution {
+  name: string;
+  count: number;
+}
+
 
 // --- DB data transformation ---
 function dbToLeader(dbLeader: any): Leader {
@@ -358,6 +363,18 @@ export async function getRatingDistribution(leaderId: string): Promise<RatingDis
     `);
     const results = stmt.all(leaderId) as RatingDistribution[];
     return Promise.resolve(results);
+}
+
+export async function getSocialBehaviourDistribution(leaderId: string): Promise<SocialBehaviourDistribution[]> {
+    const stmt = db.prepare(`
+        SELECT socialBehaviour as name, COUNT(socialBehaviour) as count
+        FROM ratings
+        WHERE leaderId = ? AND socialBehaviour IS NOT NULL AND socialBehaviour != ''
+        GROUP BY socialBehaviour
+        ORDER BY count DESC
+    `);
+    const results = stmt.all(leaderId) as SocialBehaviourDistribution[];
+    return Promise.resolve(results.map(r => ({ ...r, name: r.name.charAt(0).toUpperCase() + r.name.slice(1).replace('-', ' ') })));
 }
 
 

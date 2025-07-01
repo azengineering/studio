@@ -49,8 +49,7 @@ export default function AdminLeadersPage() {
     const [approvedLeaders, setApprovedLeaders] = useState<Leader[]>([]);
     const [rejectedLeaders, setRejectedLeaders] = useState<Leader[]>([]);
     
-    const [isSearching, setIsSearching] = useState(false);
-    const [hasSearched, setHasSearched] = useState(false);
+    const [isSearching, setIsSearching] = useState(true);
     const [isPending, startTransition] = useTransition();
 
     const router = useRouter();
@@ -77,7 +76,6 @@ export default function AdminLeadersPage() {
         candidateName?: string | null;
     }) => {
         setIsSearching(true);
-        setHasSearched(true);
         const leaders = await getLeadersForAdminPanel({
             dateFrom: filters.dateFrom ? filters.dateFrom + 'T00:00:00.000Z' : undefined,
             dateTo: filters.dateTo ? filters.dateTo + 'T23:59:59.999Z' : undefined,
@@ -107,12 +105,7 @@ export default function AdminLeadersPage() {
         setConstituency(constiParam || '');
         setCandidateName(nameParam || '');
 
-        if (params.size > 0) {
-            fetchLeaders({ dateFrom: fromParam, dateTo: toParam, state: stateParam, constituency: constiParam, candidateName: nameParam });
-        } else {
-            setAllFoundLeaders([]);
-            setHasSearched(false);
-        }
+        fetchLeaders({ dateFrom: fromParam, dateTo: toParam, state: stateParam, constituency: constiParam, candidateName: nameParam });
     }, [searchParams, fetchLeaders]);
 
     useEffect(() => {
@@ -217,6 +210,8 @@ export default function AdminLeadersPage() {
             });
         }
     };
+    
+    const hasFiltersApplied = searchParams.size > 0;
 
     const LeaderTable = ({ leaders }: { leaders: Leader[] }) => (
         <Table>
@@ -372,38 +367,40 @@ export default function AdminLeadersPage() {
                 </CardContent>
             </Card>
 
-            {hasSearched && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Search Results</CardTitle>
-                        <CardDescription>Showing all leaders matching your criteria.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Tabs defaultValue="pending">
-                            <TabsList className="grid w-full grid-cols-3">
-                                <TabsTrigger value="pending">
-                                    <Clock className="mr-2 h-4 w-4"/>Pending <Badge variant="secondary" className="ml-2">{pendingLeaders.length}</Badge>
-                                </TabsTrigger>
-                                <TabsTrigger value="approved">
-                                    <CheckCircle className="mr-2 h-4 w-4"/>Approved <Badge variant="secondary" className="ml-2">{approvedLeaders.length}</Badge>
-                                </TabsTrigger>
-                                 <TabsTrigger value="rejected">
-                                    <XCircle className="mr-2 h-4 w-4"/>Rejected <Badge variant="secondary" className="ml-2">{rejectedLeaders.length}</Badge>
-                                </TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="pending" className="mt-4">
-                                {isSearching ? <TableSkeleton /> : <LeaderTable leaders={pendingLeaders} />}
-                            </TabsContent>
-                            <TabsContent value="approved" className="mt-4">
-                                {isSearching ? <TableSkeleton /> : <LeaderTable leaders={approvedLeaders} />}
-                            </TabsContent>
-                             <TabsContent value="rejected" className="mt-4">
-                                {isSearching ? <TableSkeleton /> : <LeaderTable leaders={rejectedLeaders} />}
-                            </TabsContent>
-                        </Tabs>
-                    </CardContent>
-                </Card>
-            )}
+            <Card>
+                <CardHeader>
+                    <CardTitle>{hasFiltersApplied ? 'Search Results' : 'All Leader Submissions'}</CardTitle>
+                    <CardDescription>
+                        {hasFiltersApplied 
+                            ? 'Showing all leaders matching your criteria.' 
+                            : 'A list of all pending, approved, and rejected leaders.'}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Tabs defaultValue="pending">
+                        <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="pending">
+                                <Clock className="mr-2 h-4 w-4"/>Pending <Badge variant="secondary" className="ml-2">{pendingLeaders.length}</Badge>
+                            </TabsTrigger>
+                            <TabsTrigger value="approved">
+                                <CheckCircle className="mr-2 h-4 w-4"/>Approved <Badge variant="secondary" className="ml-2">{approvedLeaders.length}</Badge>
+                            </TabsTrigger>
+                             <TabsTrigger value="rejected">
+                                <XCircle className="mr-2 h-4 w-4"/>Rejected <Badge variant="secondary" className="ml-2">{rejectedLeaders.length}</Badge>
+                            </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="pending" className="mt-4">
+                            {isSearching ? <TableSkeleton /> : <LeaderTable leaders={pendingLeaders} />}
+                        </TabsContent>
+                        <TabsContent value="approved" className="mt-4">
+                            {isSearching ? <TableSkeleton /> : <LeaderTable leaders={approvedLeaders} />}
+                        </TabsContent>
+                         <TabsContent value="rejected" className="mt-4">
+                            {isSearching ? <TableSkeleton /> : <LeaderTable leaders={rejectedLeaders} />}
+                        </TabsContent>
+                    </Tabs>
+                </CardContent>
+            </Card>
 
             <Dialog open={!!statusChangeInfo} onOpenChange={() => setStatusChangeInfo(null)}>
               <DialogContent>

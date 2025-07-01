@@ -5,7 +5,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { useRouter } from 'next/navigation';
 import { findUserByEmail, addUser as addNewUser, updateUserProfile, type User, findUserById, unblockUser } from '@/data/users';
 import { isAfter } from 'date-fns';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { auth, firebaseEnabled } from '@/lib/firebase';
 
 interface AuthContextType {
@@ -26,7 +26,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const syncUser = async () => {
+    const handleAuthInit = async () => {
+      setLoading(true);
+
+      if (firebaseEnabled) {
+        try {
+          const result = await getRedirectResult(auth as any);
+          if (result) {
+            // User has just signed in via redirect.
+            const googleUser = result.user;
+            
+            if (!googleUser.email) {
+              throw new Error("Could not retrieve email from Google account.");
+            }
+        
+            let userInDb = await findUserByEmail(googleUser.email);
+            
+            if (userInDb) {
+              // User exists, check for block
+              if (userInDb.isBlocked) {
+                if (userInDb.blockedUntil && isAfter(new Date(), new Date(userInDb.blockedUntil))) {
+                    await unblockUser(userInDb.id);
+                    userInDb = (await findUserByEmail(googleUser.email))!;
+                } else {
+                     throw new Error(`BLOCKED::${userInDb.blockReason}::${userInDb.blockedUntil}`);
+                }
+              }
+            } else {
+              // New user, create an account without a password
+              userInDb = await addNewUser({
+                email: googleUser.email,
+                name: googleUser.displayName || googleUser.email.split('@')[0],
+              });
+        
+              if (!userInDb) {
+                throw new Error("Failed to create a new user account.");
+              }
+            }
+            
+            const redirectPath = sessionStorage.getItem('auth_redirect');
+            sessionStorage.removeItem('auth_redirect');
+            handleSuccessfulLogin(userInDb, redirectPath);
+            setLoading(false);
+            return; // Auth handled, exit.
+          }
+        } catch (error) {
+           // Handle errors like popup closed by user, etc.
+           console.error("Google Sign-In Redirect Error:", error);
+           sessionStorage.removeItem('auth_redirect');
+        }
+      }
+
+      // If no redirect result, check for a user in localStorage (existing session).
       try {
         const storedUserString = localStorage.getItem('politirate_user');
         if (storedUserString) {
@@ -34,14 +85,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (storedUser.id) {
             let freshUser = await findUserById(storedUser.id);
             if (freshUser) {
-              // Check if user is blocked
               if (freshUser.isBlocked) {
                 if (freshUser.blockedUntil && isAfter(new Date(), new Date(freshUser.blockedUntil))) {
-                  // Ban has expired, unblock them
                   await unblockUser(freshUser.id);
-                  freshUser = (await findUserById(freshUser.id))!; // Refetch after unblocking
+                  freshUser = (await findUserById(freshUser.id))!;
                 } else {
-                  // Active ban, log them out locally
                   logout();
                   return;
                 }
@@ -49,7 +97,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setUser(freshUser);
               localStorage.setItem('politirate_user', JSON.stringify(freshUser));
             } else {
-              // User not in DB, clear local state
               logout();
             }
           }
@@ -61,10 +108,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     };
-
-    syncUser();
+    
+    handleAuthInit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // This should only run once on initial app load.
+  }, []);
+
 
   const handleSuccessfulLogin = (loggedInUser: User, redirectPath?: string | null) => {
     const userToStore: Partial<User> = { ...loggedInUser };
@@ -120,39 +168,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!firebaseEnabled) {
       throw new Error("Google Sign-In is not configured for this application.");
     }
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth as any, provider);
-    const googleUser = result.user;
 
-    if (!googleUser.email) {
-      throw new Error("Could not retrieve email from Google account.");
-    }
-
-    let userInDb = await findUserByEmail(googleUser.email);
-    
-    if (userInDb) {
-      // User exists, check for block
-      if (userInDb.isBlocked) {
-        if (userInDb.blockedUntil && isAfter(new Date(), new Date(userInDb.blockedUntil))) {
-            await unblockUser(userInDb.id);
-            userInDb = (await findUserByEmail(googleUser.email))!;
-        } else {
-             throw new Error(`BLOCKED::${userInDb.blockReason}::${userInDb.blockedUntil}`);
-        }
-      }
+    if (redirectPath) {
+      sessionStorage.setItem('auth_redirect', redirectPath);
     } else {
-      // New user, create an account without a password
-      userInDb = await addNewUser({
-        email: googleUser.email,
-        name: googleUser.displayName || googleUser.email.split('@')[0],
-      });
-
-      if (!userInDb) {
-        throw new Error("Failed to create a new user account.");
-      }
+      sessionStorage.removeItem('auth_redirect');
     }
     
-    handleSuccessfulLogin(userInDb, redirectPath);
+    const provider = new GoogleAuthProvider();
+    await signInWithRedirect(auth as any, provider);
   };
 
 

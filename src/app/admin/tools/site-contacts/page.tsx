@@ -35,6 +35,7 @@ const contactFormSchema = z.object({
   contact_twitter: z.string().url().or(z.literal('')),
   contact_linkedin: z.string().url().or(z.literal('')),
   contact_youtube: z.string().url().or(z.literal('')),
+  contact_facebook: z.string().url().or(z.literal('')),
 });
 
 type ContactFormData = z.infer<typeof contactFormSchema>;
@@ -68,7 +69,7 @@ export default function SiteContactsPage() {
     const contactForm = useForm<ContactFormData>({
         resolver: zodResolver(contactFormSchema),
         defaultValues: {
-            contact_email: '', contact_phone: '', contact_twitter: '', contact_linkedin: '', contact_youtube: ''
+            contact_email: '', contact_phone: '', contact_twitter: '', contact_linkedin: '', contact_youtube: '', contact_facebook: ''
         },
     });
 
@@ -90,6 +91,7 @@ export default function SiteContactsPage() {
             contact_twitter: settings.contact_twitter || '',
             contact_linkedin: settings.contact_linkedin || '',
             contact_youtube: settings.contact_youtube || '',
+            contact_facebook: settings.contact_facebook || '',
         });
     };
     
@@ -352,6 +354,7 @@ export default function SiteContactsPage() {
                                 <FormField control={contactForm.control} name="contact_twitter" render={({ field }) => (<FormItem><FormLabel>X/Twitter URL (Optional)</FormLabel><FormControl><Input {...field} placeholder="https://x.com/yourhandle"/></FormControl><FormMessage/></FormItem>)}/>
                                 <FormField control={contactForm.control} name="contact_linkedin" render={({ field }) => (<FormItem><FormLabel>LinkedIn URL (Optional)</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/yourprofile"/></FormControl><FormMessage/></FormItem>)}/>
                                 <FormField control={contactForm.control} name="contact_youtube" render={({ field }) => (<FormItem><FormLabel>YouTube Channel URL (Optional)</FormLabel><FormControl><Input {...field} placeholder="https://youtube.com/c/yourchannel"/></FormControl><FormMessage/></FormItem>)}/>
+                                <FormField control={contactForm.control} name="contact_facebook" render={({ field }) => (<FormItem><FormLabel>Facebook Page URL (Optional)</FormLabel><FormControl><Input {...field} placeholder="https://facebook.com/yourpage"/></FormControl><FormMessage/></FormItem>)}/>
                             </CardContent>
                             <CardFooter className="flex justify-end">
                                 <Button type="submit" disabled={isSavingContacts}>{isSavingContacts ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2"/>}Save Information</Button>

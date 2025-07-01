@@ -81,8 +81,8 @@ export default function Header() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-            <Avatar className="h-8 w-8">
+          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+            <Avatar className="h-10 w-10">
               <AvatarFallback>{user?.name?.[0].toUpperCase()}</AvatarFallback>
             </Avatar>
           </Button>
@@ -256,7 +256,6 @@ export default function Header() {
             </nav>
             <div className="flex items-center gap-4">
               <div className="hidden md:flex items-center gap-2">
-                  <LanguageSelector />
                   {user ? (
                     <UserAccountNav />
                   ) : (
@@ -264,6 +263,7 @@ export default function Header() {
                       <Button>{t('header.loginSignUp')}</Button>
                     </Link>
                   )}
+                  <LanguageSelector />
               </div>
               <MobileNav />
             </div>

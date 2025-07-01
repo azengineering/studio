@@ -13,6 +13,7 @@ export interface SiteSettings {
     contact_twitter: string | null;
     contact_linkedin: string | null;
     contact_youtube: string | null;
+    contact_facebook: string | null;
 }
 
 const defaultSettings: SiteSettings = {
@@ -25,6 +26,7 @@ const defaultSettings: SiteSettings = {
     contact_twitter: null,
     contact_linkedin: null,
     contact_youtube: null,
+    contact_facebook: null,
 };
 
 /**

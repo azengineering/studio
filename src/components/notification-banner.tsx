@@ -6,14 +6,29 @@ import { Megaphone, X } from 'lucide-react';
 import { getActiveNotifications, type SiteNotification } from '@/data/notifications';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import { Button } from './ui/button';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/context/auth-context';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function NotificationBanner() {
     const [notifications, setNotifications] = useState<SiteNotification[]>([]);
     const [api, setApi] = useState<CarouselApi>();
     const [isVisible, setIsVisible] = useState(false);
     const pathname = usePathname();
+    const router = useRouter();
+    const { user } = useAuth();
+    const [showLoginDialog, setShowLoginDialog] = useState(false);
+    const [pollRedirectUrl, setPollRedirectUrl] = useState<string | null>(null);
 
     useEffect(() => {
         // Don't show banner on admin pages
@@ -46,26 +61,43 @@ export default function NotificationBanner() {
 
         return () => clearInterval(interval);
     }, [api]);
+    
+    const handleNotificationClick = (e: React.MouseEvent, notification: SiteNotification) => {
+        if (notification.link && notification.link.startsWith('/polls') && !user) {
+            e.preventDefault();
+            setPollRedirectUrl(notification.link);
+            setShowLoginDialog(true);
+        }
+    };
 
     if (!isVisible || notifications.length === 0) {
         return null;
     }
 
     const handleDismiss = (e: React.MouseEvent) => {
-        e.preventDefault(); // Prevent link navigation if the dismiss button is inside a link
+        e.preventDefault();
         e.stopPropagation();
         setIsVisible(false);
     };
     
     const Wrapper = ({ notification, children }: { notification: SiteNotification; children: React.ReactNode }) => {
       if (notification.link) {
-        return <Link href={notification.link} className="flex-1 min-w-0">{children}</Link>;
+        return (
+            <Link 
+                href={notification.link} 
+                className="flex-1 min-w-0"
+                onClick={(e) => handleNotificationClick(e, notification)}
+            >
+                {children}
+            </Link>
+        );
       }
       return <div className="flex-1 min-w-0">{children}</div>;
     };
 
 
     return (
+    <>
         <div className="bg-gradient-to-r from-primary to-accent text-primary-foreground animate-in fade-in-0 slide-in-from-top-4 duration-500 shadow-lg">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between p-2.5 gap-3">
@@ -107,5 +139,22 @@ export default function NotificationBanner() {
                 </div>
             </div>
         </div>
+        <AlertDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Login Required</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        You must be logged in to participate in a poll. Please log in to continue.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setPollRedirectUrl(null)}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => router.push(`/login?redirect=${pollRedirectUrl}`)}>
+                        Login
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    </>
     );
 }

@@ -214,6 +214,7 @@ const migrations = {
         contact_twitter: 'TEXT',
         contact_linkedin: 'TEXT',
         contact_youtube: 'TEXT',
+        contact_facebook: 'TEXT',
     },
     support_tickets: {
         updated_at: 'TEXT'

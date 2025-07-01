@@ -92,6 +92,7 @@ const translations = {
     leaderCard: {
       reviews: 'reviews',
       addRatingAndComment: 'Add Rating & Comment',
+      addressLabel: 'Address',
     },
     footer: {
       copyright: `© ${new Date().getFullYear()} PolitiRate. All rights reserved.`,
@@ -278,7 +279,7 @@ const translations = {
       description: 'Viewing the document provided by the candidate.',
     },
     contactPage: {
-        link: 'Contact Us',
+        link: 'Contact Support',
         title: 'Get in Touch',
         description: "Have questions, suggestions, or need support? We're here to help.",
         formTitle: 'Send us a Message',
@@ -384,6 +385,7 @@ const translations = {
     leaderCard: {
       reviews: 'समीक्षाएं',
       addRatingAndComment: 'रेटिंग और टिप्पणी जोड़ें',
+      addressLabel: 'पता',
     },
     footer: {
       copyright: `© ${new Date().getFullYear()} पॉलिटीरेट। सर्वाधिकार सुरक्षित।`,
@@ -570,7 +572,7 @@ const translations = {
       description: 'उम्मीदवार द्वारा प्रदान किए गए दस्तावेज़ को देखना।',
     },
     contactPage: {
-        link: 'संपर्क करें',
+        link: 'समर्थन से संपर्क करें',
         title: 'संपर्क में रहें',
         description: 'कोई प्रश्न, सुझाव, या समर्थन की आवश्यकता है? हम सहायता के लिए यहां हैं।',
         formTitle: 'हमें एक संदेश भेजें',

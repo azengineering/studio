@@ -182,6 +182,10 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
                   <span className="text-muted-foreground">Constituency:</span>
                   <p className="font-semibold text-foreground truncate">{leader.constituency}</p>
               </div>
+              <div className="flex items-baseline gap-2">
+                  <span className="text-muted-foreground">{t('leaderCard.addressLabel')}:</span>
+                  <p className="font-semibold text-foreground truncate">{leader.nativeAddress}</p>
+              </div>
           </div>
 
           {!isCompact && (

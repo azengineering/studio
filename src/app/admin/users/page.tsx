@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { addDays } from 'date-fns';
 
 import { getUsers, type User, blockUser, unblockUser, addAdminMessage, getAdminMessages, deleteAdminMessage, type AdminMessage } from "@/data/users";
@@ -142,6 +142,7 @@ const ProfileInfo = ({ label, value }: {label: string, value: string | number | 
 export default function AdminUsersPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const pathname = usePathname();
     const [users, setUsers] = useState<UserWithCounts[]>([]);
     const [selectedUser, setSelectedUser] = useState<UserWithCounts | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -266,6 +267,27 @@ export default function AdminUsersPage() {
           }
       }
     }, [userAddedLeaders, searchParams, selectedTab]);
+
+    const handleEditLeader = useCallback((leader: Leader) => {
+        setLeaderToEdit(leader);
+        setPhotoRemoved(false);
+        setManifestoRemoved(false);
+        setEditLeaderDialogOpen(true);
+    }, []);
+
+    useEffect(() => {
+        const action = searchParams.get('action');
+        if (action === 'edit' && selectedLeaderForView) {
+            handleEditLeader(selectedLeaderForView);
+            
+            // Remove action from URL to prevent re-triggering on other state changes
+            const newParams = new URLSearchParams(searchParams.toString());
+            newParams.delete('action');
+            const queryString = newParams.toString();
+            router.replace(`${pathname}${queryString ? `?${queryString}` : ''}`);
+        }
+    }, [selectedLeaderForView, searchParams, router, pathname, handleEditLeader]);
+
 
     const handleSearch = () => {
         if (!hasSearched) setHasSearched(true);
@@ -423,13 +445,6 @@ export default function AdminUsersPage() {
             setStatusChangeComment('');
         });
         setIsStatusSubmitting(false);
-    };
-
-    const handleEditLeader = (leader: Leader) => {
-        setLeaderToEdit(leader);
-        setPhotoRemoved(false);
-        setManifestoRemoved(false);
-        setEditLeaderDialogOpen(true);
     };
 
     const onEditLeaderSubmit = async (values: z.infer<typeof leaderEditSchema>) => {

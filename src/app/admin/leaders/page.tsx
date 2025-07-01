@@ -211,6 +211,15 @@ export default function AdminLeadersPage() {
         }
     };
     
+    const handleEditClick = (leader: Leader) => {
+        if (leader.addedByUserId) {
+            router.push(`/admin/users?userId=${leader.addedByUserId}&leaderId=${leader.id}&action=edit`);
+        } else {
+            // Fallback for system-added leaders with no user association
+            router.push(`/add-leader?edit=${leader.id}`);
+        }
+    };
+    
     const hasFiltersApplied = searchParams.size > 0;
 
     const LeaderTable = ({ leaders }: { leaders: Leader[] }) => (
@@ -258,7 +267,7 @@ export default function AdminLeadersPage() {
                             </DropdownMenu>
                         </TableCell>
                         <TableCell className="text-right">
-                             <Button variant="ghost" size="sm" onClick={() => router.push(`/add-leader?edit=${leader.id}`)}>
+                             <Button variant="ghost" size="sm" onClick={() => handleEditClick(leader)}>
                                 <Edit className="h-4 w-4 mr-1" /> Edit
                             </Button>
                             <AlertDialog>

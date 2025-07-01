@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, XCircle, Trash2, Clock, Calendar as CalendarIcon, RotateCcw, Loader2, Search, ChevronDown, UserCheck } from 'lucide-react';
+import { CheckCircle, XCircle, Trash2, Clock, Calendar as CalendarIcon, RotateCcw, Loader2, Search, ChevronDown, UserCheck, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -258,6 +258,9 @@ export default function AdminLeadersPage() {
                             </DropdownMenu>
                         </TableCell>
                         <TableCell className="text-right">
+                             <Button variant="ghost" size="sm" onClick={() => router.push(`/add-leader?edit=${leader.id}`)}>
+                                <Edit className="h-4 w-4 mr-1" /> Edit
+                            </Button>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={isPending}>

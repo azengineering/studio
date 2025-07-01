@@ -199,7 +199,7 @@ export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'i
 
     // If a non-admin edits, reset status to pending for re-approval. Admins can edit without changing status.
     const newStatus = !isAdmin ? 'pending' : leaderToUpdate.status;
-    const newAdminComment = !isAdmin ? null : leaderToUpdate.adminComment;
+    const newAdminComment = !isAdmin ? 'User updated details. Pending re-approval.' : leaderToUpdate.adminComment;
 
     const stmt = db.prepare(`
         UPDATE leaders

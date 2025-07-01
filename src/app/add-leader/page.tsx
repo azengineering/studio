@@ -234,11 +234,12 @@ function AddLeaderPage() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // This check is critical for determining behavior post-submission
-    const isAdmin = localStorage.getItem('admin_auth') === 'true';
+    // Securely determine admin status at the time of submission
+    const isAdminSubmission = localStorage.getItem('admin_auth') === 'true';
 
-    if (!user && !isAdmin) {
-        toast({ variant: 'destructive', title: 'You must be logged in to perform this action.' });
+    if (!user && !isAdminSubmission) {
+        toast({ variant: 'destructive', title: 'Authentication Required', description: 'You must be logged in to perform this action.' });
+        router.push('/login?redirect=/add-leader');
         return;
     }
 
@@ -295,21 +296,21 @@ function AddLeaderPage() {
 
     try {
         if (isEditMode && leaderId) {
-            // Pass the securely-checked admin status to the backend function
-            await updateLeader(leaderId, leaderPayload, user?.id ?? null, isAdmin);
+            // The backend function will handle status changes based on `isAdminSubmission`
+            await updateLeader(leaderId, leaderPayload, user?.id ?? null, isAdminSubmission);
             
-            // Use the securely-checked admin status for redirection
-            if (isAdmin) {
-                // ADMIN PATH: Success toast and redirect to admin panel
+            // --- SECURE REDIRECTION LOGIC ---
+            if (isAdminSubmission) {
+                // This path is ONLY for admins
                 toast({ title: t('addLeaderPage.updateSuccessMessage') });
                 router.push('/admin/leaders');
             } else {
-                // USER PATH: Re-approval toast and redirect to user's activity page
+                // This path is for ALL non-admin users
                 toast({ title: "Update Submitted", description: "Your changes have been submitted and are pending re-approval." });
                 router.push('/my-activities');
             }
         } else {
-            // This is for adding a NEW leader, not editing.
+            // This is for adding a NEW leader, which always defaults to 'pending' status
             await addLeader(leaderPayload, user?.id ?? null);
             toast({ title: t('addLeaderPage.successMessage'), description: "Your submission is pending admin approval." });
             form.reset();

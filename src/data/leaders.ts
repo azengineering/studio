@@ -193,7 +193,7 @@ export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'i
         throw new Error("Leader not found.");
     }
     
-    // Authorization: Only the owner or an admin can edit.
+    // Authorization: Only the original submitter or an admin can edit.
     if (!isAdmin && leaderToUpdate.addedByUserId !== userId) {
         throw new Error("You are not authorized to edit this leader.");
     }
@@ -201,13 +201,14 @@ export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'i
     let newStatus: Leader['status'];
     let newAdminComment: string | null;
 
+    // This is the core logic for the re-approval workflow.
     if (isAdmin) {
-        // Admin is editing, keep the current status unless they change it elsewhere.
-        // The form doesn't change status, so we preserve it.
+        // When an admin edits, they are not changing the approval status here.
+        // Status is managed separately in the admin panel.
         newStatus = leaderToUpdate.status;
-        newAdminComment = leaderToUpdate.adminComment; // Admins manage comments separately
+        newAdminComment = leaderToUpdate.adminComment;
     } else {
-        // User is editing, so it must be re-approved.
+        // When a non-admin user edits, we must force a re-approval.
         newStatus = 'pending';
         newAdminComment = 'User updated details. Pending re-approval.';
     }

@@ -32,12 +32,17 @@ type PollCardProps = {
 
 const PollCard = ({ poll, onParticipateClick }: PollCardProps) => {
     return (
-        <Card className="flex flex-col h-full bg-card hover:border-primary/50 border-transparent border-2 transition-all duration-300 hover:shadow-xl rounded-2xl group">
-            <CardHeader className="bg-secondary/50 rounded-t-xl">
-                <CardTitle className="font-headline text-lg group-hover:text-primary transition-colors">{poll.title}</CardTitle>
-                {poll.description && <CardDescription className="text-xs line-clamp-2">{poll.description}</CardDescription>}
+        <Card className="flex flex-col h-full bg-card hover:border-primary/50 border-transparent border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 rounded-2xl group">
+            <CardHeader>
+                <div className="flex justify-between items-start gap-4">
+                    <CardTitle className="font-headline text-lg group-hover:text-primary transition-colors">{poll.title}</CardTitle>
+                    <div className="p-2 bg-primary/10 rounded-full flex-shrink-0">
+                         <Vote className="h-6 w-6 text-primary" />
+                    </div>
+                </div>
+                {poll.description && <CardDescription className="text-xs line-clamp-2 pt-1">{poll.description}</CardDescription>}
             </CardHeader>
-            <CardContent className="flex-grow space-y-2 text-sm text-muted-foreground pt-4">
+            <CardContent className="flex-grow space-y-2 text-sm text-muted-foreground pt-0">
                 <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-primary/70" />
                     <span>
@@ -49,14 +54,19 @@ const PollCard = ({ poll, onParticipateClick }: PollCardProps) => {
                     <span>{poll.response_count} total response(s)</span>
                 </div>
             </CardContent>
-            <CardFooter className="p-4">
-                <Button className="w-full shadow-lg shadow-primary/20" onClick={() => onParticipateClick(poll.id)} disabled={poll.user_has_voted}>
-                    {poll.user_has_voted ? (
-                        <><Check className="mr-2"/> Voted</>
-                    ) : (
-                        <><Vote className="mr-2"/> Participate Now</>
-                    )}
-                </Button>
+            <CardFooter className="p-4 bg-secondary/30 rounded-b-2xl">
+                {poll.user_has_voted ? (
+                     <Button className="w-full bg-green-600 hover:bg-green-700" disabled>
+                        <Check className="mr-2"/> Voted
+                    </Button>
+                ) : (
+                    <Button 
+                        className="w-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20" 
+                        onClick={() => onParticipateClick(poll.id)}
+                    >
+                        <Vote className="mr-2"/> Participate Now
+                    </Button>
+                )}
             </CardFooter>
         </Card>
     );

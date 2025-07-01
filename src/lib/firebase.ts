@@ -10,25 +10,29 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp;
-const firebaseEnabled = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+// Default to null/false
+let app: FirebaseApp | null = null;
+let firebaseEnabled = false;
 
-if (firebaseEnabled) {
+// Only attempt initialization if keys are present
+if (firebaseConfig.apiKey && firebaseConfig.projectId) {
   try {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    // Initialize Firebase
+    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    firebaseEnabled = true; // Set to true only on successful initialization
   } catch (error) {
     console.error("Firebase initialization error:", error);
-    // @ts-ignore
-    app = {};
+    // On error, ensure we remain in a disabled state
+    app = null;
+    firebaseEnabled = false;
   }
 } else {
   console.warn(
     "Firebase environment variables are not set. Firebase features will be disabled."
   );
-  // @ts-ignore
-  app = {};
 }
 
-const auth = firebaseEnabled ? getAuth(app) : {};
+// Conditionally get auth if app was initialized successfully
+const auth = app ? getAuth(app) : {};
 
 export { app, auth, firebaseEnabled };

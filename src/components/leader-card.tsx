@@ -36,6 +36,7 @@ import { Dialog, DialogContent as DialogPrimitiveContent, DialogHeader as Dialog
 import { getRatingDistribution, getSocialBehaviourDistribution } from '@/data/leaders';
 import { ChartConfig, ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { Skeleton } from './ui/skeleton';
+import { ScrollArea } from './ui/scroll-area';
 
 const RATING_COLORS: { [key: string]: string } = {
   "5": "#16a34a", // green-600
@@ -120,62 +121,64 @@ const LeaderAnalyticsDialog = ({ leader, open, onOpenChange }: { leader: LeaderT
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogPrimitiveContent className="sm:max-w-4xl">
-        <DialogPrimitiveHeader>
+      <DialogPrimitiveContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0">
+        <DialogPrimitiveHeader className="p-6 pb-0 flex-shrink-0">
           <DialogPrimitiveTitle className="font-headline text-2xl">Performance Analytics: {leader.name}</DialogPrimitiveTitle>
         </DialogPrimitiveHeader>
-        <div className="py-4 space-y-6">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-96"><Skeleton className="h-full w-full" /></div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <StatCard title="Total Reviews" value={leader.reviewCount} icon={Users} />
-                  <StatCard title="Average Rating" value={leader.rating.toFixed(1)} icon={Star} />
-                  <StatCard title="Most Common Trait" value={topTrait} icon={HeartHandshake} />
-              </div>
-              <Separator />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[350px]">
-                <Card>
-                  <CardHeader><CardTitle className="text-center">Rating Distribution</CardTitle></CardHeader>
-                  <CardContent>
-                    {ratingChartData.length > 0 ? (
-                      <ChartContainer config={ratingChartConfig} className="mx-auto aspect-square h-[250px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Tooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                            <Pie data={ratingChartData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={2}>
-                              {ratingChartData.map((entry) => (<Cell key={entry.name} fill={RATING_COLORS[String(entry.rating)]} />))}
-                            </Pie>
-                            <Legend />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
-                    ) : <p className="text-muted-foreground text-center pt-16">No rating data available.</p>}
-                  </CardContent>
-                </Card>
-                 <Card>
-                  <CardHeader><CardTitle className="text-center">Social Behaviour Analysis</CardTitle></CardHeader>
-                  <CardContent>
-                    {socialChartData.length > 0 ? (
-                      <ChartContainer config={socialChartConfig} className="mx-auto aspect-square h-[250px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Tooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                            <Pie data={socialChartData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={2}>
-                                {socialChartData.map((entry) => (<Cell key={entry.name} fill={SOCIAL_BEHAVIOUR_COLORS[entry.name] || '#a8a29e'} />))}
-                            </Pie>
-                            <Legend />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
-                    ) : <p className="text-muted-foreground text-center pt-16">No social behaviour data available.</p>}
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          )}
-        </div>
+        <ScrollArea className="flex-grow">
+          <div className="p-6 space-y-6">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-96"><Skeleton className="h-full w-full" /></div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <StatCard title="Total Reviews" value={leader.reviewCount} icon={Users} />
+                    <StatCard title="Average Rating" value={leader.rating.toFixed(1)} icon={Star} />
+                    <StatCard title="Most Common Trait" value={topTrait} icon={HeartHandshake} />
+                </div>
+                <Separator />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader><CardTitle className="text-center">Rating Distribution</CardTitle></CardHeader>
+                    <CardContent>
+                      {ratingChartData.length > 0 ? (
+                        <ChartContainer config={ratingChartConfig} className="mx-auto aspect-square h-[250px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Tooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                              <Pie data={ratingChartData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={2}>
+                                {ratingChartData.map((entry) => (<Cell key={entry.name} fill={RATING_COLORS[String(entry.rating)]} />))}
+                              </Pie>
+                              <Legend />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </ChartContainer>
+                      ) : <p className="text-muted-foreground text-center pt-16">No rating data available.</p>}
+                    </CardContent>
+                  </Card>
+                   <Card>
+                    <CardHeader><CardTitle className="text-center">Social Behaviour Analysis</CardTitle></CardHeader>
+                    <CardContent>
+                      {socialChartData.length > 0 ? (
+                        <ChartContainer config={socialChartConfig} className="mx-auto aspect-square h-[250px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Tooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                              <Pie data={socialChartData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={2}>
+                                  {socialChartData.map((entry) => (<Cell key={entry.name} fill={SOCIAL_BEHAVIOUR_COLORS[entry.name] || '#a8a29e'} />))}
+                              </Pie>
+                              <Legend />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </ChartContainer>
+                      ) : <p className="text-muted-foreground text-center pt-16">No social behaviour data available.</p>}
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            )}
+          </div>
+        </ScrollArea>
       </DialogPrimitiveContent>
     </Dialog>
   );

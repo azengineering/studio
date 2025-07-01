@@ -199,7 +199,7 @@ export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'i
     }
 
     let newStatus: Leader['status'];
-    let newAdminComment: string | null;
+    let newAdminComment: string | null | undefined;
 
     // This is the core logic for the re-approval workflow.
     if (isAdmin) {

@@ -214,10 +214,8 @@ export default function AdminLeadersPage() {
     const handleEditClick = (leader: Leader) => {
         if (leader.addedByUserId) {
             router.push(`/admin/users?userId=${leader.addedByUserId}&leaderId=${leader.id}&action=edit`);
-        } else {
-            // Fallback for system-added leaders with no user association
-            router.push(`/add-leader?edit=${leader.id}`);
         }
+        // For leaders without an associated user, this function will now do nothing.
     };
     
     const hasFiltersApplied = searchParams.size > 0;
@@ -267,7 +265,7 @@ export default function AdminLeadersPage() {
                             </DropdownMenu>
                         </TableCell>
                         <TableCell className="text-right">
-                             <Button variant="ghost" size="sm" onClick={() => handleEditClick(leader)}>
+                             <Button variant="ghost" size="sm" onClick={() => handleEditClick(leader)} disabled={!leader.addedByUserId}>
                                 <Edit className="h-4 w-4 mr-1" /> Edit
                             </Button>
                             <AlertDialog>

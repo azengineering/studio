@@ -192,10 +192,14 @@ export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'i
     if (!leaderToUpdate) {
         throw new Error("Leader not found.");
     }
-    // Admin can edit anyone. Regular users can only edit leaders they added.
+    
     if (!isAdmin && leaderToUpdate.addedByUserId !== userId) {
         throw new Error("You are not authorized to edit this leader.");
     }
+
+    // If a non-admin edits, reset status to pending for re-approval. Admins can edit without changing status.
+    const newStatus = !isAdmin ? 'pending' : leaderToUpdate.status;
+    const newAdminComment = !isAdmin ? null : leaderToUpdate.adminComment;
 
     const stmt = db.prepare(`
         UPDATE leaders
@@ -211,7 +215,9 @@ export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'i
             location_district = @location_district,
             previousElections = @previousElections,
             manifestoUrl = @manifestoUrl,
-            twitterUrl = @twitterUrl
+            twitterUrl = @twitterUrl,
+            status = @status,
+            adminComment = @adminComment
         WHERE id = @id
     `);
 
@@ -230,6 +236,8 @@ export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'i
         previousElections: JSON.stringify(leaderData.previousElections),
         manifestoUrl: leaderData.manifestoUrl,
         twitterUrl: leaderData.twitterUrl,
+        status: newStatus,
+        adminComment: newAdminComment,
     });
 
     return getLeaderById(leaderId);

@@ -294,10 +294,12 @@ function AddLeaderPage() {
     try {
         if (isEditMode && leaderId) {
             await updateLeader(leaderId, leaderPayload, user?.id ?? null, isAdmin);
-            toast({ title: t('addLeaderPage.updateSuccessMessage') });
+            
             if (isAdmin) {
+                toast({ title: t('addLeaderPage.updateSuccessMessage') });
                 router.push('/admin/leaders');
             } else {
+                toast({ title: "Update Submitted", description: "Your changes have been submitted and are pending re-approval." });
                 router.push('/my-activities');
             }
         } else {

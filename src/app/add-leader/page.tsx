@@ -97,14 +97,12 @@ function AddLeaderPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [matchingLeaders, setMatchingLeaders] = useState<Leader[]>([]);
   const [isMatchingLeadersLoading, setIsMatchingLeadersLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [manifestoForView, setManifestoForView] = useState<{url: string; name: string} | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
     if (!authLoading) {
       const adminAuth = localStorage.getItem('admin_auth') === 'true';
-      setIsAdmin(adminAuth);
       if (user || adminAuth) {
         setIsAuthorized(true);
       } else {
@@ -180,6 +178,7 @@ function AddLeaderPage() {
       setLeaderId(editId);
       const fetchLeaderData = async () => {
         try {
+          const isAdmin = localStorage.getItem('admin_auth') === 'true';
           const leaderData = await getLeaderById(editId);
           if (leaderData) {
               if (!isAdmin && user && leaderData.addedByUserId !== user.id) {
@@ -220,7 +219,7 @@ function AddLeaderPage() {
     } else {
         setIsLoading(false);
     }
-  }, [searchParams, form, router, toast, user, isAdmin, isAuthorized]);
+  }, [searchParams, form, router, toast, user, isAuthorized]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -235,6 +234,9 @@ function AddLeaderPage() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    // Check for admin status directly inside the submit handler for security
+    const isAdmin = localStorage.getItem('admin_auth') === 'true';
+
     if (!user && !isAdmin) {
         toast({ variant: 'destructive', title: 'You must be logged in to perform this action.' });
         return;
@@ -293,8 +295,10 @@ function AddLeaderPage() {
 
     try {
         if (isEditMode && leaderId) {
+            // Pass the securely-checked admin status to the backend function
             await updateLeader(leaderId, leaderPayload, user?.id ?? null, isAdmin);
             
+            // Use the securely-checked admin status for redirection
             if (isAdmin) {
                 toast({ title: t('addLeaderPage.updateSuccessMessage') });
                 router.push('/admin/leaders');

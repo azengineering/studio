@@ -243,19 +243,23 @@ for (const [tableName, columns] of Object.entries(migrations)) {
 // --- Seeding Logic ---
 const seedDatabase = () => {
   const transaction = db.transaction(() => {
-    // Seed Leaders
-    const leaderCount = db.prepare('SELECT COUNT(*) as count FROM leaders').get() as { count: number };
-    if (leaderCount.count === 0) {
-      const insertLeader = db.prepare(`
-        INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId, createdAt, status, adminComment)
-        VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId, @createdAt, @status, @adminComment)
-      `);
-      for (const leader of defaultLeaders) {
-        insertLeader.run({
-          id: leader.id, name: leader.name, partyName: leader.partyName, gender: leader.gender, age: leader.age, photoUrl: leader.photoUrl, constituency: leader.constituency, nativeAddress: leader.nativeAddress, electionType: leader.electionType, location_state: leader.location.state, location_district: leader.location.district, rating: leader.rating, reviewCount: leader.reviewCount, previousElections: JSON.stringify(leader.previousElections), manifestoUrl: leader.manifestoUrl, twitterUrl: leader.twitterUrl, addedByUserId: leader.addedByUserId, createdAt: leader.createdAt, status: leader.status, adminComment: leader.adminComment
-        });
-      }
-      console.log('Database seeded with default leaders.');
+    // Permanently remove any remaining default leaders (those not added by a user)
+    // and their associated ratings/comments.
+    const defaultLeaderIds = db.prepare('SELECT id FROM leaders WHERE addedByUserId IS NULL').all().map((row: any) => row.id);
+    
+    if (defaultLeaderIds.length > 0) {
+        // Prepare a string of placeholders for the IN clause
+        const placeholders = defaultLeaderIds.map(() => '?').join(',');
+
+        // Explicitly delete dependent records first
+        db.prepare(`DELETE FROM ratings WHERE leaderId IN (${placeholders})`).run(...defaultLeaderIds);
+        db.prepare(`DELETE FROM comments WHERE leaderId IN (${placeholders})`).run(...defaultLeaderIds);
+        
+        // Now delete the leaders
+        const deleteStmt = db.prepare('DELETE FROM leaders WHERE addedByUserId IS NULL');
+        const info = deleteStmt.run();
+
+        console.log(`Removed ${info.changes} default leader(s) and their associated data from the database.`);
     }
 
     // Seed Site Settings

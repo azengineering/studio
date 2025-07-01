@@ -45,7 +45,6 @@ export default function Header() {
   const navLinks = [
     { href: '/', label: t('header.home') },
     { href: '/about', label: t('header.about') },
-    { href: '/contact', label: t('contactPage.link') },
     { href: '/my-activities', label: t('header.myActivities') },
   ];
 
@@ -81,8 +80,8 @@ export default function Header() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-            <Avatar className="h-10 w-10">
+          <Button variant="ghost" className="relative h-11 w-11 rounded-full">
+            <Avatar className="h-11 w-11">
               <AvatarFallback>{user?.name?.[0].toUpperCase()}</AvatarFallback>
             </Avatar>
           </Button>

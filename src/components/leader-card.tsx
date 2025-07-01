@@ -2,12 +2,12 @@
 'use client';
 
 import Image from 'next/image';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Leader as LeaderType } from '@/data/leaders';
+import type { Leader as LeaderType, RatingDistribution } from '@/data/leaders';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Star, Twitter, Eye, Edit, ChevronDown, FileText, Info } from 'lucide-react';
+import { Star, Twitter, Eye, Edit, ChevronDown, FileText, Info, PieChart as PieChartIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/context/language-context';
 import {
@@ -32,6 +32,98 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import ManifestoDialog from './manifesto-dialog';
 import { TooltipProvider, Tooltip as TooltipComponent, TooltipTrigger as TooltipTriggerComponent, TooltipContent as TooltipContentComponent } from './ui/tooltip';
+import { Dialog, DialogContent as DialogPrimitiveContent, DialogHeader as DialogPrimitiveHeader, DialogTitle as DialogPrimitiveTitle, DialogDescription as DialogPrimitiveDescription } from '@/components/ui/dialog';
+import { getRatingDistribution } from '@/data/leaders';
+import { ChartConfig, ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { Skeleton } from './ui/skeleton';
+
+const RATING_COLORS: { [key: string]: string } = {
+  "5": "#16a34a", // green-600
+  "4": "#4ade80", // green-400
+  "3": "#facc15", // yellow-400
+  "2": "#fb923c", // orange-400
+  "1": "#f87171", // red-400
+};
+
+const LeaderAnalyticsDialog = ({ leader, open, onOpenChange }: { leader: LeaderType, open: boolean, onOpenChange: (open: boolean) => void }) => {
+  const [distribution, setDistribution] = useState<RatingDistribution[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (open) {
+      setIsLoading(true);
+      getRatingDistribution(leader.id).then(data => {
+        setDistribution(data);
+        setIsLoading(false);
+      });
+    }
+  }, [open, leader.id]);
+
+  const chartData = useMemo(() => {
+    const fullDistribution = [
+      { rating: 5, name: '5 Stars', value: 0 },
+      { rating: 4, name: '4 Stars', value: 0 },
+      { rating: 3, name: '3 Stars', value: 0 },
+      { rating: 2, name: '2 Stars', value: 0 },
+      { rating: 1, name: '1 Star', value: 0 },
+    ];
+
+    distribution.forEach(d => {
+      const item = fullDistribution.find(fd => fd.rating === d.rating);
+      if (item) {
+        item.value = d.count;
+      }
+    });
+
+    return fullDistribution.filter(item => item.value > 0);
+  }, [distribution]);
+
+  const chartConfig: ChartConfig = chartData.reduce((acc, item) => {
+    acc[item.name.replace(" ", "-")] = {
+      label: item.name,
+      color: RATING_COLORS[String(item.rating)],
+    };
+    return acc;
+  }, {} as ChartConfig);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitiveContent className="sm:max-w-md">
+        <DialogPrimitiveHeader>
+          <DialogPrimitiveTitle>Performance Analytics: {leader.name}</DialogPrimitiveTitle>
+          <DialogPrimitiveDescription>
+            Overall rating of {leader.rating.toFixed(1)} based on {leader.reviewCount} reviews.
+          </DialogPrimitiveDescription>
+        </DialogPrimitiveHeader>
+        <div className="py-4 h-[300px] flex items-center justify-center">
+          {isLoading ? (
+            <div className="flex flex-col items-center gap-4">
+              <Skeleton className="h-48 w-48 rounded-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ) : (
+            chartData.length > 0 ? (
+              <ChartContainer config={chartConfig} className="mx-auto aspect-square h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                    <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={2}>
+                      {chartData.map((entry) => (
+                        <Cell key={entry.name} fill={RATING_COLORS[String(entry.rating)]} />
+                      ))}
+                    </Pie>
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            ) : <p className="text-muted-foreground">No rating data available to show analytics.</p>
+          )}
+        </div>
+      </DialogPrimitiveContent>
+    </Dialog>
+  );
+};
+
 
 interface LeaderCardProps {
   leader: LeaderType;
@@ -51,6 +143,7 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
   const [isReviewsDialogOpen, setReviewsDialogOpen] = useState(false);
   const [isLoginAlertOpen, setLoginAlertOpen] = useState(false);
   const [isManifestoDialogOpen, setManifestoDialogOpen] = useState(false);
+  const [isAnalyticsOpen, setAnalyticsOpen] = useState(false);
 
   const genderText = leader.gender.charAt(0).toUpperCase() + leader.gender.slice(1);
   const isCompact = variant === 'compact';
@@ -154,7 +247,7 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
                       <span className={cn("font-bold text-foreground text-sm", isCompact && "text-xs")}>{leader.rating.toFixed(1)}</span>
                        <button
                           onClick={() => !isCompact && leader.reviewCount > 0 && setReviewsDialogOpen(true)}
-                          className={cn("flex items-center gap-1 text-muted-foreground text-xs ml-1 hover:underline hover:text-primary disabled:no-underline disabled:cursor-default", isCompact && "pointer-events-none")}
+                          className={cn("flex items-center gap-1 text-primary text-xs ml-1 hover:underline disabled:no-underline disabled:cursor-default", isCompact && "pointer-events-none")}
                           disabled={leader.reviewCount === 0}
                           aria-label={`View ${leader.reviewCount} reviews`}
                         >
@@ -164,28 +257,52 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
                   </div>
               </div>
           </div>
-
-          <div className={cn("space-y-2 text-sm border-t pt-4 flex-grow", isCompact && "space-y-1 text-xs pt-2")}>
-              <div className="flex items-baseline gap-2">
-                  <span className="text-muted-foreground">Party:</span>
-                  <p className="font-semibold text-foreground truncate">{leader.partyName}</p>
+          
+          <div className="flex justify-between items-center flex-grow">
+            <div className={cn("space-y-2 text-sm border-t pt-4 flex-grow", isCompact && "space-y-1 text-xs pt-2")}>
+                <div className="flex items-baseline gap-2">
+                    <span className="text-muted-foreground">Party:</span>
+                    <p className="font-semibold text-foreground truncate">{leader.partyName}</p>
+                </div>
+                <div className="flex items-baseline gap-2">
+                    <span className="text-muted-foreground">Type:</span>
+                    <p className="font-semibold capitalize text-foreground">{t(`filterDashboard.${leader.electionType}`)}</p>
+                </div>
+                <div className="flex items-baseline gap-2">
+                    <span className="text-muted-foreground">State:</span>
+                    <p className="font-semibold text-foreground">{leader.location.state}</p>
+                </div>
+                <div className="flex items-baseline gap-2">
+                    <span className="text-muted-foreground">Constituency:</span>
+                    <p className="font-semibold text-foreground truncate">{leader.constituency}</p>
+                </div>
+                <div className="flex items-baseline gap-2">
+                    <span className="text-muted-foreground">{t('leaderCard.addressLabel')}:</span>
+                    <p className="font-semibold text-foreground truncate">{leader.nativeAddress}</p>
+                </div>
+            </div>
+             {!isCompact && (
+              <div className="pl-2">
+                <TooltipProvider>
+                  <TooltipComponent>
+                    <TooltipTriggerComponent asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setAnalyticsOpen(true)}
+                        className="rounded-full hover:bg-primary/10 text-primary/80 hover:text-primary"
+                        disabled={leader.reviewCount === 0}
+                      >
+                        <PieChartIcon className="h-5 w-5" />
+                      </Button>
+                    </TooltipTriggerComponent>
+                    <TooltipContentComponent>
+                      <p>View Performance Analytics</p>
+                    </TooltipContentComponent>
+                  </TooltipComponent>
+                </TooltipProvider>
               </div>
-               <div className="flex items-baseline gap-2">
-                  <span className="text-muted-foreground">Type:</span>
-                  <p className="font-semibold capitalize text-foreground">{t(`filterDashboard.${leader.electionType}`)}</p>
-              </div>
-              <div className="flex items-baseline gap-2">
-                  <span className="text-muted-foreground">State:</span>
-                  <p className="font-semibold text-foreground">{leader.location.state}</p>
-              </div>
-              <div className="flex items-baseline gap-2">
-                  <span className="text-muted-foreground">Constituency:</span>
-                  <p className="font-semibold text-foreground truncate">{leader.constituency}</p>
-              </div>
-              <div className="flex items-baseline gap-2">
-                  <span className="text-muted-foreground">{t('leaderCard.addressLabel')}:</span>
-                  <p className="font-semibold text-foreground truncate">{leader.nativeAddress}</p>
-              </div>
+            )}
           </div>
 
           {!isCompact && (
@@ -357,6 +474,12 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
           }}
         />
       )}
+
+      <LeaderAnalyticsDialog 
+        leader={leader}
+        open={isAnalyticsOpen}
+        onOpenChange={setAnalyticsOpen}
+      />
 
       <ManifestoDialog
         open={isManifestoDialogOpen}

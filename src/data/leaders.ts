@@ -58,6 +58,11 @@ export interface UserActivity {
   userName: string;
 }
 
+export interface RatingDistribution {
+  rating: number;
+  count: number;
+}
+
 
 // --- DB data transformation ---
 function dbToLeader(dbLeader: any): Leader {
@@ -342,6 +347,19 @@ export async function getReviewsForLeader(leaderId: string): Promise<Review[]> {
     const reviews = stmt.all(leaderId) as any[];
     return Promise.resolve(reviews.map(r => ({ ...r })));
 }
+
+export async function getRatingDistribution(leaderId: string): Promise<RatingDistribution[]> {
+    const stmt = db.prepare(`
+        SELECT rating, COUNT(rating) as count
+        FROM ratings
+        WHERE leaderId = ?
+        GROUP BY rating
+        ORDER BY rating DESC
+    `);
+    const results = stmt.all(leaderId) as RatingDistribution[];
+    return Promise.resolve(results);
+}
+
 
 export async function getActivitiesForUser(userId: string): Promise<UserActivity[]> {
     const stmt = db.prepare(`

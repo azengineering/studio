@@ -54,7 +54,7 @@ export default function Hero() {
             <p className="mt-6 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground">
               {t('hero.description')}
             </p>
-            <div className="mt-10 flex flex-wrap gap-6 justify-center">
+            <div className="mt-10 flex flex-wrap gap-x-6 gap-y-4 justify-center">
                <Link href="/rate-leader">
                 <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
                     {t('hero.findLeader')}
@@ -63,7 +63,7 @@ export default function Hero() {
                 <Button size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20" asChild>
                     <Link href="/polls">Participate in Polls</Link>
                 </Button>
-               <Button size="lg" variant="secondary" onClick={handleAddLeaderClick}>
+               <Button size="lg" className="bg-foreground text-background hover:bg-foreground/90 shadow-lg" onClick={handleAddLeaderClick}>
                   {t('hero.addNewLeader')}
               </Button>
             </div>

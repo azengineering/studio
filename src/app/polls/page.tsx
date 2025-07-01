@@ -12,8 +12,7 @@ import Footer from '@/components/footer';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Vote, Check, Clock } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Vote, Check, Clock, Users } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,29 +32,29 @@ type PollCardProps = {
 
 const PollCard = ({ poll, onParticipateClick }: PollCardProps) => {
     return (
-        <Card className="flex flex-col h-full hover:shadow-lg transition-shadow">
-            <CardHeader>
-                <CardTitle>{poll.title}</CardTitle>
-                <CardDescription>{poll.description}</CardDescription>
+        <Card className="flex flex-col h-full bg-card hover:border-primary/50 border-transparent border-2 transition-all duration-300 hover:shadow-xl rounded-2xl group">
+            <CardHeader className="bg-secondary/50 rounded-t-xl">
+                <CardTitle className="font-headline text-lg group-hover:text-primary transition-colors">{poll.title}</CardTitle>
+                {poll.description && <CardDescription className="text-xs line-clamp-2">{poll.description}</CardDescription>}
             </CardHeader>
-            <CardContent className="flex-grow space-y-2 text-sm text-muted-foreground">
+            <CardContent className="flex-grow space-y-2 text-sm text-muted-foreground pt-4">
                 <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
+                    <Clock className="h-4 w-4 text-primary/70" />
                     <span>
                         {poll.active_until ? `Closes on ${format(new Date(poll.active_until), 'PPP')}` : 'No end date'}
                     </span>
                 </div>
                  <div className="flex items-center gap-2">
-                    <Vote className="h-4 w-4" />
+                    <Users className="h-4 w-4 text-primary/70" />
                     <span>{poll.response_count} total response(s)</span>
                 </div>
             </CardContent>
-            <CardFooter>
-                <Button className="w-full" onClick={() => onParticipateClick(poll.id)} disabled={poll.user_has_voted}>
+            <CardFooter className="p-4">
+                <Button className="w-full shadow-lg shadow-primary/20" onClick={() => onParticipateClick(poll.id)} disabled={poll.user_has_voted}>
                     {poll.user_has_voted ? (
                         <><Check className="mr-2"/> Voted</>
                     ) : (
-                        'Participate Now'
+                        <><Vote className="mr-2"/> Participate Now</>
                     )}
                 </Button>
             </CardFooter>
@@ -93,10 +92,10 @@ export default function PollsPage() {
     const PollsSkeleton = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
-                <Card key={i} className="flex flex-col">
-                    <CardHeader><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 w-full mt-2" /><Skeleton className="h-4 w-1/2 mt-1" /></CardHeader>
-                    <CardContent className="flex-grow"><Skeleton className="h-4 w-2/3" /></CardContent>
-                    <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
+                <Card key={i} className="flex flex-col rounded-2xl">
+                    <CardHeader className="bg-secondary/50"><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 w-full mt-2" /><Skeleton className="h-4 w-1/2 mt-1" /></CardHeader>
+                    <CardContent className="flex-grow pt-4"><Skeleton className="h-4 w-2/3" /></CardContent>
+                    <CardFooter className="p-4"><Skeleton className="h-10 w-full" /></CardFooter>
                 </Card>
             ))}
         </div>
@@ -107,9 +106,9 @@ export default function PollsPage() {
             <div className="flex flex-col min-h-screen bg-secondary/50">
                 <Header />
                 <main className="flex-grow container mx-auto px-4 py-12">
-                    <div className="text-center mb-12">
-                        <h1 className="text-4xl font-extrabold font-headline">Active Polls &amp; Surveys</h1>
-                        <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
+                    <div className="text-left mb-12">
+                        <h1 className="text-3xl font-extrabold font-headline text-primary">Active Polls &amp; Surveys</h1>
+                        <p className="mt-2 max-w-2xl text-md text-muted-foreground">
                             Your opinion matters. Participate in ongoing polls to make your voice heard on important issues.
                         </p>
                     </div>

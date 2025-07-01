@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Mail, Phone, Twitter, Linkedin, Youtube, Send, Building, Info, Loader2 } from 'lucide-react';
+import { Mail, Phone, Twitter, Linkedin, Youtube, Send, Info, Loader2, Facebook } from 'lucide-react';
 
 import { getSiteSettings, type SiteSettings } from '@/data/settings';
 import { createSupportTicket } from '@/data/support';
@@ -32,19 +32,18 @@ const contactFormSchema = z.object({
 
 type ContactFormData = z.infer<typeof contactFormSchema>;
 
-const ContactInfoItem = ({ icon, text, href }: { icon: React.ReactNode, text: string | null, href?: string }) => {
+const ContactInfoItem = ({ icon, title, text, href, hoverColor }: { icon: React.ReactNode, title: string, text: string | null, href?: string, hoverColor: string }) => {
     if (!text) return null;
-    const Component = href ? 'a' : 'p';
     return (
-        <Component
-            href={href}
-            target={href ? '_blank' : undefined}
-            rel={href ? 'noopener noreferrer' : undefined}
-            className="flex items-center gap-4 text-primary transition-colors hover:text-primary/80"
-        >
-            <span className="flex-shrink-0">{icon}</span>
-            <span className="truncate">{text}</span>
-        </Component>
+        <a href={href} target="_blank" rel="noopener noreferrer" className={`group flex items-center gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors ${hoverColor}`}>
+            <div className="p-3 bg-background rounded-full group-hover:scale-110 transition-transform">
+                {icon}
+            </div>
+            <div>
+                <h4 className="font-semibold text-foreground">{title}</h4>
+                <p className="text-sm text-muted-foreground truncate group-hover:text-primary">{text}</p>
+            </div>
+        </a>
     );
 };
 
@@ -105,8 +104,8 @@ export default function ContactPage() {
     
     const ContactSkeleton = () => (
         <div className="space-y-4">
-            <Skeleton className="h-6 w-3/4" />
-            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
         </div>
     );
     
@@ -114,13 +113,13 @@ export default function ContactPage() {
         <div className="flex flex-col min-h-screen bg-secondary/50">
             <Header />
             <main className="flex-grow container mx-auto px-4 py-12">
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl font-extrabold font-headline">{t('contactPage.title')}</h1>
-                    <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">{t('contactPage.description')}</p>
+                <div className="text-center mb-8">
+                    <h1 className="text-4xl font-extrabold font-headline text-primary">{t('contactPage.title')}</h1>
+                    <p className="mt-2 max-w-2xl mx-auto text-lg text-muted-foreground">{t('contactPage.description')}</p>
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                    <Card className="lg:col-span-2">
+                    <Card className="lg:col-span-2 shadow-lg">
                         <CardHeader>
                             <CardTitle>{t('contactPage.formTitle')}</CardTitle>
                         </CardHeader>
@@ -144,23 +143,24 @@ export default function ContactPage() {
                     </Card>
                     
                     <div className="space-y-8">
-                        <Card>
+                        <Card className="shadow-lg">
                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Building/> {t('contactPage.infoTitle')}</CardTitle>
+                                <CardTitle>{t('contactPage.infoTitle')}</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4 text-base">
+                            <CardContent className="space-y-4">
                                 {isLoading ? <ContactSkeleton/> : (
                                     <>
-                                        <ContactInfoItem icon={<Mail className="h-5 w-5"/>} text={settings.contact_email} href={`mailto:${settings.contact_email}`}/>
-                                        <ContactInfoItem icon={<Phone className="h-5 w-5"/>} text={settings.contact_phone} href={`tel:${settings.contact_phone}`}/>
-                                        <ContactInfoItem icon={<Twitter className="h-5 w-5"/>} text={settings.contact_twitter} href={settings.contact_twitter}/>
-                                        <ContactInfoItem icon={<Linkedin className="h-5 w-5"/>} text={settings.contact_linkedin} href={settings.contact_linkedin}/>
-                                        <ContactInfoItem icon={<Youtube className="h-5 w-5"/>} text={settings.contact_youtube} href={settings.contact_youtube}/>
+                                        <ContactInfoItem icon={<Mail className="h-5 w-5 text-red-500"/>} title="Email Support" text={settings.contact_email} href={`mailto:${settings.contact_email}`} hoverColor="hover:shadow-red-500/10"/>
+                                        <ContactInfoItem icon={<Phone className="h-5 w-5 text-green-500"/>} title="Call Us" text={settings.contact_phone} href={`tel:${settings.contact_phone}`} hoverColor="hover:shadow-green-500/10"/>
+                                        <ContactInfoItem icon={<Twitter className="h-5 w-5 text-sky-500"/>} title="Follow on X" text={settings.contact_twitter} href={settings.contact_twitter} hoverColor="hover:shadow-sky-500/10"/>
+                                        <ContactInfoItem icon={<Linkedin className="h-5 w-5 text-blue-600"/>} title="Connect on LinkedIn" text={settings.contact_linkedin} href={settings.contact_linkedin} hoverColor="hover:shadow-blue-600/10"/>
+                                        <ContactInfoItem icon={<Youtube className="h-5 w-5 text-red-600"/>} title="Watch on YouTube" text={settings.contact_youtube} href={settings.contact_youtube} hoverColor="hover:shadow-red-600/10"/>
+                                        <ContactInfoItem icon={<Facebook className="h-5 w-5 text-blue-800"/>} title="Like us on Facebook" text={settings.contact_facebook} href={settings.contact_facebook} hoverColor="hover:shadow-blue-800/10"/>
                                     </>
                                 )}
                             </CardContent>
                         </Card>
-                        <Alert>
+                         <Alert>
                             <Info className="h-4 w-4" />
                             <AlertTitle>{t('contactPage.noteTitle')}</AlertTitle>
                             <AlertDescription>{t('contactPage.noteDescription')}</AlertDescription>

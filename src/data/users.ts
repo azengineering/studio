@@ -23,6 +23,14 @@ export interface User {
   blockReason?: string | null;
 }
 
+export interface AdminMessage {
+  id: string;
+  userId: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export async function findUserByEmail(email: string): Promise<User | undefined> {
   const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
   const user = stmt.get(email.toLowerCase()) as User | undefined;
@@ -163,5 +171,70 @@ export async function unblockUser(userId: string): Promise<void> {
         WHERE id = ?
     `);
     stmt.run(userId);
+    return Promise.resolve();
+}
+
+export async function getUsers(query?: string): Promise<Omit<User, 'password'>[]> {
+  let selectStmt;
+  if (query) {
+    const searchTerm = `%${query}%`;
+    selectStmt = db.prepare(`
+      SELECT u.*, 
+        (SELECT COUNT(*) FROM ratings WHERE userId = u.id) as ratingCount,
+        (SELECT COUNT(*) FROM leaders WHERE addedByUserId = u.id) as leaderAddedCount,
+        (SELECT COUNT(*) FROM admin_messages WHERE userId = u.id AND isRead = 0) as unreadMessageCount
+      FROM users u 
+      WHERE u.name LIKE ? OR u.email LIKE ? OR u.id LIKE ?
+      ORDER BY u.createdAt DESC
+    `);
+    selectStmt = selectStmt.bind(searchTerm, searchTerm, searchTerm);
+  } else {
+    selectStmt = db.prepare(`
+       SELECT u.*, 
+        (SELECT COUNT(*) FROM ratings WHERE userId = u.id) as ratingCount,
+        (SELECT COUNT(*) FROM leaders WHERE addedByUserId = u.id) as leaderAddedCount,
+        (SELECT COUNT(*) FROM admin_messages WHERE userId = u.id AND isRead = 0) as unreadMessageCount
+      FROM users u
+      ORDER BY u.createdAt DESC
+    `);
+  }
+
+  const users = selectStmt.all() as User[];
+  return Promise.resolve(users.map(u => {
+    const { password, ...userWithoutPassword } = u;
+    return userWithoutPassword;
+  }));
+}
+
+export async function addAdminMessage(userId: string, message: string): Promise<void> {
+  const stmt = db.prepare(`
+    INSERT INTO admin_messages (id, userId, message, isRead, createdAt)
+    VALUES (?, ?, ?, 0, ?)
+  `);
+  stmt.run(new Date().getTime().toString(), userId, message, new Date().toISOString());
+  return Promise.resolve();
+}
+
+export async function getAdminMessages(userId: string): Promise<AdminMessage[]> {
+  const stmt = db.prepare('SELECT * FROM admin_messages WHERE userId = ? ORDER BY createdAt DESC');
+  const messages = stmt.all(userId) as any[];
+  return Promise.resolve(messages.map(m => ({ ...m, isRead: m.isRead === 1 })));
+}
+
+export async function getUnreadMessages(userId: string): Promise<AdminMessage[]> {
+  const stmt = db.prepare('SELECT * FROM admin_messages WHERE userId = ? AND isRead = 0 ORDER BY createdAt ASC');
+  const messages = stmt.all(userId) as any[];
+  return Promise.resolve(messages.map(m => ({ ...m, isRead: m.isRead === 1 })));
+}
+
+export async function markMessageAsRead(messageId: string): Promise<void> {
+  const stmt = db.prepare('UPDATE admin_messages SET isRead = 1 WHERE id = ?');
+  stmt.run(messageId);
+  return Promise.resolve();
+}
+
+export async function deleteAdminMessage(messageId: string): Promise<void> {
+    const stmt = db.prepare('DELETE FROM admin_messages WHERE id = ?');
+    stmt.run(messageId);
     return Promise.resolve();
 }

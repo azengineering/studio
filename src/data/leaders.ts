@@ -511,10 +511,21 @@ export async function updateLeaderStatus(leaderId: string, status: 'pending' | '
 }
 
 export async function deleteLeader(leaderId: string): Promise<void> {
-    // Foreign key constraints with ON DELETE CASCADE will handle ratings and comments
-    const stmt = db.prepare('DELETE FROM leaders WHERE id = ?');
-    stmt.run(leaderId);
-    return Promise.resolve();
+    const transaction = db.transaction((id: string) => {
+        // Explicitly delete dependent records first to ensure foreign key constraints are met.
+        db.prepare('DELETE FROM ratings WHERE leaderId = ?').run(id);
+        db.prepare('DELETE FROM comments WHERE leaderId = ?').run(id);
+        
+        // Now delete the leader.
+        db.prepare('DELETE FROM leaders WHERE id = ?').run(id);
+    });
+
+    try {
+        transaction(leaderId);
+    } catch (error) {
+        console.error("Failed to delete leader and associated data:", error);
+        throw error;
+    }
 }
 
 export async function deleteRating(userId: string, leaderId: string): Promise<void> {

@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -28,4 +29,6 @@ if (firebaseEnabled) {
   app = {};
 }
 
-export { app, firebaseEnabled };
+const auth = firebaseEnabled ? getAuth(app) : {};
+
+export { app, auth, firebaseEnabled };

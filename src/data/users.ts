@@ -78,8 +78,8 @@ export async function findUserById(id: string): Promise<User | undefined> {
   return Promise.resolve(user);
 }
 
-export async function addUser(user: Omit<User, 'id' | 'name' | 'createdAt'>): Promise<User | null> {
-  const name = user.email.split('@')[0];
+export async function addUser(user: Omit<User, 'id' | 'createdAt'>): Promise<User | null> {
+  const name = user.name || user.email.split('@')[0];
   const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
   const id = new Date().getTime().toString();
   const createdAt = new Date().toISOString();
@@ -103,7 +103,7 @@ export async function addUser(user: Omit<User, 'id' | 'name' | 'createdAt'>): Pr
     stmt.run({
         id: newUser.id,
         email: newUser.email.toLowerCase(),
-        password: newUser.password,
+        password: newUser.password || '', // Use empty string for password-less social logins
         name: newUser.name,
         createdAt: newUser.createdAt,
         isBlocked: newUser.isBlocked,

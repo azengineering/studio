@@ -34,6 +34,7 @@ import { useLanguage } from '@/context/language-context';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { Separator } from "@/components/ui/separator";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -49,11 +50,17 @@ interface BlockInfo {
   until: string | null;
 }
 
+const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.62 1.9-4.73 1.9-3.41 0-6.19-2.84-6.19-6.32s2.78-6.32 6.19-6.32c1.93 0 3.22.74 4.21 1.66l2.77-2.77C18.04 2.89 15.65 2 12.48 2c-5.26 0-9.58 4.28-9.58 9.58s4.32 9.58 9.58 9.58c5.03 0 9.12-3.41 9.12-9.35 0-.64-.06-1.25-.16-1.84z"/>
+    </svg>
+);
+
 export default function LoginPage() {
   const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth();
+  const { login, signInWithGoogle } = useAuth();
   const { toast } = useToast();
   const [blockInfo, setBlockInfo] = useState<BlockInfo | null>(null);
 
@@ -84,6 +91,28 @@ export default function LoginPage() {
           variant: "destructive",
         });
       }
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    try {
+        const redirectPath = searchParams.get('redirect');
+        await signInWithGoogle(redirectPath);
+        toast({
+            title: "Login Successful",
+            description: "Welcome back!",
+        });
+    } catch (error) {
+        if (error instanceof Error && error.message.startsWith('BLOCKED::')) {
+            const [_, reason, until] = error.message.split('::');
+            setBlockInfo({ reason, until: until !== 'null' ? until : null });
+        } else {
+            toast({
+                title: "Google Sign-In Failed",
+                description: error instanceof Error ? error.message : "Please try again later.",
+                variant: "destructive",
+            });
+        }
     }
   }
 
@@ -171,6 +200,18 @@ export default function LoginPage() {
                 </Button>
               </form>
             </Form>
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+            <Button variant="outline" className="w-full py-6 text-lg" onClick={handleGoogleSignIn}>
+                <GoogleIcon className="mr-2 h-5 w-5"/>
+                Sign in with Google
+            </Button>
           </CardContent>
           <CardFooter className="flex justify-center p-8 bg-secondary/30 rounded-b-xl">
             <p className="text-sm text-muted-foreground">

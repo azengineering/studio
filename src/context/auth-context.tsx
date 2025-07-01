@@ -5,6 +5,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { useRouter } from 'next/navigation';
 import { findUserByEmail, addUser as addNewUser, updateUserProfile, type User, findUserById, unblockUser } from '@/data/users';
 import { isAfter } from 'date-fns';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -13,6 +15,7 @@ interface AuthContextType {
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUser: (profileData: Partial<User>) => Promise<User | null>;
+  signInWithGoogle: (redirectPath?: string | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -63,6 +66,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // This should only run once on initial app load.
 
+  const handleSuccessfulLogin = (loggedInUser: User, redirectPath?: string | null) => {
+    const userToStore: Partial<User> = { ...loggedInUser };
+    delete userToStore.password;
+    localStorage.setItem('politirate_user', JSON.stringify(userToStore));
+    setUser(userToStore as User);
+    router.push(redirectPath || '/');
+  };
 
   const login = async (email: string, password: string, redirectPath?: string | null) => {
     let existingUser = await findUserByEmail(email);
@@ -86,13 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(`BLOCKED::${existingUser.blockReason}::${existingUser.blockedUntil}`);
       }
     }
-
-    const loggedInUser: Partial<User & { password?: string }> = { ...existingUser };
-    delete loggedInUser.password;
     
-    localStorage.setItem('politirate_user', JSON.stringify(loggedInUser));
-    setUser(loggedInUser as User);
-    router.push(redirectPath || '/');
+    handleSuccessfulLogin(existingUser, redirectPath);
   };
 
   const signup = async (email: string, password: string) => {
@@ -109,6 +114,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Redirect to login page after successful signup
     router.push('/login');
+  };
+
+  const signInWithGoogle = async (redirectPath?: string | null) => {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth as any, provider);
+    const googleUser = result.user;
+
+    if (!googleUser.email) {
+      throw new Error("Could not retrieve email from Google account.");
+    }
+
+    let userInDb = await findUserByEmail(googleUser.email);
+    
+    if (userInDb) {
+      // User exists, check for block
+      if (userInDb.isBlocked) {
+        if (userInDb.blockedUntil && isAfter(new Date(), new Date(userInDb.blockedUntil))) {
+            await unblockUser(userInDb.id);
+            userInDb = (await findUserByEmail(googleUser.email))!;
+        } else {
+             throw new Error(`BLOCKED::${userInDb.blockReason}::${userInDb.blockedUntil}`);
+        }
+      }
+    } else {
+      // New user, create an account without a password
+      userInDb = await addNewUser({
+        email: googleUser.email,
+        name: googleUser.displayName || googleUser.email.split('@')[0],
+      });
+
+      if (!userInDb) {
+        throw new Error("Failed to create a new user account.");
+      }
+    }
+    
+    handleSuccessfulLogin(userInDb, redirectPath);
   };
 
 
@@ -133,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return updatedUser;
   };
 
-  const value = { user, loading, login, signup, logout, updateUser };
+  const value = { user, loading, login, signup, logout, updateUser, signInWithGoogle };
 
   return (
     <AuthContext.Provider value={value}>

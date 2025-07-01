@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { findUserByEmail, addUser as addNewUser, updateUserProfile, type User, findUserById, unblockUser } from '@/data/users';
 import { isAfter } from 'date-fns';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, firebaseEnabled } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -117,6 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async (redirectPath?: string | null) => {
+    if (!firebaseEnabled) {
+      throw new Error("Google Sign-In is not configured for this application.");
+    }
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth as any, provider);
     const googleUser = result.user;

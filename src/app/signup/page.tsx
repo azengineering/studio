@@ -24,6 +24,7 @@ import Footer from '@/components/footer';
 import { useLanguage } from '@/context/language-context';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import { firebaseEnabled } from "@/lib/firebase";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -153,18 +154,22 @@ export default function SignupPage() {
                 <Button type="submit" className="w-full py-6 text-lg">{t('signupPage.signupButton')}</Button>
               </form>
             </Form>
-             <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-              </div>
-            </div>
-            <Button variant="outline" className="w-full py-6 text-lg" onClick={handleGoogleSignIn}>
-                <GoogleIcon className="mr-2 h-5 w-5"/>
-                Sign up with Google
-            </Button>
+            {firebaseEnabled && (
+                <>
+                    <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                    </div>
+                    </div>
+                    <Button variant="outline" className="w-full py-6 text-lg" onClick={handleGoogleSignIn}>
+                        <GoogleIcon className="mr-2 h-5 w-5"/>
+                        Sign up with Google
+                    </Button>
+                </>
+            )}
           </CardContent>
           <CardFooter className="flex justify-center p-8 bg-secondary/30 rounded-b-xl">
             <p className="text-sm text-muted-foreground">

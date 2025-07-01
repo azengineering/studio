@@ -347,12 +347,12 @@ export default function LeaderCard({ leader: initialLeader, isEditable = false, 
                           variant="ghost"
                           size="icon"
                           onClick={() => setAnalyticsOpen(true)}
-                          className="rounded-full h-12 w-12 hover:bg-primary/10"
+                          className="rounded-full h-20 w-20 hover:bg-primary/10"
                           disabled={leader.reviewCount === 0}
                           aria-label="View Performance Analytics"
                       >
                           <svg
-                              className="h-8 w-8"
+                              className="h-14 w-14"
                               viewBox="0 0 24 24"
                               fill="none"
                               xmlns="http://www.w3.org/2000/svg"

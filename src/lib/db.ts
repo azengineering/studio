@@ -21,9 +21,6 @@ export const db = new Database(path.join(dbDir, 'politirate.db'));
 // Enable WAL mode for better concurrency.
 db.pragma('journal_mode = WAL');
 
-// Enable foreign key support to make ON DELETE CASCADE work.
-db.pragma('foreign_keys = ON');
-
 const now = new Date().toISOString();
 
 const defaultLeaders: Leader[] = [];
@@ -63,12 +60,7 @@ const schema = `
     reviewCount INTEGER DEFAULT 0,
     previousElections TEXT,
     manifestoUrl TEXT,
-    twitterUrl TEXT,
-    addedByUserId TEXT,
-    createdAt TEXT,
-    status TEXT NOT NULL DEFAULT 'pending',
-    adminComment TEXT,
-    FOREIGN KEY(addedByUserId) REFERENCES users(id) ON DELETE SET NULL
+    twitterUrl TEXT
   );
   
   CREATE TABLE IF NOT EXISTS ratings (
@@ -78,9 +70,7 @@ const schema = `
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL,
     socialBehaviour TEXT,
-    PRIMARY KEY (userId, leaderId),
-    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (leaderId) REFERENCES leaders(id) ON DELETE CASCADE
+    PRIMARY KEY (userId, leaderId)
   );
 
   CREATE TABLE IF NOT EXISTS comments (
@@ -89,93 +79,7 @@ const schema = `
     comment TEXT NOT NULL,
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL,
-    PRIMARY KEY (userId, leaderId),
-    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (leaderId) REFERENCES leaders(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS admin_messages (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    message TEXT NOT NULL,
-    isRead INTEGER DEFAULT 0,
-    createdAt TEXT NOT NULL,
-    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS site_settings (
-    key TEXT PRIMARY KEY,
-    value TEXT
-  );
-  
-  CREATE TABLE IF NOT EXISTS notifications (
-    id TEXT PRIMARY KEY,
-    message TEXT NOT NULL,
-    start_time TEXT,
-    end_time TEXT,
-    is_active INTEGER NOT NULL DEFAULT 1,
-    created_at TEXT NOT NULL,
-    link TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS polls (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    description TEXT,
-    is_active INTEGER NOT NULL DEFAULT 0,
-    active_until TEXT,
-    created_at TEXT NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS poll_questions (
-    id TEXT PRIMARY KEY,
-    poll_id TEXT NOT NULL,
-    question_text TEXT NOT NULL,
-    question_type TEXT NOT NULL,
-    question_order INTEGER NOT NULL,
-    FOREIGN KEY(poll_id) REFERENCES polls(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS poll_options (
-    id TEXT PRIMARY KEY,
-    question_id TEXT NOT NULL,
-    option_text TEXT NOT NULL,
-    option_order INTEGER NOT NULL,
-    FOREIGN KEY(question_id) REFERENCES poll_questions(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS poll_responses (
-    id TEXT PRIMARY KEY,
-    poll_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    UNIQUE(poll_id, user_id),
-    FOREIGN KEY(poll_id) REFERENCES polls(id) ON DELETE CASCADE,
-    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS poll_answers (
-    id TEXT PRIMARY KEY,
-    response_id TEXT NOT NULL,
-    question_id TEXT NOT NULL,
-    selected_option_id TEXT NOT NULL,
-    FOREIGN KEY(response_id) REFERENCES poll_responses(id) ON DELETE CASCADE,
-    FOREIGN KEY(question_id) REFERENCES poll_questions(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS support_tickets (
-    id TEXT PRIMARY KEY,
-    user_id TEXT,
-    user_name TEXT NOT NULL,
-    user_email TEXT NOT NULL,
-    subject TEXT NOT NULL,
-    message TEXT NOT NULL,
-    status TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT,
-    resolved_at TEXT,
-    admin_notes TEXT,
-    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+    PRIMARY KEY (userId, leaderId)
   );
 `;
 
@@ -191,9 +95,7 @@ const migrations = {
     },
     leaders: {
         addedByUserId: 'TEXT',
-        createdAt: 'TEXT',
-        status: "TEXT NOT NULL DEFAULT 'pending'",
-        adminComment: 'TEXT'
+        createdAt: 'TEXT'
     },
     ratings: {
         socialBehaviour: 'TEXT',
@@ -201,23 +103,6 @@ const migrations = {
     },
     comments: {
         createdAt: 'TEXT'
-    },
-    admin_messages: {
-        isRead: 'INTEGER DEFAULT 0'
-    },
-    notifications: {
-        link: 'TEXT'
-    },
-    site_settings: {
-        contact_email: 'TEXT',
-        contact_phone: 'TEXT',
-        contact_twitter: 'TEXT',
-        contact_linkedin: 'TEXT',
-        contact_youtube: 'TEXT',
-        contact_facebook: 'TEXT',
-    },
-    support_tickets: {
-        updated_at: 'TEXT'
     }
 };
 
@@ -242,41 +127,38 @@ for (const [tableName, columns] of Object.entries(migrations)) {
 
 
 // --- Seeding Logic ---
-const seedDatabase = () => {
-  const transaction = db.transaction(() => {
-    // Permanently remove any remaining default leaders (those not added by a user)
-    // and their associated ratings/comments.
-    const defaultLeaderIds = db.prepare('SELECT id FROM leaders WHERE addedByUserId IS NULL').all().map((row: any) => row.id);
-    
-    if (defaultLeaderIds.length > 0) {
-        // Prepare a string of placeholders for the IN clause
-        const placeholders = defaultLeaderIds.map(() => '?').join(',');
+const countStmt = db.prepare('SELECT count(*) as count FROM leaders');
+const count = (countStmt.get() as { count: number }).count;
 
-        // Explicitly delete dependent records first
-        db.prepare(`DELETE FROM ratings WHERE leaderId IN (${placeholders})`).run(...defaultLeaderIds);
-        db.prepare(`DELETE FROM comments WHERE leaderId IN (${placeholders})`).run(...defaultLeaderIds);
-        
-        // Now delete the leaders
-        const deleteStmt = db.prepare('DELETE FROM leaders WHERE addedByUserId IS NULL');
-        const info = deleteStmt.run();
+if (count === 0) {
+    const insertStmt = db.prepare(`
+        INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl)
+        VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl)
+    `);
 
-        console.log(`Removed ${info.changes} default leader(s) and their associated data from the database.`);
-    }
+    const insertMany = db.transaction((leaders: Leader[]) => {
+        for (const leader of leaders) {
+            insertStmt.run({
+                id: leader.id,
+                name: leader.name,
+                partyName: leader.partyName,
+                gender: leader.gender,
+                age: leader.age,
+                photoUrl: leader.photoUrl,
+                constituency: leader.constituency,
+                nativeAddress: leader.nativeAddress,
+                electionType: leader.electionType,
+                location_state: leader.location.state,
+                location_district: leader.location.district,
+                rating: leader.rating,
+                reviewCount: leader.reviewCount,
+                previousElections: JSON.stringify(leader.previousElections),
+                manifestoUrl: leader.manifestoUrl,
+                twitterUrl: leader.twitterUrl,
+            });
+        }
+    });
 
-    // Seed Site Settings
-    const settingsCount = db.prepare('SELECT COUNT(*) as count FROM site_settings').get() as { count: number };
-    if (settingsCount.count === 0) {
-        const insertSetting = db.prepare('INSERT INTO site_settings (key, value) VALUES (?, ?)');
-        insertSetting.run('maintenance_active', 'false');
-        insertSetting.run('maintenance_start', '');
-        insertSetting.run('maintenance_end', '');
-        insertSetting.run('maintenance_message', 'The site is currently down for maintenance. We will be back online shortly.');
-        insertSetting.run('contact_email', 'support@politirate.com');
-        console.log('Database seeded with default site settings.');
-    }
-  });
-
-  transaction();
-};
-
-seedDatabase();
+    insertMany(defaultLeaders);
+    console.log(`Database seeded with ${defaultLeaders.length} leaders.`);
+}

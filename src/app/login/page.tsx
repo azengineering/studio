@@ -208,10 +208,12 @@ export default function LoginPage() {
                 <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
             </div>
             </div>
-            <Button variant="outline" className="w-full py-6 text-lg" onClick={handleGoogleSignIn}>
-                <GoogleIcon className="mr-2 h-5 w-5"/>
-                Sign in with Google
-            </Button>
+            {firebaseEnabled && (
+                <Button variant="outline" className="w-full py-6 text-lg" onClick={handleGoogleSignIn}>
+                    <GoogleIcon className="mr-2 h-5 w-5"/>
+                    Sign in with Google
+                </Button>
+            )}
           </CardContent>
           <CardFooter className="flex justify-center p-8 bg-secondary/30 rounded-b-xl">
             <p className="text-sm text-muted-foreground">

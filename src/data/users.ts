@@ -21,46 +21,6 @@ export interface User {
   isBlocked?: boolean | number;
   blockedUntil?: string | null;
   blockReason?: string | null;
-  // These are optional because they are added by the query, not part of the core table schema
-  ratingCount?: number; 
-  leaderAddedCount?: number;
-  unreadMessageCount?: number;
-}
-
-export interface AdminMessage {
-    id: string;
-    userId: string;
-    message: string;
-    isRead: boolean | number;
-    createdAt: string;
-}
-
-export async function getUsers(searchTerm?: string): Promise<User[]> {
-    let query = `
-        SELECT
-            u.*,
-            (SELECT COUNT(*) FROM ratings WHERE userId = u.id) as ratingCount,
-            (SELECT COUNT(*) FROM leaders WHERE addedByUserId = u.id) as leaderAddedCount,
-            (SELECT COUNT(*) FROM admin_messages WHERE userId = u.id AND isRead = 0) as unreadMessageCount
-        FROM users u
-    `;
-    const params: string[] = [];
-
-    if (searchTerm && searchTerm.trim() !== '') {
-        query += ' WHERE u.name LIKE ? OR u.email LIKE ? OR u.id LIKE ?';
-        const st = `%${searchTerm.trim()}%`;
-        params.push(st, st, st);
-    }
-    
-    query += ' ORDER BY u.createdAt DESC';
-
-    const stmt = db.prepare(query);
-    const users = stmt.all(...params) as User[];
-    
-    return Promise.resolve(users.map(u => {
-        delete u.password;
-        return u;
-    }));
 }
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
@@ -203,36 +163,5 @@ export async function unblockUser(userId: string): Promise<void> {
         WHERE id = ?
     `);
     stmt.run(userId);
-    return Promise.resolve();
-}
-
-export async function addAdminMessage(userId: string, message: string): Promise<void> {
-    const stmt = db.prepare(`
-        INSERT INTO admin_messages (id, userId, message, createdAt, isRead)
-        VALUES (?, ?, ?, ?, 0)
-    `);
-    stmt.run(new Date().getTime().toString(), userId, message, new Date().toISOString());
-    return Promise.resolve();
-}
-
-export async function getAdminMessages(userId: string): Promise<AdminMessage[]> {
-    const stmt = db.prepare('SELECT * FROM admin_messages WHERE userId = ? ORDER BY createdAt DESC');
-    return Promise.resolve(stmt.all(userId) as AdminMessage[]);
-}
-
-export async function getUnreadMessages(userId: string): Promise<AdminMessage[]> {
-    const stmt = db.prepare('SELECT * FROM admin_messages WHERE userId = ? AND isRead = 0 ORDER BY createdAt ASC');
-    return Promise.resolve(stmt.all(userId) as AdminMessage[]);
-}
-
-export async function markMessageAsRead(messageId: string): Promise<void> {
-    const stmt = db.prepare('UPDATE admin_messages SET isRead = 1 WHERE id = ?');
-    stmt.run(messageId);
-    return Promise.resolve();
-}
-
-export async function deleteAdminMessage(messageId: string): Promise<void> {
-    const stmt = db.prepare('DELETE FROM admin_messages WHERE id = ?');
-    stmt.run(messageId);
     return Promise.resolve();
 }

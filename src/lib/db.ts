@@ -21,6 +21,9 @@ export const db = new Database(path.join(dbDir, 'politirate.db'));
 // Enable WAL mode for better concurrency.
 db.pragma('journal_mode = WAL');
 
+// Enable foreign key support to make ON DELETE CASCADE work.
+db.pragma('foreign_keys = ON');
+
 const now = new Date().toISOString();
 
 const defaultLeaders: Leader[] = [

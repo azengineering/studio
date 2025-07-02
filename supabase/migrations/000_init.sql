@@ -1,0 +1,3 @@
+-- This file is intentionally left blank.
+-- The full schema is now managed in the `supabase_schema.sql` file in the root directory
+-- for easier manual editing and execution in the Supabase dashboard.

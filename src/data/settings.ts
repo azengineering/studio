@@ -1,7 +1,7 @@
 
 'use server';
 
-import { db } from '@/lib/db';
+import { supabase } from '@/lib/db';
 
 export interface SiteSettings {
     maintenance_active: 'true' | 'false';
@@ -29,50 +29,28 @@ const defaultSettings: SiteSettings = {
     contact_facebook: null,
 };
 
-/**
- * Retrieves all site settings from the database.
- * @returns A promise that resolves to an object containing all site settings.
- */
 export async function getSiteSettings(): Promise<SiteSettings> {
-    try {
-        const stmt = db.prepare('SELECT key, value FROM site_settings');
-        const rows = stmt.all() as { key: string; value: string }[];
-        
-        const settings: Partial<SiteSettings> = {};
-        for (const row of rows) {
-            settings[row.key as keyof SiteSettings] = row.value as any;
-        }
-        
-        // Merge with defaults to ensure all keys are present
-        return { ...defaultSettings, ...settings };
-    } catch (error) {
-        // This might happen if the table doesn't exist on first run
+    const { data, error } = await supabase
+        .from('site_settings')
+        .select('*')
+        .single();
+    
+    if (error) {
         console.error("Failed to get site settings, returning defaults.", error);
         return defaultSettings;
     }
+    
+    // The table stores keys as columns, so we can merge with defaults
+    return { ...defaultSettings, ...data };
 }
 
-/**
- * Updates multiple site settings in a single transaction.
- * @param settings An object where keys are the setting names and values are the new values.
- * @returns A promise that resolves when the settings have been updated.
- */
 export async function updateSiteSettings(settings: Partial<SiteSettings>): Promise<void> {
-    const stmt = db.prepare(`
-        INSERT INTO site_settings (key, value)
-        VALUES (@key, @value)
-        ON CONFLICT(key) DO UPDATE SET value = excluded.value
-    `);
+    const { error } = await supabase
+        .from('site_settings')
+        .update(settings)
+        .eq('id', 1); // We only have one row for settings
 
-    const transaction = db.transaction((settingsToUpdate: Partial<SiteSettings>) => {
-        for (const [key, value] of Object.entries(settingsToUpdate)) {
-            stmt.run({ key, value: String(value) });
-        }
-    });
-
-    try {
-        transaction(settings);
-    } catch (error) {
+    if (error) {
         console.error("Failed to update site settings:", error);
         throw new Error("Database transaction for updating settings failed.");
     }

@@ -3,10 +3,11 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { findUserByEmail, addUser as addNewUser, updateUserProfile, type User, findUserById, unblockUser } from '@/data/users';
+import type { User } from '@/data/users';
+import { findUserById, updateUserProfile } from '@/data/users';
+import { supabase } from '@/lib/db';
+import type { AuthError, Session, User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { isAfter } from 'date-fns';
-import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
-import { auth, firebaseEnabled } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -27,167 +28,111 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      setLoading(true);
-
-      // 1. Handle Google Redirect Result FIRST
-      if (firebaseEnabled) {
-        try {
-          const result = await getRedirectResult(auth as any);
-          if (result) {
-            const googleUser = result.user;
-            if (!googleUser.email) {
-              throw new Error("Could not retrieve email from Google account.");
-            }
-            
-            let userInDb = await findUserByEmail(googleUser.email);
-            
-            if (!userInDb) {
-              userInDb = await addNewUser({
-                email: googleUser.email,
-                name: googleUser.displayName || googleUser.email.split('@')[0],
-              });
-            }
-
-            if (userInDb) {
-              handleSuccessfulLogin(userInDb); // Set state and local storage
-              const redirectPath = sessionStorage.getItem('auth_redirect');
-              sessionStorage.removeItem('auth_redirect');
-              setLoading(false);
-              router.push(redirectPath || '/');
-              return; // End auth flow here
-            }
-            throw new Error("Failed to create or retrieve user account.");
-          }
-        } catch (error) {
-           console.error("Google Sign-In Redirect Error:", error);
-           sessionStorage.removeItem('auth_redirect');
-           // Continue to check for local session even if redirect fails
-        }
-      }
-
-      // 2. If no redirect, check for an existing session in localStorage
-      try {
-        const storedUserString = localStorage.getItem('politirate_user');
-        if (storedUserString) {
-          const storedUser = JSON.parse(storedUserString);
-          if (storedUser.id) {
-            const freshUser = await findUserById(storedUser.id);
-            if (freshUser) {
-              if (freshUser.isBlocked) {
-                if (freshUser.blockedUntil && isAfter(new Date(), new Date(freshUser.blockedUntil))) {
-                  await unblockUser(freshUser.id);
-                  const unblockedUser = await findUserById(freshUser.id);
-                  if (unblockedUser) setUser(unblockedUser);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setLoading(true);
+        if (session?.user) {
+          const userProfile = await findUserById(session.user.id);
+          if (userProfile) {
+            if (userProfile.isBlocked) {
+                if (userProfile.blockedUntil && isAfter(new Date(), new Date(userProfile.blockedUntil))) {
+                    // Temporary block has expired, unblock them.
+                    const { data, error } = await supabase.from('users').update({ isBlocked: false, blockReason: null, blockedUntil: null }).eq('id', userProfile.id).select().single();
+                    if (!error && data) {
+                        setUser(data as User);
+                    }
                 } else {
-                  // User is still blocked, log them out locally.
-                  localStorage.removeItem('politirate_user');
-                  setUser(null);
+                    // Still blocked, sign them out.
+                    await supabase.auth.signOut();
+                    setUser(null);
                 }
-              } else {
-                setUser(freshUser);
-              }
             } else {
-              // User in storage doesn't exist in DB anymore.
-              localStorage.removeItem('politirate_user');
-              setUser(null);
+                setUser(userProfile);
             }
           }
+        } else {
+          setUser(null);
         }
-      } catch (error) {
-        console.error("Failed to sync user from localStorage", error);
-        localStorage.removeItem('politirate_user');
-        setUser(null);
-      } finally {
         setLoading(false);
       }
+    );
+
+    return () => {
+      subscription.unsubscribe();
     };
-    
-    initializeAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSuccessfulLogin = (loggedInUser: User) => {
-    const userToStore: Partial<User> = { ...loggedInUser };
-    delete userToStore.password;
-    localStorage.setItem('politirate_user', JSON.stringify(userToStore));
-    setUser(userToStore as User);
-  };
-
-  const login = async (email: string, password: string, redirectPath?: string | null) => {
-    let existingUser = await findUserByEmail(email);
-
-    if (!existingUser) {
-      throw new Error("An account with this email does not exist. Please sign up first.");
-    }
-    
-    if (existingUser.password !== password) {
-      throw new Error('Invalid email or password.');
-    }
-
-    if (existingUser.isBlocked) {
-      if (existingUser.blockedUntil && isAfter(new Date(), new Date(existingUser.blockedUntil))) {
-        await unblockUser(existingUser.id);
-        existingUser = (await findUserByEmail(email))!;
-      } else {
-        throw new Error(`BLOCKED::${existingUser.blockReason}::${existingUser.blockedUntil}`);
+  const handleAuthAction = async (
+    action: Promise<{ data: { user: SupabaseAuthUser | null, session: Session | null }, error: AuthError | null }>,
+    redirectPath?: string | null
+  ) => {
+    const { error } = await action;
+    if (error) {
+      if (error.message.includes('User already registered')) {
+        throw new Error('An account with this email already exists.');
       }
+      throw error;
     }
-    
-    handleSuccessfulLogin(existingUser);
-    router.push(redirectPath || '/');
+    // The onAuthStateChange listener will handle setting the user state.
+    if (redirectPath) {
+      router.push(redirectPath);
+    } else {
+      router.push('/');
+    }
+  };
+  
+  const login = async (email: string, password: string, redirectPath?: string | null) => {
+    // Check for block status before attempting login
+    const { data: userProfile } = await supabase.from('users').select('*').eq('email', email).single();
+    if (userProfile?.isBlocked) {
+      throw new Error(`BLOCKED::${userProfile.blockReason}::${userProfile.blockedUntil}`);
+    }
+    await handleAuthAction(supabase.auth.signInWithPassword({ email, password }), redirectPath);
   };
 
   const signup = async (email: string, password: string) => {
-    const existingUser = await findUserByEmail(email);
-    if (existingUser) {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name: email.split('@')[0],
+        },
+      },
+    });
+
+    if (error) {
+       if (error.message.includes('User already registered')) {
         throw new Error('An account with this email already exists.');
+      }
+      throw error;
     }
-
-    const newUser = await addNewUser({ email, password });
-
-    if (!newUser) {
-        throw new Error('Failed to create account. Please try again.');
-    }
+    // Redirect to login with a success message
     router.push('/login?message=Account+created!+Please+log+in.');
   };
 
   const signInWithGoogle = async (redirectPath?: string | null) => {
-    if (!firebaseEnabled) {
-      throw new Error("Google Sign-In is not configured for this application.");
-    }
-
-    if (redirectPath) {
-      sessionStorage.setItem('auth_redirect', redirectPath);
-    } else {
-      sessionStorage.removeItem('auth_redirect');
-    }
-    
-    const provider = new GoogleAuthProvider();
-    await signInWithRedirect(auth as any, provider);
+    await handleAuthAction(supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + (redirectPath || '/'),
+      },
+    }));
   };
 
   const logout = async () => {
-    if (firebaseEnabled) {
-        await signOut(auth as any).catch(console.error);
-    }
-    localStorage.removeItem('politirate_user');
+    await supabase.auth.signOut();
     setUser(null);
     router.push('/');
   };
 
   const updateUser = async (profileData: Partial<User>) => {
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
+    if (!user) throw new Error("User not authenticated");
     
     const updatedUser = await updateUserProfile(user.id, profileData);
-
     if (updatedUser) {
-      // Re-set user state and local storage with fresh data.
-      handleSuccessfulLogin(updatedUser);
+      setUser(updatedUser);
     }
-
     return updatedUser;
   };
 

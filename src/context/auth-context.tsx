@@ -11,6 +11,7 @@ import { auth, firebaseEnabled } from '@/lib/firebase';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isAuthenticated: boolean;
   login: (email: string, password: string, redirectPath?: string | null) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -148,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!newUser) {
         throw new Error('Failed to create account. Please try again.');
     }
-    router.push('/login');
+    router.push('/login?message=Account+created!+Please+log+in.');
   };
 
   const signInWithGoogle = async (redirectPath?: string | null) => {
@@ -190,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return updatedUser;
   };
 
-  const value = { user, loading, login, signup, logout, updateUser, signInWithGoogle };
+  const value = { user, loading, isAuthenticated: !!user, login, signup, logout, updateUser, signInWithGoogle };
 
   return (
     <AuthContext.Provider value={value}>

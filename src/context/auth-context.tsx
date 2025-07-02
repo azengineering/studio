@@ -33,22 +33,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
         if (session?.user) {
           const userProfile = await findUserById(session.user.id);
-          if (userProfile) {
-            if (userProfile.isBlocked) {
-                if (userProfile.blockedUntil && isAfter(new Date(), new Date(userProfile.blockedUntil))) {
-                    // Temporary block has expired, unblock them.
-                    const { data, error } = await supabase.from('users').update({ isBlocked: false, blockReason: null, blockedUntil: null }).eq('id', userProfile.id).select().single();
-                    if (!error && data) {
-                        setUser(data as User);
-                    }
-                } else {
-                    // Still blocked, sign them out.
-                    await supabase.auth.signOut();
-                    setUser(null);
-                }
-            } else {
-                setUser(userProfile);
-            }
+          // Blocked users are handled at login. If a session exists for a now-blocked user,
+          // this will log them out on the next interaction or page load.
+          if (userProfile && !userProfile.isBlocked) {
+            setUser(userProfile);
+          } else {
+            await supabase.auth.signOut();
+            setUser(null);
           }
         } else {
           setUser(null);
@@ -61,33 +52,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
-
-  const handleAuthAction = async (
-    action: Promise<{ data: { user: SupabaseAuthUser | null, session: Session | null }, error: AuthError | null }>,
-    redirectPath?: string | null
-  ) => {
-    const { error } = await action;
-    if (error) {
-      if (error.message.includes('User already registered')) {
-        throw new Error('An account with this email already exists.');
-      }
-      throw error;
-    }
-    // The onAuthStateChange listener will handle setting the user state.
-    if (redirectPath) {
-      router.push(redirectPath);
-    } else {
-      router.push('/');
-    }
-  };
   
   const login = async (email: string, password: string, redirectPath?: string | null) => {
-    // Check for block status before attempting login
-    const { data: userProfile } = await supabase.from('users').select('*').eq('email', email).single();
-    if (userProfile?.isBlocked) {
-      throw new Error(`BLOCKED::${userProfile.blockReason}::${userProfile.blockedUntil}`);
+    // Pre-check for blocked status to provide immediate feedback.
+    const { data: userProfileCheck } = await supabase.from('users').select('isBlocked, blockReason, blockedUntil').eq('email', email).single();
+    if (userProfileCheck?.isBlocked) {
+       // A more robust solution for expired blocks would use a server-side function,
+       // but for now, we prevent login if the block is active.
+       if (userProfileCheck.blockedUntil && isAfter(new Date(), new Date(userProfileCheck.blockedUntil))) {
+          throw new Error(`Your temporary block has expired, but needs to be cleared by an administrator. Please contact support.`);
+       }
+      throw new Error(`BLOCKED::${userProfileCheck.blockReason}::${userProfileCheck.blockedUntil}`);
     }
-    await handleAuthAction(supabase.auth.signInWithPassword({ email, password }), redirectPath);
+
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (authError) {
+      throw authError;
+    }
+    
+    if (authData.user) {
+      const userProfile = await findUserById(authData.user.id);
+      if (userProfile) {
+        setUser(userProfile); // Set state BEFORE redirecting
+        if (redirectPath) {
+          router.push(redirectPath);
+        } else {
+          router.push('/');
+        }
+      } else {
+        await supabase.auth.signOut();
+        throw new Error("Login successful, but your profile could not be found.");
+      }
+    } else {
+      throw new Error("Login failed. Please check your credentials.");
+    }
   };
 
   const signup = async (email: string, password: string) => {
@@ -112,12 +111,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async (redirectPath?: string | null) => {
-    await handleAuthAction(supabase.auth.signInWithOAuth({
+    // Google Sign-In is a redirect flow. It doesn't return a user directly.
+    // The onAuthStateChange listener will pick up the session after the redirect.
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: window.location.origin + (redirectPath || '/'),
       },
-    }));
+    });
+     if (error) {
+        throw error;
+    }
   };
 
   const logout = async () => {

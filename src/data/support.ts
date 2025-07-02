@@ -2,6 +2,7 @@
 'use server';
 
 import { supabase } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export type TicketStatus = 'open' | 'in-progress' | 'resolved' | 'closed';
 
@@ -47,7 +48,7 @@ export async function createSupportTicket(data: Omit<SupportTicket, 'id' | 'stat
 }
 
 export async function getSupportTickets(filters: { status?: TicketStatus, dateFrom?: string, dateTo?: string, searchQuery?: string } = {}): Promise<SupportTicket[]> {
-    let query = supabase.from('support_tickets').select('*');
+    let query = supabaseAdmin.from('support_tickets').select('*');
 
     if (filters.status) {
         query = query.eq('status', filters.status);
@@ -73,7 +74,7 @@ export async function getSupportTickets(filters: { status?: TicketStatus, dateFr
 }
 
 export async function updateTicketStatus(ticketId: string, status: TicketStatus, adminNotes: string | null): Promise<void> {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
         .from('support_tickets')
         .update({
             status: status,
@@ -90,14 +91,14 @@ export async function updateTicketStatus(ticketId: string, status: TicketStatus,
 }
 
 export async function getSupportTicketStats(): Promise<SupportTicketStats> {
-    const { data: stats, error: statsError } = await supabase.rpc('get_ticket_stats');
+    const { data: stats, error: statsError } = await supabaseAdmin.rpc('get_ticket_stats');
 
     if (statsError) {
         console.error("Error fetching ticket stats:", statsError);
         throw statsError;
     }
 
-    const { data: settings, error: settingsError } = await supabase
+    const { data: settings, error: settingsError } = await supabaseAdmin
         .from('site_settings')
         .select('contact_email, contact_phone, contact_twitter, contact_linkedin, contact_youtube')
         .single();

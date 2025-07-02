@@ -2,6 +2,7 @@
 'use server';
 
 import { supabase } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export interface User {
   id: string;
@@ -28,6 +29,7 @@ export interface AdminMessage {
 }
 
 export async function findUserById(id: string): Promise<User | null> {
+  // This can use the public client because RLS should allow a user to read their own data.
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -42,6 +44,7 @@ export async function findUserById(id: string): Promise<User | null> {
 }
 
 export async function updateUserProfile(userId: string, profileData: Partial<Omit<User, 'id' | 'email' | 'createdAt'>>): Promise<User | null> {
+    // This uses the public client and relies on RLS allowing a user to update their own profile.
     const { data, error } = await supabase
         .from('users')
         .update(profileData)
@@ -57,7 +60,8 @@ export async function updateUserProfile(userId: string, profileData: Partial<Omi
 }
 
 export async function getUserCount(filters?: { startDate?: string, endDate?: string, state?: string, constituency?: string }): Promise<number> {
-    let query = supabase.from('users').select('*', { count: 'exact', head: true });
+    // This is an admin function.
+    let query = supabaseAdmin.from('users').select('*', { count: 'exact', head: true });
 
     if (filters?.startDate && filters?.endDate) {
         query = query.gte('createdAt', filters.startDate).lte('createdAt', filters.endDate);
@@ -81,7 +85,7 @@ export async function getUserCount(filters?: { startDate?: string, endDate?: str
 // --- Admin Moderation Functions ---
 
 export async function blockUser(userId: string, reason: string, blockedUntil: string | null): Promise<void> {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
         .from('users')
         .update({ isBlocked: true, blockReason: reason, blockedUntil: blockedUntil })
         .eq('id', userId);
@@ -90,7 +94,7 @@ export async function blockUser(userId: string, reason: string, blockedUntil: st
 }
 
 export async function unblockUser(userId: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
         .from('users')
         .update({ isBlocked: false, blockReason: null, blockedUntil: null })
         .eq('id', userId);
@@ -99,7 +103,7 @@ export async function unblockUser(userId: string): Promise<void> {
 }
 
 export async function getUsers(query?: string): Promise<Partial<User>[]> {
-  let selectQuery = supabase
+  let selectQuery = supabaseAdmin
     .from('users')
     .select(`
         *,
@@ -131,7 +135,7 @@ export async function getUsers(query?: string): Promise<Partial<User>[]> {
 }
 
 export async function addAdminMessage(userId: string, message: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('admin_messages')
     .insert({ user_id: userId, message: message });
     
@@ -139,7 +143,7 @@ export async function addAdminMessage(userId: string, message: string): Promise<
 }
 
 export async function getAdminMessages(userId: string): Promise<AdminMessage[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('admin_messages')
     .select('*')
     .eq('user_id', userId)
@@ -177,7 +181,7 @@ export async function markMessageAsRead(messageId: string): Promise<void> {
 }
 
 export async function deleteAdminMessage(messageId: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('admin_messages')
       .delete()
       .eq('id', messageId);

@@ -2,6 +2,7 @@
 'use server';
 
 import { supabase } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export interface SiteSettings {
     maintenance_active: 'true' | 'false';
@@ -30,6 +31,8 @@ const defaultSettings: SiteSettings = {
 };
 
 export async function getSiteSettings(): Promise<SiteSettings> {
+    // This must use the public client as it's called by non-admin pages.
+    // RLS policies must allow anon reads on this table.
     const { data, error } = await supabase
         .from('site_settings')
         .select('*')
@@ -45,7 +48,8 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 }
 
 export async function updateSiteSettings(settings: Partial<SiteSettings>): Promise<void> {
-    const { error } = await supabase
+    // This is an admin-only action.
+    const { error } = await supabaseAdmin
         .from('site_settings')
         .update(settings)
         .eq('id', 1); // We only have one row for settings

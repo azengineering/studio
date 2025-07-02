@@ -2,6 +2,7 @@
 'use server';
 
 import { supabase } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 // Interfaces remain the same as they define the shape of the data for the app
 export interface Leader {
@@ -110,6 +111,10 @@ export async function getLeaderById(id: string): Promise<Leader | null> {
 }
 
 export async function updateLeader(leaderId: string, leaderData: Partial<Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'createdAt' | 'status' | 'adminComment'>>, userId: string | null, isAdmin: boolean): Promise<Leader | null> {
+    // This function is complex because it can be called by a regular user or an admin.
+    // For admins, we need elevated privileges.
+    const db = isAdmin ? supabaseAdmin : supabase;
+
     const leaderToUpdate = await getLeaderById(leaderId);
     if (!leaderToUpdate) throw new Error("Leader not found.");
 
@@ -123,7 +128,7 @@ export async function updateLeader(leaderId: string, leaderData: Partial<Omit<Le
         payload.adminComment = 'User updated details. Pending re-approval.';
     }
     
-    const { data, error } = await supabase
+    const { data, error } = await db
         .from('leaders')
         .update(payload)
         .eq('id', leaderId)
@@ -233,7 +238,7 @@ export async function getLeadersAddedByUser(userId: string): Promise<Leader[]> {
 
 
 export async function getLeaderCount(filters?: { startDate?: string, endDate?: string, state?: string, constituency?: string }): Promise<number> {
-    let query = supabase.from('leaders').select('*', { count: 'exact', head: true });
+    let query = supabaseAdmin.from('leaders').select('*', { count: 'exact', head: true });
 
     if (filters?.startDate) query = query.gte('createdAt', filters.startDate);
     if (filters?.endDate) query = query.lte('createdAt', filters.endDate);
@@ -246,7 +251,7 @@ export async function getLeaderCount(filters?: { startDate?: string, endDate?: s
 }
 
 export async function getRatingCount(filters?: { startDate?: string, endDate?: string, state?: string, constituency?: string }): Promise<number> {
-    let query = supabase.from('ratings').select('leaderId, leaders!inner(*)', { count: 'exact', head: true });
+    let query = supabaseAdmin.from('ratings').select('leaderId, leaders!inner(*)', { count: 'exact', head: true });
     
     if (filters?.startDate) query = query.gte('createdAt', filters.startDate);
     if (filters?.endDate) query = query.lte('createdAt', filters.endDate);
@@ -260,7 +265,7 @@ export async function getRatingCount(filters?: { startDate?: string, endDate?: s
 
 // --- Admin Functions ---
 export async function getLeadersForAdminPanel(filters: { dateFrom?: string; dateTo?: string; state?: string; constituency?: string; candidateName?: string; }): Promise<Leader[]> {
-  let query = supabase
+  let query = supabaseAdmin
     .from('leaders')
     .select('*, userName:users(name)')
     .order('createdAt', { ascending: false });
@@ -290,7 +295,7 @@ export async function approveLeader(leaderId: string): Promise<void> {
 }
 
 export async function updateLeaderStatus(leaderId: string, status: 'pending' | 'approved' | 'rejected', adminComment: string | null): Promise<void> {
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('leaders')
     .update({ status, adminComment })
     .eq('id', leaderId);
@@ -302,7 +307,7 @@ export async function updateLeaderStatus(leaderId: string, status: 'pending' | '
 }
 
 export async function deleteLeader(leaderId: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
         .from('leaders')
         .delete()
         .eq('id', leaderId);
@@ -314,7 +319,7 @@ export async function deleteLeader(leaderId: string): Promise<void> {
 }
 
 export async function deleteRating(userId: string, leaderId: string): Promise<void> {
-    const { error } = await supabase.rpc('handle_rating_deletion', {
+    const { error } = await supabaseAdmin.rpc('handle_rating_deletion', {
         p_user_id: userId,
         p_leader_id: leaderId
     });

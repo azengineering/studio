@@ -2,6 +2,7 @@
 'use server';
 
 import { supabase } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export type PollQuestionType = 'yes_no' | 'multiple_choice';
 
@@ -65,7 +66,7 @@ export interface PollResult {
 // --- Admin Panel Functions ---
 
 export async function getPollsForAdmin(): Promise<PollListItem[]> {
-    const { data, error } = await supabase.rpc('get_admin_polls');
+    const { data, error } = await supabaseAdmin.rpc('get_admin_polls');
     if (error) {
         console.error("Error getting polls for admin:", error);
         return [];
@@ -94,7 +95,7 @@ export async function getPollForEdit(pollId: string): Promise<Poll | null> {
 }
 
 export async function deletePoll(pollId: string): Promise<void> {
-    const { error } = await supabase.from('polls').delete().eq('id', pollId);
+    const { error } = await supabaseAdmin.from('polls').delete().eq('id', pollId);
     if (error) {
         console.error("Error deleting poll:", error);
         throw error;
@@ -102,7 +103,7 @@ export async function deletePoll(pollId: string): Promise<void> {
 }
 
 export async function upsertPoll(poll: Omit<Poll, 'created_at'>): Promise<Poll> {
-    const { data, error } = await supabase.rpc('upsert_poll', { poll_data: poll });
+    const { data, error } = await supabaseAdmin.rpc('upsert_poll', { poll_data: poll });
     if (error) {
         console.error("Error upserting poll:", error);
         throw error;
@@ -112,7 +113,7 @@ export async function upsertPoll(poll: Omit<Poll, 'created_at'>): Promise<Poll> 
 }
 
 export async function getPollResults(pollId: string): Promise<PollResult | null> {
-    const { data, error } = await supabase.rpc('get_poll_results', { p_poll_id: pollId });
+    const { data, error } = await supabaseAdmin.rpc('get_poll_results', { p_poll_id: pollId });
     if (error) {
         console.error("Error getting poll results:", error);
         return null;

@@ -124,6 +124,7 @@ const LeaderAnalyticsDialog = ({ leader, open, onOpenChange }: { leader: LeaderT
       <DialogPrimitiveContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0">
         <DialogPrimitiveHeader className="p-6 pb-0 flex-shrink-0">
           <DialogPrimitiveTitle className="font-headline text-2xl">Performance Analytics: {leader.name}</DialogPrimitiveTitle>
+          <DialogPrimitiveDescription>A detailed analysis of user responses for this leader.</DialogPrimitiveDescription>
         </DialogPrimitiveHeader>
         <ScrollArea className="flex-grow">
           <div className="p-6 space-y-6">

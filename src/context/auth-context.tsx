@@ -32,7 +32,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (_event, session) => {
         setLoading(true);
         if (session?.user) {
-          const userProfile = await findUserById(session.user.id);
+          let userProfile = await findUserById(session.user.id);
+          
+          // If profile is missing, it could be a first-time Google sign-in
+          // or an old account. We'll create it.
+          if (!userProfile) {
+            const { error: rpcError } = await supabase.rpc('ensure_user_profile_exists');
+            if (rpcError) {
+              console.error("Auth state change: Error ensuring profile exists", rpcError);
+              await supabase.auth.signOut();
+              setUser(null);
+              setLoading(false);
+              return;
+            }
+            // Fetch the newly created profile
+            userProfile = await findUserById(session.user.id);
+          }
+
           // Blocked users are handled at login. If a session exists for a now-blocked user,
           // this will log them out on the next interaction or page load.
           if (userProfile && !userProfile.isBlocked) {
@@ -54,17 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
   
   const login = async (email: string, password: string, redirectPath?: string | null) => {
-    // Pre-check for blocked status to provide immediate feedback.
-    const { data: userProfileCheck } = await supabase.from('users').select('isBlocked, blockReason, blockedUntil').eq('email', email).single();
-    if (userProfileCheck?.isBlocked) {
-       // A more robust solution for expired blocks would use a server-side function,
-       // but for now, we prevent login if the block is active.
-       if (userProfileCheck.blockedUntil && isAfter(new Date(), new Date(userProfileCheck.blockedUntil))) {
-          throw new Error(`Your temporary block has expired, but needs to be cleared by an administrator. Please contact support.`);
-       }
-      throw new Error(`BLOCKED::${userProfileCheck.blockReason}::${userProfileCheck.blockedUntil}`);
-    }
-
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (authError) {
@@ -72,7 +77,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     if (authData.user) {
-      const userProfile = await findUserById(authData.user.id);
+      let userProfile = await findUserById(authData.user.id);
+
+      // If profile doesn't exist, it's likely an old account before the trigger was added.
+      // We'll try to create it now.
+      if (!userProfile) {
+        // Call the RPC function to create the profile on the DB side.
+        const { error: rpcError } = await supabase.rpc('ensure_user_profile_exists');
+        
+        if (rpcError) {
+          await supabase.auth.signOut();
+          console.error("Error ensuring user profile exists:", rpcError);
+          throw new Error("Login successful, but your profile could not be created. Please contact support.");
+        }
+        
+        // Fetch the newly created profile again.
+        userProfile = await findUserById(authData.user.id);
+      }
+
+      // Check for block status AFTER ensuring profile exists
+      if (userProfile?.isBlocked) {
+         if (userProfile.blockedUntil && isAfter(new Date(), new Date(userProfile.blockedUntil))) {
+            await supabase.auth.signOut();
+            throw new Error(`Your temporary block has expired, but needs to be cleared by an administrator. Please contact support.`);
+         }
+        await supabase.auth.signOut();
+        throw new Error(`BLOCKED::${userProfile.blockReason}::${userProfile.blockedUntil}`);
+      }
+
       if (userProfile) {
         setUser(userProfile); // Set state BEFORE redirecting
         if (redirectPath) {
@@ -82,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         await supabase.auth.signOut();
-        throw new Error("Login successful, but your profile could not be found.");
+        throw new Error("Login successful, but your profile could not be found or created. Please contact support.");
       }
     } else {
       throw new Error("Login failed. Please check your credentials.");

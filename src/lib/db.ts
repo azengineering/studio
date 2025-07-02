@@ -6,8 +6,8 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('YOUR_PROJECT_URL') || supabaseAnonKey.includes('YOUR_ANON_KEY')) {
+  throw new Error('Missing or placeholder Supabase environment variables. Please check your .env.local file and ensure you have replaced the placeholder values with your actual Supabase credentials.');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

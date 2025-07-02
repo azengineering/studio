@@ -27,6 +27,7 @@ export interface Leader {
     status: 'winner' | 'loser';
     electionYear: string;
     partyName: string;
+    state?: string;
   }>;
   manifestoUrl?: string;
   twitterUrl?: string;
@@ -80,7 +81,10 @@ export async function getLeaders(): Promise<Leader[]> {
     console.error("Error fetching leaders:", error);
     return [];
   }
-  return data;
+  return data.map(leader => ({
+      ...leader,
+      previousElections: leader.previousElections || []
+  }));
 }
 
 export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'createdAt' | 'status' | 'adminComment' | 'userName'>, userId: string | null): Promise<void> {
@@ -107,12 +111,13 @@ export async function getLeaderById(id: string): Promise<Leader | null> {
         console.error("Error fetching leader by ID:", error);
         return null;
     }
-    return data;
+    return {
+        ...data,
+        previousElections: data.previousElections || []
+    };
 }
 
 export async function updateLeader(leaderId: string, leaderData: Partial<Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'createdAt' | 'status' | 'adminComment'>>, userId: string | null, isAdmin: boolean): Promise<Leader | null> {
-    // This function is complex because it can be called by a regular user or an admin.
-    // For admins, we need elevated privileges.
     const db = isAdmin ? supabaseAdmin : supabase;
 
     const leaderToUpdate = await getLeaderById(leaderId);
@@ -171,9 +176,9 @@ export async function getReviewsForLeader(leaderId: string): Promise<Review[]> {
 }
 
 export async function getRatingDistribution(leaderId: string): Promise<RatingDistribution[]> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('ratings')
-        .select('rating, count:rating')
+        .select('rating, count:id')
         .eq('leaderId', leaderId)
         .groupBy('rating');
         
@@ -185,9 +190,9 @@ export async function getRatingDistribution(leaderId: string): Promise<RatingDis
 }
 
 export async function getSocialBehaviourDistribution(leaderId: string): Promise<SocialBehaviourDistribution[]> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('ratings')
-        .select('socialBehaviour, count:socialBehaviour')
+        .select('socialBehaviour, count:id')
         .eq('leaderId', leaderId)
         .not('socialBehaviour', 'is', null)
         .groupBy('socialBehaviour');
@@ -211,9 +216,7 @@ export async function getActivitiesForUser(userId: string): Promise<UserActivity
 }
 
 export async function getAllActivities(): Promise<UserActivity[]> {
-    // This is a heavy query. In production, this should be paginated.
-     const { data, error } = await supabase
-        .rpc('get_all_activities');
+    const { data, error } = await supabaseAdmin.rpc('get_all_activities');
 
     if (error) {
         console.error('Error getting all activities:', error);
@@ -233,7 +236,10 @@ export async function getLeadersAddedByUser(userId: string): Promise<Leader[]> {
       console.error("Error getting leaders added by user:", error);
       return [];
   }
-  return data;
+  return data.map(leader => ({
+      ...leader,
+      previousElections: leader.previousElections || []
+  }));
 }
 
 
@@ -283,10 +289,10 @@ export async function getLeadersForAdminPanel(filters: { dateFrom?: string; date
     return [];
   }
   
-  // Flatten the user name from the join
   return data.map(leader => ({
       ...leader,
-      userName: (leader.userName as any)?.name ?? 'Admin/System'
+      userName: (leader.userName as any)?.name ?? 'Admin/System',
+      previousElections: leader.previousElections || []
   }));
 }
 

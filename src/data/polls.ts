@@ -75,7 +75,7 @@ export async function getPollsForAdmin(): Promise<PollListItem[]> {
 }
 
 export async function getPollForEdit(pollId: string): Promise<Poll | null> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('polls')
         .select(`
             *,
@@ -134,19 +134,33 @@ export async function getActivePollsForUser(userId: string | null): Promise<(Pol
 }
 
 export async function getPollForParticipation(pollId: string, userId: string | null): Promise<PollForParticipation | null> {
-    const poll = await getPollForEdit(pollId);
-    if (!poll) return null;
+    const { data: poll, error } = await supabase
+        .from('polls')
+        .select(`
+            *,
+            questions:poll_questions (
+                *,
+                options:poll_options (*)
+            )
+        `)
+        .eq('id', pollId)
+        .single();
+
+    if (error || !poll) {
+        console.error("Error getting poll for participation:", error);
+        return null;
+    }
 
     let hasVoted = false;
     if (userId) {
-        const { data, error } = await supabase
+        const { data, error: voteError } = await supabase
             .from('poll_responses')
-            .select('id')
+            .select('id', { count: 'exact', head: true })
             .eq('poll_id', pollId)
-            .eq('user_id', userId)
-            .maybeSingle();
-        if (error) console.error("Error checking if user voted:", error);
-        hasVoted = !!data;
+            .eq('user_id', userId);
+            
+        if (voteError) console.error("Error checking if user voted:", voteError);
+        hasVoted = (data?.length ?? 0) > 0;
     }
 
     return { ...poll, user_has_voted: hasVoted };

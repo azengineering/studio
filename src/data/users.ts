@@ -29,7 +29,6 @@ export interface AdminMessage {
 }
 
 export async function findUserById(id: string): Promise<User | null> {
-  // This can use the public client because RLS should allow a user to read their own data.
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -44,7 +43,6 @@ export async function findUserById(id: string): Promise<User | null> {
 }
 
 export async function updateUserProfile(userId: string, profileData: Partial<Omit<User, 'id' | 'email' | 'createdAt'>>): Promise<User | null> {
-    // This uses the public client and relies on RLS allowing a user to update their own profile.
     const { data, error } = await supabase
         .from('users')
         .update(profileData)
@@ -60,7 +58,6 @@ export async function updateUserProfile(userId: string, profileData: Partial<Omi
 }
 
 export async function getUserCount(filters?: { startDate?: string, endDate?: string, state?: string, constituency?: string }): Promise<number> {
-    // This is an admin function.
     let query = supabaseAdmin.from('users').select('*', { count: 'exact', head: true });
 
     if (filters?.startDate && filters?.endDate) {
@@ -90,7 +87,10 @@ export async function blockUser(userId: string, reason: string, blockedUntil: st
         .update({ isBlocked: true, blockReason: reason, blockedUntil: blockedUntil })
         .eq('id', userId);
         
-    if (error) console.error("Error blocking user:", error);
+    if (error) {
+      console.error("Error blocking user:", error);
+      throw error;
+    }
 }
 
 export async function unblockUser(userId: string): Promise<void> {
@@ -99,7 +99,10 @@ export async function unblockUser(userId: string): Promise<void> {
         .update({ isBlocked: false, blockReason: null, blockedUntil: null })
         .eq('id', userId);
 
-    if (error) console.error("Error unblocking user:", error);
+    if (error) {
+      console.error("Error unblocking user:", error);
+      throw error;
+    }
 }
 
 export async function getUsers(query?: string): Promise<Partial<User>[]> {
@@ -109,8 +112,9 @@ export async function getUsers(query?: string): Promise<Partial<User>[]> {
         *,
         leader_added_count:leaders(count),
         rating_count:ratings(count),
-        unread_message_count:admin_messages(count)
+        unread_message_count:admin_messages!inner(count)
     `)
+    .eq('admin_messages.isRead', false)
     .order('createdAt', { ascending: false });
 
   if (query) {
@@ -125,12 +129,11 @@ export async function getUsers(query?: string): Promise<Partial<User>[]> {
     return [];
   }
   
-  // Supabase returns counts as arrays of objects, so we need to flatten them.
-  return data.map(u => ({
+  return data.map((u: any) => ({
     ...u,
-    leaderAddedCount: (u.leader_added_count as any)[0]?.count ?? 0,
-    ratingCount: (u.rating_count as any)[0]?.count ?? 0,
-    unreadMessageCount: (u.unread_message_count as any)[0]?.count ?? 0,
+    leaderAddedCount: u.leader_added_count[0]?.count ?? 0,
+    ratingCount: u.rating_count[0]?.count ?? 0,
+    unreadMessageCount: u.unread_message_count[0]?.count ?? 0,
   }));
 }
 
@@ -139,7 +142,10 @@ export async function addAdminMessage(userId: string, message: string): Promise<
     .from('admin_messages')
     .insert({ user_id: userId, message: message });
     
-  if (error) console.error("Error adding admin message:", error);
+  if (error) {
+    console.error("Error adding admin message:", error);
+    throw error;
+  }
 }
 
 export async function getAdminMessages(userId: string): Promise<AdminMessage[]> {
@@ -177,7 +183,10 @@ export async function markMessageAsRead(messageId: string): Promise<void> {
     .update({ isRead: true })
     .eq('id', messageId);
 
-  if (error) console.error("Error marking message as read:", error);
+  if (error) {
+    console.error("Error marking message as read:", error);
+    throw error;
+  }
 }
 
 export async function deleteAdminMessage(messageId: string): Promise<void> {
@@ -186,5 +195,8 @@ export async function deleteAdminMessage(messageId: string): Promise<void> {
       .delete()
       .eq('id', messageId);
       
-    if (error) console.error("Error deleting admin message:", error);
+    if (error) {
+      console.error("Error deleting admin message:", error);
+      throw error;
+    }
 }

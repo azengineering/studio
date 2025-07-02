@@ -31,11 +31,10 @@ const defaultSettings: SiteSettings = {
 };
 
 export async function getSiteSettings(): Promise<SiteSettings> {
-    // This must use the public client as it's called by non-admin pages.
-    // RLS policies must allow anon reads on this table.
     const { data, error } = await supabase
         .from('site_settings')
         .select('*')
+        .eq('id', 1)
         .single();
     
     if (error) {
@@ -43,16 +42,14 @@ export async function getSiteSettings(): Promise<SiteSettings> {
         return defaultSettings;
     }
     
-    // The table stores keys as columns, so we can merge with defaults
     return { ...defaultSettings, ...data };
 }
 
 export async function updateSiteSettings(settings: Partial<SiteSettings>): Promise<void> {
-    // This is an admin-only action.
     const { error } = await supabaseAdmin
         .from('site_settings')
         .update(settings)
-        .eq('id', 1); // We only have one row for settings
+        .eq('id', 1);
 
     if (error) {
         console.error("Failed to update site settings:", error);

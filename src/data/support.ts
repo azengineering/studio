@@ -27,11 +27,6 @@ export interface SupportTicketStats {
     resolved: number;
     closed: number;
     avgResolutionHours: number | null;
-    contact_email: string | null;
-    contact_phone: string | null;
-    contact_twitter: string | null;
-    contact_linkedin: string | null;
-    contact_youtube: string | null;
 }
 
 
@@ -61,7 +56,7 @@ export async function getSupportTickets(filters: { status?: TicketStatus, dateFr
     }
     if (filters.searchQuery) {
         const searchTerm = `%${filters.searchQuery}%`;
-        query = query.or(`user_name.ilike.${searchTerm},user_email.ilike.${searchTerm}`);
+        query = query.or(`user_name.ilike.${searchTerm},user_email.ilike.${searchTerm},subject.ilike.${searchTerm}`);
     }
 
     const { data, error } = await query.order('updated_at', { ascending: false });
@@ -91,29 +86,19 @@ export async function updateTicketStatus(ticketId: string, status: TicketStatus,
 }
 
 export async function getSupportTicketStats(): Promise<SupportTicketStats> {
-    const { data: stats, error: statsError } = await supabaseAdmin.rpc('get_ticket_stats');
+    const { data, error } = await supabaseAdmin.rpc('get_ticket_stats');
 
-    if (statsError) {
-        console.error("Error fetching ticket stats:", statsError);
-        throw statsError;
-    }
-
-    const { data: settings, error: settingsError } = await supabaseAdmin
-        .from('site_settings')
-        .select('contact_email, contact_phone, contact_twitter, contact_linkedin, contact_youtube')
-        .single();
-    
-    if (settingsError) {
-        console.error("Error fetching contact settings for stats:", settingsError);
+    if (error) {
+        console.error("Error fetching ticket stats:", error);
+        throw error;
     }
 
     return {
-        total: stats.total,
-        open: stats.open,
-        inProgress: stats.in_progress,
-        resolved: stats.resolved,
-        closed: stats.closed,
-        avgResolutionHours: stats.avg_resolution_hours,
-        ...settings
+        total: data[0].total,
+        open: data[0].open,
+        inProgress: data[0].in_progress,
+        resolved: data[0].resolved,
+        closed: data[0].closed,
+        avgResolutionHours: data[0].avg_resolution_hours,
     }
 }

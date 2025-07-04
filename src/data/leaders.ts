@@ -69,11 +69,23 @@ export interface SocialBehaviourDistribution {
 
 // Public API gets only approved leaders
 export async function getLeaders(): Promise<Leader[]> {
-  const { data, error } = await supabaseAdmin
-    .from('leaders')
-    .select('*')
-    .eq('status', 'approved');
-  return handleSupabaseError({ data, error }, 'getLeaders') || [];
+  // This is a non-critical function for the public homepage.
+  // It should not crash the app if the database is not configured.
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('leaders')
+      .select('*')
+      .eq('status', 'approved');
+
+    if (error) {
+      console.error("Could not fetch leaders for homepage:", error.message);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+      console.error("An unexpected error occurred while fetching leaders:", e);
+      return [];
+  }
 }
 
 export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'review_count' | 'added_by_user_id' | 'created_at' | 'status' | 'admin_comment' | 'user_name'>, userId: string | null): Promise<void> {

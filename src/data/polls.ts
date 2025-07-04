@@ -1,8 +1,8 @@
 
 'use server';
 
-import { db, convertFirestoreData } from '@/lib/db';
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { supabaseAdmin, handleSupabaseError } from '@/lib/supabase';
+import { PostgrestError } from '@supabase/supabase-js';
 
 export type PollQuestionType = 'yes_no' | 'multiple_choice';
 
@@ -27,8 +27,8 @@ export interface Poll {
   title: string;
   description: string | null;
   is_active: boolean;
-  active_until: any | null;
-  created_at: any;
+  active_until: string | null;
+  created_at: string;
   questions: PollQuestion[];
 }
 
@@ -62,94 +62,108 @@ export interface PollResult {
     }[];
 }
 
+async function getPollResponseCount(pollId: string): Promise<number> {
+    const { count, error } = await supabaseAdmin
+        .from('poll_responses')
+        .select('*', { count: 'exact', head: true })
+        .eq('poll_id', pollId);
+    if (error) console.error(error);
+    return count || 0;
+}
+
 // --- Admin Panel Functions ---
 
 export async function getPollsForAdmin(): Promise<PollListItem[]> {
-    const snapshot = await db.collection('polls').orderBy('created_at', 'desc').get();
-    if (snapshot.empty) return [];
+    const { data, error } = await supabaseAdmin
+      .from('polls')
+      .select('*, poll_responses(count), notifications(count)')
+      .order('created_at', { ascending: false });
 
-    const polls = await Promise.all(snapshot.docs.map(async (doc) => {
-        const pollData = doc.data();
-        const responseCount = (await db.collection('poll_responses').where('poll_id', '==', doc.id).count().get()).data().count;
-        const promoNotif = (await db.collection('notifications').where('link', '==', `/polls/${doc.id}`).limit(1).get());
-        return {
-            id: doc.id,
-            title: pollData.title,
-            is_active: pollData.is_active,
-            active_until: pollData.active_until,
-            created_at: pollData.created_at,
-            response_count: responseCount,
-            is_promoted: !promoNotif.empty
-        } as PollListItem;
-    }));
-    
-    return convertFirestoreData(polls);
+    if (error) return handleSupabaseError({ data: null, error }, 'getPollsForAdmin');
+
+    return data.map((poll: any) => ({
+      id: poll.id,
+      title: poll.title,
+      is_active: poll.is_active,
+      active_until: poll.active_until,
+      created_at: poll.created_at,
+      response_count: poll.poll_responses[0]?.count || 0,
+      is_promoted: (poll.notifications[0]?.count || 0) > 0,
+    })) || [];
 }
 
 export async function getPollForEdit(pollId: string): Promise<Poll | null> {
-    const pollDoc = await db.collection('polls').doc(pollId).get();
-    if (!pollDoc.exists) return null;
-
-    const questionsSnapshot = await db.collection('polls').doc(pollId).collection('questions').orderBy('question_order').get();
-    const questions = await Promise.all(questionsSnapshot.docs.map(async (qDoc) => {
-        const optionsSnapshot = await qDoc.ref.collection('options').orderBy('option_order').get();
-        const options = optionsSnapshot.docs.map(oDoc => ({ id: oDoc.id, ...oDoc.data() }) as PollOption);
-        return { id: qDoc.id, ...qDoc.data(), options } as PollQuestion;
-    }));
-
-    const pollData = { id: pollDoc.id, ...pollDoc.data(), questions } as Poll;
-    return convertFirestoreData(pollData);
+    const { data, error } = await supabaseAdmin
+        .from('polls')
+        .select('*, questions:poll_questions(*, options:poll_options(*))')
+        .eq('id', pollId)
+        .single();
+    if (error) {
+      console.error(error.message);
+      return null;
+    }
+    // Sort questions and options
+    data.questions.sort((a,b) => a.question_order - b.question_order);
+    data.questions.forEach(q => q.options.sort((a,b) => a.option_order - b.option_order));
+    return data;
 }
 
 export async function deletePoll(pollId: string): Promise<void> {
-    // This requires a recursive delete, best handled by a Cloud Function.
-    // For this prototype, we'll delete the poll doc, and related responses.
-    // Subcollections (questions/options) will be orphaned.
-    const pollRef = db.collection('polls').doc(pollId);
-    const responsesSnapshot = await db.collection('poll_responses').where('poll_id', '==', pollId).get();
-    
-    const batch = db.batch();
-    responsesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-    batch.delete(pollRef);
-    
-    await batch.commit();
+    const { error } = await supabaseAdmin.from('polls').delete().eq('id', pollId);
+    if (error) handleSupabaseError({ data: null, error }, 'deletePoll');
 }
 
 export async function upsertPoll(poll: Omit<Poll, 'created_at'>): Promise<Poll> {
-    const batch = db.batch();
-    const pollId = poll.id || db.collection('polls').doc().id;
-    const pollRef = db.collection('polls').doc(pollId);
+    const { questions, ...pollData } = poll;
+    const { data: savedPoll, error: pollError } = await supabaseAdmin
+        .from('polls')
+        .upsert({ ...pollData })
+        .select()
+        .single();
+    
+    if (pollError) throw pollError;
+    const pollId = savedPoll.id;
 
-    batch.set(pollRef, {
-        title: poll.title,
-        description: poll.description || null,
-        is_active: poll.is_active,
-        active_until: poll.active_until ? Timestamp.fromDate(new Date(poll.active_until)) : null,
-        created_at: poll.id ? poll.created_at : FieldValue.serverTimestamp(), // Keep original date on edit
-    }, { merge: true });
+    const { data: existingQuestions } = await supabaseAdmin.from('poll_questions').select('id').eq('poll_id', pollId);
+    const existingQuestionIds = existingQuestions?.map(q => q.id) || [];
+    const newQuestionIds = questions.map(q => q.id).filter(id => id);
 
-    // For simplicity, we delete and re-add questions/options.
-    // This is not ideal for preserving response data if questions change.
-    const questionsRef = pollRef.collection('questions');
-    const oldQuestionsSnapshot = await questionsRef.get();
-    oldQuestionsSnapshot.forEach(doc => batch.delete(doc.ref));
+    const questionsToDelete = existingQuestionIds.filter(id => !newQuestionIds.includes(id));
+    if (questionsToDelete.length > 0) {
+        await supabaseAdmin.from('poll_questions').delete().in('id', questionsToDelete);
+    }
+    
+    for (const [qIndex, q] of questions.entries()) {
+        const { options, ...questionData } = q;
+        const { data: savedQuestion, error: qError } = await supabaseAdmin
+            .from('poll_questions')
+            .upsert({ ...questionData, poll_id: pollId, question_order: qIndex })
+            .select()
+            .single();
 
-    for (const q of poll.questions) {
-        const questionRef = questionsRef.doc();
-        batch.set(questionRef, {
-            question_text: q.question_text,
-            question_type: q.question_type,
-            question_order: q.question_order,
-        });
-        for (const o of q.options) {
-            batch.set(questionRef.collection('options').doc(), {
-                option_text: o.option_text,
-                option_order: o.option_order,
-            });
+        if (qError) throw qError;
+        const questionId = savedQuestion.id;
+
+        const { data: existingOptions } = await supabaseAdmin.from('poll_options').select('id').eq('question_id', questionId);
+        const existingOptionIds = existingOptions?.map(o => o.id) || [];
+        const newOptionIds = options.map(o => o.id).filter(id => id);
+        
+        const optionsToDelete = existingOptionIds.filter(id => !newOptionIds.includes(id));
+        if (optionsToDelete.length > 0) {
+            await supabaseAdmin.from('poll_options').delete().in('id', optionsToDelete);
+        }
+
+        if (options.length > 0) {
+            const optionsToSave = options.map((opt, oIndex) => ({
+                ...opt,
+                question_id: questionId,
+                option_order: oIndex,
+            }));
+            const { error: optError } = await supabaseAdmin.from('poll_options').upsert(optionsToSave);
+            if (optError) throw optError;
         }
     }
     
-    await batch.commit();
     return (await getPollForEdit(pollId))!;
 }
 
@@ -157,64 +171,16 @@ export async function getPollResults(pollId: string): Promise<PollResult | null>
     const poll = await getPollForEdit(pollId);
     if (!poll) return null;
 
-    const responsesSnapshot = await db.collectionGroup('poll_answers').where('poll_id', '==', pollId).get();
-    const totalResponses = (await db.collection('poll_responses').where('poll_id', '==', pollId).count().get()).data().count;
-
-    if (totalResponses === 0) {
-        return { pollTitle: poll.title, totalResponses: 0, genderDistribution: [], questions: [] };
-    }
-
-    const allAnswers = responsesSnapshot.docs.map(doc => doc.data());
-    
-    // This is simplified. Accurate gender distribution requires fetching each user.
-    // We'll return a dummy distribution.
-    const genderDistribution = [{name: 'Not Available', value: totalResponses}];
-    
-    const questions = poll.questions.map(q => {
-        const answers = q.options.map(opt => {
-            const count = allAnswers.filter(ans => ans.selected_option_id === opt.id).length;
-            return { name: opt.option_text, value: count };
-        });
-        return { id: q.id, text: q.question_text, answers };
-    });
-
-    return { pollTitle: poll.title, totalResponses, genderDistribution, questions };
+    const { data: results, error } = await supabaseAdmin.rpc('get_poll_results', { p_poll_id: pollId });
+    if (error) return handleSupabaseError({ data: null, error }, 'getPollResults');
+    return results;
 }
-
 
 // --- User Facing Functions ---
 
-export async function getActivePollsForUser(userId: string | null): Promise<(PollListItem & { user_has_voted: boolean })[]> {
-    const snapshot = await db.collection('polls')
-        .where('is_active', '==', true)
-        // .where('active_until', '>=', new Date()) // Firestore does not allow two inequality filters
-        .orderBy('created_at', 'desc').get();
-        
-    let polls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
-
-    polls = polls.filter(p => !p.active_until || (p.active_until as Timestamp).toDate() >= new Date());
-
-    const enrichedPolls = await Promise.all(polls.map(async (poll) => {
-        let hasVoted = false;
-        if (userId) {
-            const responseDoc = await db.collection('poll_responses').where('poll_id', '==', poll.id).where('user_id', '==', userId).limit(1).get();
-            hasVoted = !responseDoc.empty;
-        }
-        const responseCount = (await db.collection('poll_responses').where('poll_id', '==', poll.id).count().get()).data().count;
-
-        return {
-            id: poll.id,
-            title: poll.title,
-            description: poll.description,
-            is_active: poll.is_active,
-            active_until: poll.active_until,
-            created_at: poll.created_at,
-            response_count: responseCount,
-            user_has_voted: hasVoted
-        };
-    }));
-
-    return convertFirestoreData(enrichedPolls);
+export async function getActivePollsForUser(userId: string | null): Promise<(PollListItem & { user_has_voted: boolean; description: string | null; })[]> {
+    const { data, error } = await supabaseAdmin.rpc('get_active_polls_for_user', { p_user_id: userId });
+    return handleSupabaseError({data, error}, 'getActivePollsForUser') || [];
 }
 
 export async function getPollForParticipation(pollId: string, userId: string | null): Promise<PollForParticipation | null> {
@@ -223,32 +189,22 @@ export async function getPollForParticipation(pollId: string, userId: string | n
 
     let hasVoted = false;
     if (userId) {
-        const responseSnapshot = await db.collection('poll_responses').where('poll_id', '==', pollId).where('user_id', '==', userId).limit(1).get();
-        hasVoted = !responseSnapshot.empty;
+        const { count } = await supabaseAdmin
+          .from('poll_responses')
+          .select('*', { count: 'exact', head: true })
+          .match({ poll_id: pollId, user_id: userId });
+        hasVoted = (count || 0) > 0;
     }
 
     return { ...poll, user_has_voted: hasVoted };
 }
 
 export async function submitPollResponse(pollId: string, userId: string, answers: PollAnswer[]): Promise<void> {
-    const responseRef = db.collection('poll_responses').doc();
-    const batch = db.batch();
-
-    batch.set(responseRef, {
-        poll_id: pollId,
-        user_id: userId,
-        created_at: FieldValue.serverTimestamp(),
+    const { data, error } = await supabaseAdmin.rpc('submit_poll_response', {
+        p_poll_id: pollId,
+        p_user_id: userId,
+        p_answers: answers.map(a => ({ question_id: a.questionId, option_id: a.optionId }))
     });
 
-    for (const answer of answers) {
-        const answerRef = db.collection('poll_answers').doc();
-        batch.set(answerRef, {
-            response_id: responseRef.id,
-            poll_id: pollId, // Denormalize for easier querying
-            question_id: answer.questionId,
-            selected_option_id: answer.optionId
-        });
-    }
-
-    await batch.commit();
+    if (error) handleSupabaseError({ data: null, error }, 'submitPollResponse');
 }

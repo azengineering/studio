@@ -46,15 +46,15 @@ const MAX_MANIFESTO_SIZE_BYTES = MAX_MANIFESTO_SIZE_MB * 1024 * 1024;
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Name is required." }),
-  partyName: z.string().min(1, { message: "Party name is required." }),
-  electionType: z.enum(['national', 'state', 'panchayat'], { required_error: "Please select an election type."}),
+  party_name: z.string().min(1, { message: "Party name is required." }),
+  election_type: z.enum(['national', 'state', 'panchayat'], { required_error: "Please select an election type."}),
   constituency: z.string().min(1, { message: "Constituency is required." }),
   gender: z.enum(['male', 'female', 'other'], { required_error: "Please select a gender."}),
   age: z.coerce.number().int({ message: "Age must be a whole number." }).positive({ message: "Age must be positive." }).min(25, { message: "Candidate must be at least 25 years old." }),
-  nativeAddress: z.string().min(1, { message: "Native address is required." }),
+  native_address: z.string().min(1, { message: "Native address is required." }),
   state: z.string().optional(),
   district: z.string().optional(),
-  previousElections: z.array(z.object({
+  previous_elections: z.array(z.object({
     electionType: z.string().min(1, { message: "Required" }),
     constituency: z.string().min(1, { message: "Required" }),
     state: z.string().optional(),
@@ -62,19 +62,19 @@ const formSchema = z.object({
     electionYear: z.string().min(4, { message: "Invalid year" }).max(4, { message: "Invalid year" }),
     partyName: z.string().min(1, { message: "Required" }),
   })).optional(),
-  photoUrl: z.any()
+  photo_url: z.any()
     .optional()
     .refine((files) => !files || files.length === 0 || files[0].size <= MAX_PHOTO_SIZE_BYTES,
       { message: `Max photo size is ${MAX_PHOTO_SIZE_MB}MB.` }
     ),
-  manifestoUrl: z.any()
+  manifesto_url: z.any()
     .optional()
     .refine((files) => !files || files.length === 0 || files[0].size <= MAX_MANIFESTO_SIZE_BYTES,
       { message: `Max manifesto size is ${MAX_MANIFESTO_SIZE_MB}MB.` }
     ),
-  twitterUrl: z.string().url({ message: "Please enter a valid X/Twitter URL." }).optional().or(z.literal('')),
+  twitter_url: z.string().url({ message: "Please enter a valid X/Twitter URL." }).optional().or(z.literal('')),
 }).refine(data => {
-    if (data.electionType === 'state' || data.electionType === 'panchayat') {
+    if (data.election_type === 'state' || data.election_type === 'panchayat') {
         return !!data.state;
     }
     return true;
@@ -115,16 +115,16 @@ function AddLeaderPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      partyName: "",
+      party_name: "",
       constituency: "",
-      nativeAddress: "",
+      native_address: "",
       state: "",
       district: "",
       age: undefined,
-      previousElections: [],
-      photoUrl: undefined,
-      manifestoUrl: undefined,
-      twitterUrl: "",
+      previous_elections: [],
+      photo_url: undefined,
+      manifesto_url: undefined,
+      twitter_url: "",
     },
   });
 
@@ -147,13 +147,13 @@ function AddLeaderPage() {
           if (userState && leaderState === userState) {
             return true;
           }
-          if (leader.electionType === 'national' && lowerMp && leaderConstituency === lowerMp) {
+          if (leader.election_type === 'national' && lowerMp && leaderConstituency === lowerMp) {
             return true;
           }
-          if (leader.electionType === 'state' && lowerMla && leaderConstituency === lowerMla) {
+          if (leader.election_type === 'state' && lowerMla && leaderConstituency === lowerMla) {
             return true;
           }
-          if (leader.electionType === 'panchayat' && lowerPanchayat && leaderConstituency === lowerPanchayat) {
+          if (leader.election_type === 'panchayat' && lowerPanchayat && leaderConstituency === lowerPanchayat) {
             return true;
           }
           return false;
@@ -181,7 +181,7 @@ function AddLeaderPage() {
           const isAdmin = localStorage.getItem('admin_auth') === 'true';
           const leaderData = await getLeaderById(editId);
           if (leaderData) {
-              if (!isAdmin && user && leaderData.addedByUserId !== user.id) {
+              if (!isAdmin && user && leaderData.added_by_user_id !== user.id) {
                   toast({ variant: 'destructive', title: 'Unauthorized', description: "You are not allowed to edit this leader." });
                   router.push('/my-activities');
                   return;
@@ -189,18 +189,18 @@ function AddLeaderPage() {
             setCurrentLeader(leaderData);
             form.reset({
               name: leaderData.name,
-              partyName: leaderData.partyName,
-              electionType: leaderData.electionType,
+              party_name: leaderData.party_name,
+              election_type: leaderData.election_type,
               constituency: leaderData.constituency,
               gender: leaderData.gender,
               age: leaderData.age,
-              nativeAddress: leaderData.nativeAddress,
+              native_address: leaderData.native_address,
               state: leaderData.location.state || '',
               district: leaderData.location.district || '',
-              previousElections: leaderData.previousElections || [],
-              twitterUrl: leaderData.twitterUrl || '',
-              photoUrl: undefined,
-              manifestoUrl: undefined,
+              previous_elections: leaderData.previous_elections || [],
+              twitter_url: leaderData.twitter_url || '',
+              photo_url: undefined,
+              manifesto_url: undefined,
             });
           } else {
             toast({ variant: 'destructive', title: 'Error', description: 'Leader not found.' });
@@ -223,10 +223,10 @@ function AddLeaderPage() {
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "previousElections"
+    name: "previous_elections"
   });
 
-  const electionType = form.watch('electionType');
+  const electionType = form.watch('election_type');
   const selectedState = form.watch('state');
   
   const handleClear = () => {
@@ -234,7 +234,6 @@ function AddLeaderPage() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // Securely determine admin status at the time of submission
     const isAdminSubmission = localStorage.getItem('admin_auth') === 'true';
 
     if (!user && !isAdminSubmission) {
@@ -256,20 +255,20 @@ function AddLeaderPage() {
         reader.readAsDataURL(file);
     });
 
-    let photoDataUrl = currentLeader?.photoUrl || '';
-    if (values.photoUrl && values.photoUrl.length > 0) {
+    let photoDataUrl = currentLeader?.photo_url || '';
+    if (values.photo_url && values.photo_url.length > 0) {
         try {
-            photoDataUrl = await fileToDataUri(values.photoUrl[0]);
+            photoDataUrl = await fileToDataUri(values.photo_url[0]);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error uploading photo.' });
             return;
         }
     }
 
-    let manifestoDataUrl = currentLeader?.manifestoUrl || '';
-    if (values.manifestoUrl && values.manifestoUrl.length > 0) {
+    let manifestoDataUrl = currentLeader?.manifesto_url || '';
+    if (values.manifesto_url && values.manifesto_url.length > 0) {
         try {
-            manifestoDataUrl = await fileToDataUri(values.manifestoUrl[0]);
+            manifestoDataUrl = await fileToDataUri(values.manifesto_url[0]);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error uploading manifesto.' });
             return;
@@ -278,40 +277,35 @@ function AddLeaderPage() {
     
     const leaderPayload = {
         name: values.name,
-        partyName: values.partyName,
+        party_name: values.party_name,
         constituency: values.constituency,
-        electionType: values.electionType,
+        election_type: values.election_type,
         gender: values.gender,
         age: values.age,
-        nativeAddress: values.nativeAddress,
+        native_address: values.native_address,
         location: {
             state: values.state,
             district: values.district,
         },
-        previousElections: values.previousElections || [],
-        photoUrl: photoDataUrl,
-        manifestoUrl: manifestoDataUrl,
-        twitterUrl: values.twitterUrl,
+        previous_elections: values.previous_elections || [],
+        photo_url: photoDataUrl,
+        manifesto_url: manifestoDataUrl,
+        twitter_url: values.twitter_url,
     };
 
     try {
         if (isEditMode && leaderId) {
-            // The backend function will handle status changes based on `isAdminSubmission`
             await updateLeader(leaderId, leaderPayload, user?.id ?? null, isAdminSubmission);
             
-            // --- SECURE REDIRECTION LOGIC ---
             if (isAdminSubmission) {
-                // This path is ONLY for admins
                 toast({ title: t('addLeaderPage.updateSuccessMessage') });
                 router.push('/admin/leaders');
             } else {
-                // This path is for ALL non-admin users
                 toast({ title: "Update Submitted", description: "Your changes have been submitted and are pending re-approval." });
                 router.push('/my-activities');
             }
         } else {
-            // This is for adding a NEW leader, which always defaults to 'pending' status
-            await addLeader(leaderPayload, user?.id ?? null);
+            await addLeader(leaderPayload as any, user?.id ?? null);
             toast({ title: t('addLeaderPage.successMessage'), description: "Your submission is pending admin approval." });
             form.reset();
             router.push('/rate-leader');
@@ -392,7 +386,6 @@ function AddLeaderPage() {
                 {isLoading ? <FormSkeleton /> : (
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                            {/* --- Row 1: Basic Info --- */}
                             <div className="grid md:grid-cols-3 gap-6">
                                 <FormField
                                     control={form.control}
@@ -409,7 +402,7 @@ function AddLeaderPage() {
                                 />
                                 <FormField
                                     control={form.control}
-                                    name="partyName"
+                                    name="party_name"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>{t('addLeaderPage.partyNameLabel')}</FormLabel>
@@ -422,7 +415,7 @@ function AddLeaderPage() {
                                 />
                                 <FormField
                                     control={form.control}
-                                    name="electionType"
+                                    name="election_type"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>{t('addLeaderPage.electionTypeLabel')}</FormLabel>
@@ -444,7 +437,6 @@ function AddLeaderPage() {
                                 />
                             </div>
 
-                            {/* --- Row 2: Location Details --- */}
                             <div className="grid md:grid-cols-3 gap-6">
                                 <FormField
                                     control={form.control}
@@ -483,7 +475,7 @@ function AddLeaderPage() {
                                 />
                                 <FormField
                                     control={form.control}
-                                    name="nativeAddress"
+                                    name="native_address"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>{t('addLeaderPage.nativeAddressLabel')}</FormLabel>
@@ -496,7 +488,6 @@ function AddLeaderPage() {
                                 />
                             </div>
                             
-                            {/* --- Row 3: Personal Details --- */}
                             <div className="grid md:grid-cols-3 gap-6">
                                 <FormField
                                     control={form.control}
@@ -541,8 +532,6 @@ function AddLeaderPage() {
                                 />
                             </div>
 
-                            
-                            {/* --- Previous Elections --- */}
                             <div className="space-y-4">
                             <div className="border-b pb-2">
                                 <h3 className="text-lg font-medium">{t('addLeaderPage.previousElectionsTitle')}</h3>
@@ -553,7 +542,7 @@ function AddLeaderPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-2 items-end">
                                         <FormField
                                         control={form.control}
-                                        name={`previousElections.${index}.electionType`}
+                                        name={`previous_elections.${index}.electionType`}
                                         render={({ field }) => (
                                             <FormItem className="col-span-12 md:col-span-2">
                                             <FormLabel className="text-xs">{t('addLeaderPage.electionTypeLabel')}</FormLabel>
@@ -575,7 +564,7 @@ function AddLeaderPage() {
                                         />
                                         <FormField
                                         control={form.control}
-                                        name={`previousElections.${index}.state`}
+                                        name={`previous_elections.${index}.state`}
                                         render={({ field }) => (
                                             <FormItem className="col-span-12 md:col-span-2">
                                             <FormLabel className="text-xs">{t('addLeaderPage.stateLabel')}</FormLabel>
@@ -597,7 +586,7 @@ function AddLeaderPage() {
                                         />
                                         <FormField
                                         control={form.control}
-                                        name={`previousElections.${index}.constituency`}
+                                        name={`previous_elections.${index}.constituency`}
                                         render={({ field }) => (
                                             <FormItem className="col-span-12 md:col-span-4">
                                             <FormLabel className="text-xs">{t('addLeaderPage.previousConstituencyLabel')}</FormLabel>
@@ -608,7 +597,7 @@ function AddLeaderPage() {
                                         />
                                         <FormField
                                         control={form.control}
-                                        name={`previousElections.${index}.partyName`}
+                                        name={`previous_elections.${index}.partyName`}
                                         render={({ field }) => (
                                             <FormItem className="col-span-12 md:col-span-3">
                                             <FormLabel className="text-xs">{t('addLeaderPage.partyNameLabel')}</FormLabel>
@@ -630,7 +619,7 @@ function AddLeaderPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-2">
                                         <FormField
                                         control={form.control}
-                                        name={`previousElections.${index}.status`}
+                                        name={`previous_elections.${index}.status`}
                                         render={({ field }) => (
                                             <FormItem className="col-span-6 md:col-span-2">
                                             <FormLabel className="text-xs">{t('addLeaderPage.statusLabel')}</FormLabel>
@@ -649,7 +638,7 @@ function AddLeaderPage() {
                                         />
                                         <FormField
                                         control={form.control}
-                                        name={`previousElections.${index}.electionYear`}
+                                        name={`previous_elections.${index}.electionYear`}
                                         render={({ field }) => (
                                             <FormItem className="col-span-6 md:col-span-2">
                                             <FormLabel className="text-xs">{t('addLeaderPage.electionYearLabel')}</FormLabel>
@@ -672,18 +661,17 @@ function AddLeaderPage() {
                             </div>
                             </div>
 
-                            {/* --- Row 5: Files --- */}
                             <div className="grid md:grid-cols-3 gap-6">
                                 <FormField
                                     control={form.control}
-                                    name="photoUrl"
+                                    name="photo_url"
                                     render={({ field: { onChange, value, ...rest } }) => (
                                         <FormItem>
                                             <FormLabel>{t('addLeaderPage.photoUrlLabel')}</FormLabel>
-                                            {isEditMode && currentLeader?.photoUrl && (
+                                            {isEditMode && currentLeader?.photo_url && (
                                                 <div className="mb-2">
                                                     <p className="text-sm text-muted-foreground">Current Photo:</p>
-                                                    <Image src={currentLeader.photoUrl} alt="Current leader photo" width={80} height={80} className="rounded-md object-cover mt-1" />
+                                                    <Image src={currentLeader.photo_url} alt="Current leader photo" width={80} height={80} className="rounded-md object-cover mt-1" />
                                                 </div>
                                             )}
                                             <FormControl>
@@ -700,17 +688,17 @@ function AddLeaderPage() {
                                 />
                                 <FormField
                                     control={form.control}
-                                    name="manifestoUrl"
+                                    name="manifesto_url"
                                     render={({ field: { onChange, value, ...rest } }) => (
                                         <FormItem>
                                             <FormLabel>{t('addLeaderPage.manifestoUrlLabel')}</FormLabel>
-                                            {isEditMode && currentLeader?.manifestoUrl && (
+                                            {isEditMode && currentLeader?.manifesto_url && (
                                                 <div className="mb-2">
                                                      <Button 
                                                         type="button" 
                                                         variant="link" 
                                                         className="p-0 h-auto text-sm"
-                                                        onClick={() => setManifestoForView({ url: currentLeader.manifestoUrl!, name: currentLeader.name })}
+                                                        onClick={() => setManifestoForView({ url: currentLeader.manifesto_url!, name: currentLeader.name })}
                                                       >
                                                         View Current Manifesto
                                                       </Button>
@@ -730,7 +718,7 @@ function AddLeaderPage() {
                                 />
                                 <FormField
                                     control={form.control}
-                                    name="twitterUrl"
+                                    name="twitter_url"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>{t('addLeaderPage.twitterUrlLabel')}</FormLabel>

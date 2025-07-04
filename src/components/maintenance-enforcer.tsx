@@ -2,17 +2,15 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { getSiteSettings, type SiteSettings } from '@/data/settings';
+import { useEffect } from 'react';
+import { getSiteSettings } from '@/data/settings';
 
 export default function MaintenanceEnforcer() {
   const pathname = usePathname();
   const router = useRouter();
   
-  // We only fetch settings once on the client-side to avoid re-running on every navigation
   useEffect(() => {
     const checkMaintenanceStatus = async () => {
-      // Skip check for admin, maintenance page itself, or API routes
       if (pathname.startsWith('/admin') || pathname.startsWith('/maintenance') || pathname.startsWith('/api')) {
         return;
       }
@@ -20,7 +18,7 @@ export default function MaintenanceEnforcer() {
       try {
         const settings = await getSiteSettings();
         
-        const maintenanceActive = settings.maintenance_active === 'true';
+        const maintenanceActive = settings.maintenance_active;
         if (!maintenanceActive) {
             return;
         }
@@ -32,23 +30,19 @@ export default function MaintenanceEnforcer() {
         let isMaintenanceWindow = false;
         if (startTime) {
             if (endTime) {
-                // Window with start and end
                 if (now >= startTime && now <= endTime) {
                     isMaintenanceWindow = true;
                 }
             } else {
-                // Window with only a start time (active indefinitely from that point)
                 if (now >= startTime) {
                     isMaintenanceWindow = true;
                 }
             }
         } else {
-            // No schedule defined, so maintenance is active immediately
             isMaintenanceWindow = true;
         }
 
         if (isMaintenanceWindow) {
-          // Using replace to not add the blocked page to browser history
           router.replace('/maintenance');
         }
 
@@ -60,5 +54,5 @@ export default function MaintenanceEnforcer() {
     checkMaintenanceStatus();
   }, [pathname, router]);
 
-  return null; // This component does not render anything
+  return null;
 }

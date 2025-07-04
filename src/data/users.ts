@@ -1,14 +1,12 @@
 
 'use server';
 
-import { db, convertFirestoreData } from '@/lib/db';
-import { FieldValue } from 'firebase-admin/firestore';
+import { supabaseAdmin } from '@/lib/supabase';
 import { isAfter } from 'date-fns';
 
 export interface User {
   id: string;
   email: string;
-  password?: string; // Should not be stored in Firestore but used for auth logic
   name?: string;
   gender?: 'male' | 'female' | 'other' | '';
   age?: number;
@@ -16,204 +14,197 @@ export interface User {
   mpConstituency?: string;
   mlaConstituency?: string;
   panchayat?: string;
-  createdAt?: any;
-  isBlocked?: boolean;
-  blockedUntil?: any | null;
-  blockReason?: string | null;
+  created_at?: string;
+  is_blocked?: boolean;
+  blocked_until?: string | null;
+  block_reason?: string | null;
 }
 
 export interface AdminMessage {
   id: string;
-  userId: string;
+  user_id: string;
   message: string;
-  isRead: boolean;
-  createdAt: any;
-}
-
-
-// This is a mock auth function. In a real Firestore app, you'd use Firebase Auth.
-// This function emulates the password check for the prototype.
-async function verifyPassword(userId: string, passwordAttempt: string): Promise<boolean> {
-    const pwDoc = await db.collection('user_credentials').doc(userId).get();
-    if (!pwDoc.exists) return false; // Or handle as social login
-    return pwDoc.data()?.password === passwordAttempt;
+  is_read: boolean;
+  created_at: string;
 }
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
-  const usersRef = db.collection('users');
-  const snapshot = await usersRef.where('email', '==', email.toLowerCase()).limit(1).get();
-  
-  if (snapshot.empty) {
-    return undefined;
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('*')
+    .eq('email', email.toLowerCase())
+    .limit(1)
+    .single();
+
+  if (error && error.code !== 'PGRST116') { // Ignore 'exact one row not found'
+    console.error('Error finding user by email:', error);
   }
   
-  const userDoc = snapshot.docs[0];
-  return convertFirestoreData({ id: userDoc.id, ...userDoc.data() }) as User;
+  return data || undefined;
 }
 
 export async function findUserById(id: string): Promise<User | undefined> {
-  const docRef = db.collection('users').doc(id);
-  const doc = await docRef.get();
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-  if (!doc.exists) {
-    return undefined;
+  if (error) {
+    console.error('Error finding user by id:', error);
   }
 
-  return convertFirestoreData({ id: doc.id, ...doc.data() }) as User;
+  return data || undefined;
 }
 
-export async function addUser(user: Omit<User, 'id' | 'createdAt'>): Promise<User | null> {
+export async function addUser(user: Partial<User> & { id: string; email: string }): Promise<User> {
   const name = user.name || user.email.split('@')[0];
   const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
   
-  const userRef = db.collection('users').doc();
-  const newUser: Omit<User, 'id' | 'password'> = {
-    email: user.email.toLowerCase(),
-    name: formattedName,
-    createdAt: FieldValue.serverTimestamp(),
-    isBlocked: false,
-    blockedUntil: null,
-    blockReason: null,
-  };
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .insert({
+      id: user.id,
+      email: user.email.toLowerCase(),
+      name: formattedName,
+    })
+    .select()
+    .single();
 
-  await userRef.set(newUser);
-  
-  // Store password separately for mock auth. DO NOT do this in production.
-  if (user.password) {
-      await db.collection('user_credentials').doc(userRef.id).set({ password: user.password });
+  if (error) {
+    console.error("Error adding user profile:", error);
+    throw new Error('Failed to create user profile.');
   }
-
-  return { ...newUser, id: userRef.id };
+  
+  return data;
 }
 
 export async function updateUserProfile(userId: string, profileData: Partial<User>): Promise<User | null> {
-    const userRef = db.collection('users').doc(userId);
-    const dataToUpdate: { [key: string]: any } = { ...profileData };
-    
-    // Remove fields that shouldn't be updated this way
-    delete dataToUpdate.id;
-    delete dataToUpdate.email;
-    delete dataToUpdate.password;
-    delete dataToUpdate.createdAt;
+  const dataToUpdate: { [key: string]: any } = { ...profileData };
 
-    // Convert empty strings to null for clean data
-    Object.keys(dataToUpdate).forEach(key => {
-        if (dataToUpdate[key] === '') {
-            dataToUpdate[key] = null;
-        }
-         if (key === 'age' && isNaN(Number(dataToUpdate[key]))) {
-            dataToUpdate[key] = null;
-        }
-    });
+  delete dataToUpdate.id;
+  delete dataToUpdate.email;
+  delete dataToUpdate.created_at;
 
-    await userRef.update(dataToUpdate);
-    return findUserById(userId).then(user => user || null);
+  Object.keys(dataToUpdate).forEach(key => {
+      if (dataToUpdate[key] === '') dataToUpdate[key] = null;
+      if (key === 'age' && isNaN(Number(dataToUpdate[key]))) dataToUpdate[key] = null;
+  });
+
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .update(dataToUpdate)
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating user profile:", error);
+    throw new Error('Failed to update user profile.');
+  }
+  return data;
 }
 
 export async function getUserCount(filters?: { startDate?: string, endDate?: string, state?: string, constituency?: string }): Promise<number> {
-    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection('users');
-
-    if (filters?.startDate && filters?.endDate) {
-        query = query.where('createdAt', '>=', new Date(filters.startDate)).where('createdAt', '<=', new Date(filters.endDate));
-    }
-    if (filters?.state) {
-        query = query.where('state', '==', filters.state);
-    }
-    // Full-text search on constituencies is not possible with basic Firestore queries.
-    // This will be an exact match if a constituency is provided.
-    if (filters?.constituency) {
-        // Since we can't do an OR query, we can't search all three constituency fields simply.
-        // This is a limitation we accept for this migration.
-    }
+    let query = supabaseAdmin.from('users').select('*', { count: 'exact', head: true });
     
-    const snapshot = await query.count().get();
-    return snapshot.data().count;
+    if (filters?.startDate) query = query.gte('created_at', filters.startDate);
+    if (filters?.endDate) query = query.lte('created_at', filters.endDate);
+    if (filters?.state) query = query.eq('state', filters.state);
+
+    const { count, error } = await query;
+    if (error) console.error("Error getting user count:", error);
+    return count || 0;
 }
+
 
 // --- Admin Moderation Functions ---
 
 export async function blockUser(userId: string, reason: string, blockedUntil: string | null): Promise<void> {
-    const userRef = db.collection('users').doc(userId);
-    await userRef.update({
-        isBlocked: true,
-        blockReason: reason,
-        blockedUntil: blockedUntil ? new Date(blockedUntil) : null,
-    });
+    const { error } = await supabaseAdmin
+      .from('users')
+      .update({ is_blocked: true, block_reason: reason, blocked_until: blockedUntil })
+      .eq('id', userId);
+    if (error) throw error;
 }
 
 export async function unblockUser(userId: string): Promise<void> {
-    const userRef = db.collection('users').doc(userId);
-    await userRef.update({
-        isBlocked: false,
-        blockReason: null,
-        blockedUntil: null,
-    });
+    const { error } = await supabaseAdmin
+      .from('users')
+      .update({ is_blocked: false, block_reason: null, blocked_until: null })
+      .eq('id', userId);
+    if (error) throw error;
 }
 
-export async function getUsers(query?: string): Promise<Omit<User, 'password'>[]> {
-  const usersRef = db.collection('users');
-  let queryBuilder: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = usersRef;
-  
-  if (query) {
-    // Firestore requires an index for this type of query.
-    // Also, it cannot perform 'OR' queries on different fields.
-    // A more robust solution would use a search service like Algolia.
-    // For now, we will search by email as it's a common use case.
-     queryBuilder = queryBuilder.where('email', '>=', query).where('email', '<=', query + '\uf8ff');
-  } else {
-      queryBuilder = queryBuilder.orderBy('createdAt', 'desc');
-  }
+export async function getUsers(query?: string): Promise<(User & { ratingCount: number; leaderAddedCount: number; unreadMessageCount: number; })[]> {
+    let queryBuilder = supabaseAdmin.from('users').select('*');
+    
+    if (query) {
+      queryBuilder = queryBuilder.or(`name.ilike.%${query}%,email.ilike.%${query}%,id.eq.${query}`);
+    } else {
+      queryBuilder = queryBuilder.order('created_at', { ascending: false });
+    }
 
-  const snapshot = await queryBuilder.get();
-  if (snapshot.empty) return [];
+    const { data: users, error } = await queryBuilder;
+    if (error) {
+      console.error("Error fetching users:", error);
+      return [];
+    }
+    if (!users) return [];
 
-  const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const enrichedUsers = await Promise.all(users.map(async (user) => {
+        const { count: ratingCount } = await supabaseAdmin.from('ratings').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+        const { count: leaderAddedCount } = await supabaseAdmin.from('leaders').select('*', { count: 'exact', head: true }).eq('added_by_user_id', user.id);
+        const { count: unreadMessageCount } = await supabaseAdmin.from('admin_messages').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false);
+        return {
+            ...user,
+            ratingCount: ratingCount ?? 0,
+            leaderAddedCount: leaderAddedCount ?? 0,
+            unreadMessageCount: unreadMessageCount ?? 0,
+        };
+    }));
 
-  // Enrich with counts (N+1 problem, but necessary for prototype)
-  const enrichedUsers = await Promise.all(users.map(async (user) => {
-      const ratingsSnapshot = await db.collection('ratings').where('userId', '==', user.id).count().get();
-      const leadersSnapshot = await db.collection('leaders').where('addedByUserId', '==', user.id).count().get();
-      const messagesSnapshot = await db.collection('admin_messages').where('userId', '==', user.id).where('isRead', '==', false).count().get();
-
-      return {
-          ...user,
-          ratingCount: ratingsSnapshot.data().count,
-          leaderAddedCount: leadersSnapshot.data().count,
-          unreadMessageCount: messagesSnapshot.data().count,
-      };
-  }));
-
-  return convertFirestoreData(enrichedUsers);
+    return enrichedUsers;
 }
 
 export async function addAdminMessage(userId: string, message: string): Promise<void> {
-  const messageRef = db.collection('admin_messages').doc();
-  await messageRef.set({
-      userId,
-      message,
-      isRead: false,
-      createdAt: FieldValue.serverTimestamp(),
-  });
+  const { error } = await supabaseAdmin
+    .from('admin_messages')
+    .insert({ user_id: userId, message });
+  if (error) throw error;
 }
 
 export async function getAdminMessages(userId: string): Promise<AdminMessage[]> {
-  const snapshot = await db.collection('admin_messages').where('userId', '==', userId).orderBy('createdAt', 'desc').get();
-  if (snapshot.empty) return [];
-  const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as AdminMessage);
-  return convertFirestoreData(messages);
+  const { data, error } = await supabaseAdmin
+    .from('admin_messages')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
 }
 
 export async function getUnreadMessages(userId: string): Promise<AdminMessage[]> {
-  const snapshot = await db.collection('admin_messages').where('userId', '==', userId).where('isRead', '==', false).orderBy('createdAt', 'asc').get();
-  if (snapshot.empty) return [];
-  const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as AdminMessage);
-  return convertFirestoreData(messages);
+  const { data, error } = await supabaseAdmin
+    .from('admin_messages')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_read', false)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
 }
 
 export async function markMessageAsRead(messageId: string): Promise<void> {
-  await db.collection('admin_messages').doc(messageId).update({ isRead: true });
+  await supabaseAdmin
+    .from('admin_messages')
+    .update({ is_read: true })
+    .eq('id', messageId);
 }
 
 export async function deleteAdminMessage(messageId: string): Promise<void> {
-    await db.collection('admin_messages').doc(messageId).delete();
+    await supabaseAdmin
+      .from('admin_messages')
+      .delete()
+      .eq('id', messageId);
 }

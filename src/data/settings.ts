@@ -1,10 +1,10 @@
 
 'use server';
 
-import { db } from '@/lib/db';
+import { supabaseAdmin, handleSupabaseError } from '@/lib/supabase';
 
 export interface SiteSettings {
-    maintenance_active: 'true' | 'false';
+    maintenance_active: boolean;
     maintenance_start: string | null;
     maintenance_end: string | null;
     maintenance_message: string | null;
@@ -17,7 +17,7 @@ export interface SiteSettings {
 }
 
 const defaultSettings: SiteSettings = {
-    maintenance_active: 'false',
+    maintenance_active: false,
     maintenance_start: null,
     maintenance_end: null,
     maintenance_message: 'The site is currently down for maintenance. We will be back shortly.',
@@ -29,39 +29,40 @@ const defaultSettings: SiteSettings = {
     contact_facebook: null,
 };
 
-const settingsRef = db.collection('site_config').doc('main');
-
-/**
- * Retrieves all site settings from the database.
- * @returns A promise that resolves to an object containing all site settings.
- */
 export async function getSiteSettings(): Promise<SiteSettings> {
-    try {
-        const doc = await settingsRef.get();
-        if (!doc.exists) {
-            // If the settings document doesn't exist, create it with defaults
-            await settingsRef.set(defaultSettings);
+    const { data, error } = await supabaseAdmin
+        .from('site_settings')
+        .select('*')
+        .limit(1)
+        .single();
+    
+    if (error && error.code === 'PGRST116') { // No rows found
+        const { data: newData, error: insertError } = await supabaseAdmin
+            .from('site_settings')
+            .insert(defaultSettings)
+            .select()
+            .single();
+        if (insertError) {
+            console.error("Failed to insert default settings:", insertError);
             return defaultSettings;
         }
-        return { ...defaultSettings, ...doc.data() as Partial<SiteSettings> };
-    } catch (error) {
-        console.error("Failed to get site settings, returning defaults.", error);
+        return newData || defaultSettings;
+    }
+    
+    if (error) {
+        console.error("Failed to get site settings:", error);
         return defaultSettings;
     }
+
+    return { ...defaultSettings, ...data };
 }
 
-/**
- * Updates multiple site settings in a single transaction.
- * @param settings An object where keys are the setting names and values are the new values.
- * @returns A promise that resolves when the settings have been updated.
- */
 export async function updateSiteSettings(settings: Partial<SiteSettings>): Promise<void> {
-    try {
-        // Using set with merge:true will create the document if it doesn't exist,
-        // or update it if it does, only changing the specified fields.
-        await settingsRef.set(settings, { merge: true });
-    } catch (error) {
-        console.error("Failed to update site settings:", error);
-        throw new Error("Database transaction for updating settings failed.");
+    const { error } = await supabaseAdmin
+        .from('site_settings')
+        .upsert({ id: 1, ...settings }); // Assuming a single row with id=1 for settings
+
+    if (error) {
+        handleSupabaseError({ data: null, error }, 'updateSiteSettings');
     }
 }

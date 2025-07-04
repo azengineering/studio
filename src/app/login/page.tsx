@@ -34,7 +34,6 @@ import { useLanguage } from '@/context/language-context';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { firebaseEnabled } from "@/lib/firebase";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -66,7 +65,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       const redirectPath = searchParams.get('redirect') || '/';
@@ -74,7 +72,6 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router, searchParams]);
 
-  // Show success message if redirected from signup
   useEffect(() => {
     const message = searchParams.get('message');
     if (message) {
@@ -128,22 +125,13 @@ export default function LoginPage() {
     try {
       const redirectPath = searchParams.get('redirect');
       await signInWithGoogle(redirectPath);
-      
-      toast({
-        title: "Welcome!",
-        description: "You have successfully signed in with Google.",
-      });
+      // Redirection handled by Supabase, success toast shown on redirect page if needed
     } catch (error) {
-      if (error instanceof Error && error.message.startsWith('BLOCKED::')) {
-        const [_, reason, until] = error.message.split('::');
-        setBlockInfo({ reason, until: until !== 'null' ? until : null });
-      } else {
-        toast({
+       toast({
           title: "Google Sign-In Failed",
           description: error instanceof Error ? error.message : "Unable to sign in with Google. Please try again.",
           variant: "destructive",
         });
-      }
     } finally {
       setIsGoogleLoading(false);
     }
@@ -211,52 +199,45 @@ export default function LoginPage() {
             </CardHeader>
             
             <CardContent className="px-8 space-y-6">
-              {/* Dedicated Google Sign-In Section */}
-              {firebaseEnabled && (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-6 rounded-lg border-2 border-blue-100 dark:border-blue-800/30 space-y-4">
-                  <div className="text-center">
-                    <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                      Quick Sign-In with Google
-                    </h3>
-                    <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
-                      Sign in instantly with your Google account
-                    </p>
-                  </div>
-                  
-                  <Button 
-                    variant="default" 
-                    className="w-full py-6 text-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-lg" 
-                    onClick={handleGoogleSignIn}
-                    disabled={isGoogleLoading || isLoading}
-                  >
-                    {isGoogleLoading ? (
-                      <>
-                        <Loader2 className="mr-3 h-6 w-6 animate-spin text-blue-600" />
-                        Signing in with Google...
-                      </>
-                    ) : (
-                      <>
-                        <GoogleIcon className="mr-3 h-6 w-6 fill-current" />
-                        Sign in with Google
-                      </>
-                    )}
-                  </Button>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-6 rounded-lg border-2 border-blue-100 dark:border-blue-800/30 space-y-4">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                    Quick Sign-In with Google
+                  </h3>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+                    Sign in instantly with your Google account
+                  </p>
                 </div>
-              )}
+                
+                <Button 
+                  variant="default" 
+                  className="w-full py-6 text-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-lg" 
+                  onClick={handleGoogleSignIn}
+                  disabled={isGoogleLoading || isLoading}
+                >
+                  {isGoogleLoading ? (
+                    <>
+                      <Loader2 className="mr-3 h-6 w-6 animate-spin text-blue-600" />
+                      Redirecting to Google...
+                    </>
+                  ) : (
+                    <>
+                      <GoogleIcon className="mr-3 h-6 w-6 fill-current" />
+                      Sign in with Google
+                    </>
+                  )}
+                </Button>
+              </div>
 
-              {/* Divider */}
-              {firebaseEnabled && (
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-gray-300" />
-                  </div>
-                  <div className="relative flex justify-center text-sm uppercase">
-                    <span className="bg-background px-4 text-muted-foreground font-medium">Or continue with email</span>
-                  </div>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-gray-300" />
                 </div>
-              )}
+                <div className="relative flex justify-center text-sm uppercase">
+                  <span className="bg-background px-4 text-muted-foreground font-medium">Or continue with email</span>
+                </div>
+              </div>
 
-              {/* Email/Password Form */}
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <FormField

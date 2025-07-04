@@ -1,53 +1,52 @@
 
 'use server';
 
-import { db, convertFirestoreData } from '@/lib/db';
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { supabaseAdmin, handleSupabaseError } from '@/lib/supabase';
 import type { User } from './users';
 
 export interface Leader {
   id: string;
   name: string;
-  partyName: string;
+  party_name: string;
   gender: 'male' | 'female' | 'other';
   age: number;
-  photoUrl: string;
+  photo_url: string;
   constituency: string;
-  nativeAddress: string;
-  electionType: 'national' | 'state' | 'panchayat';
+  native_address: string;
+  election_type: 'national' | 'state' | 'panchayat';
   location: {
     state?: string;
     district?: string;
   };
   rating: number;
-  reviewCount: number;
-  previousElections: Array<{
+  review_count: number;
+  previous_elections: Array<{
     electionType: string;
     constituency: string;
     status: 'winner' | 'loser';
     electionYear: string;
     partyName: string;
   }>;
-  manifestoUrl?: string;
-  twitterUrl?: string;
-  addedByUserId?: string | null;
-  createdAt?: any; // Allow Timestamp or string
+  manifesto_url?: string;
+  twitter_url?: string;
+  added_by_user_id?: string | null;
+  created_at?: string;
   status: 'pending' | 'approved' | 'rejected';
-  adminComment?: string | null;
-  userName?: string;
+  admin_comment?: string | null;
+  user_name?: string;
 }
 
 export interface Review {
-  userId: string;
-  userName: string;
+  user_id: string;
+  user_name: string;
   rating: number;
   comment: string | null;
-  updatedAt: any; // Allow Timestamp or string
-  socialBehaviour: string | null;
+  updated_at: string;
+  social_behaviour: string | null;
 }
 
 export interface UserActivity {
-  leaderId: string;
+  leader_id: string;
   leaderName: string;
   leaderPhotoUrl: string;
   rating: number;
@@ -68,347 +67,222 @@ export interface SocialBehaviourDistribution {
   count: number;
 }
 
-// --- Public API ---
-
-// Gets only approved leaders for the public site
+// Public API gets only approved leaders
 export async function getLeaders(): Promise<Leader[]> {
-  const leadersRef = db.collection('leaders');
-  const snapshot = await leadersRef.where('status', '==', 'approved').get();
-  
-  if (snapshot.empty) {
-    return [];
-  }
-  
-  const leaders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Leader));
-  return convertFirestoreData(leaders);
+  const { data, error } = await supabaseAdmin
+    .from('leaders')
+    .select('*')
+    .eq('status', 'approved');
+  return handleSupabaseError({ data, error }, 'getLeaders') || [];
 }
 
-export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment' | 'userName'>, userId: string | null): Promise<void> {
-    const newLeader: Omit<Leader, 'id'> = {
+export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'review_count' | 'added_by_user_id' | 'created_at' | 'status' | 'admin_comment' | 'user_name'>, userId: string | null): Promise<void> {
+    const { error } = await supabaseAdmin.from('leaders').insert({
         ...leaderData,
-        rating: 0,
-        reviewCount: 0,
-        addedByUserId: userId,
-        createdAt: FieldValue.serverTimestamp(),
-        status: 'pending', // New leaders are pending approval
-        adminComment: null,
-    };
-    await db.collection('leaders').add(newLeader);
+        added_by_user_id: userId,
+        status: 'pending',
+    });
+    if (error) handleSupabaseError({ data: null, error }, 'addLeader');
 }
 
 export async function getLeaderById(id: string): Promise<Leader | null> {
-    const docRef = db.collection('leaders').doc(id);
-    const doc = await docRef.get();
-
-    if (!doc.exists) {
+    const { data, error } = await supabaseAdmin
+        .from('leaders')
+        .select('*')
+        .eq('id', id)
+        .single();
+    if (error) {
+        console.error('Error getting leader by ID:', error.message);
         return null;
     }
-    
-    const leaderData = { id: doc.id, ...doc.data() } as Leader;
-    return convertFirestoreData(leaderData);
+    return data;
 }
 
-export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment' | 'userName'>, userId: string | null, isAdmin: boolean): Promise<Leader | null> {
-    const leaderRef = db.collection('leaders').doc(leaderId);
-    const doc = await leaderRef.get();
-
-    if (!doc.exists) {
-        throw new Error("Leader not found.");
-    }
-    const leaderToUpdate = doc.data() as Leader;
+export async function updateLeader(leaderId: string, leaderData: any, userId: string | null, isAdmin: boolean): Promise<Leader | null> {
+    const { data: leaderToUpdate, error: fetchError } = await supabaseAdmin
+        .from('leaders')
+        .select('added_by_user_id')
+        .eq('id', leaderId)
+        .single();
     
-    if (!isAdmin && leaderToUpdate.addedByUserId !== userId) {
-        throw new Error("You are not authorized to edit this leader.");
-    }
-
-    let newStatus: Leader['status'] = leaderToUpdate.status;
-    let newAdminComment: string | null | undefined = leaderToUpdate.adminComment;
-
+    if (fetchError || !leaderToUpdate) throw new Error("Leader not found.");
+    if (!isAdmin && leaderToUpdate.added_by_user_id !== userId) throw new Error("Unauthorized");
+    
+    const updatePayload = { ...leaderData };
     if (!isAdmin) {
-        newStatus = 'pending';
-        newAdminComment = 'User updated details. Pending re-approval.';
+        updatePayload.status = 'pending';
+        updatePayload.admin_comment = 'User updated details. Pending re-approval.';
     }
 
-    await leaderRef.update({
-        ...leaderData,
-        status: newStatus,
-        adminComment: newAdminComment,
-    });
+    const { data, error } = await supabaseAdmin
+        .from('leaders')
+        .update(updatePayload)
+        .eq('id', leaderId)
+        .select()
+        .single();
 
-    return getLeaderById(leaderId);
+    return handleSupabaseError({ data, error }, 'updateLeader');
 }
 
 export async function submitRatingAndComment(leaderId: string, userId: string, newRating: number, comment: string | null, socialBehaviour: string | null): Promise<Leader | null> {
-    if (!userId) {
-        throw new Error("User must be authenticated to submit a rating.");
-    }
+    const { data: user } = await supabaseAdmin.from('users').select('name').eq('id', userId).single();
+    if (!user) throw new Error("User not found.");
 
-    const userDoc = await db.collection('users').doc(userId).get();
-    if (!userDoc.exists) {
-        throw new Error("User not found.");
-    }
-    const userName = (userDoc.data() as User)?.name || 'Anonymous';
-    
-    const leaderRef = db.collection('leaders').doc(leaderId);
-    const ratingRef = db.collection('ratings').doc(`${userId}_${leaderId}`);
-
-    await db.runTransaction(async (transaction) => {
-        const leaderDoc = await transaction.get(leaderRef);
-        const ratingDoc = await transaction.get(ratingRef);
-
-        if (!leaderDoc.exists) {
-            throw new Error("Leader not found.");
-        }
-
-        const leaderData = leaderDoc.data() as Leader;
-        const oldRating = ratingDoc.exists ? (ratingDoc.data()?.rating || 0) : 0;
-        
-        // Calculate new average rating
-        let newReviewCount = leaderData.reviewCount;
-        let newTotalRating = leaderData.rating * leaderData.reviewCount;
-
-        if (ratingDoc.exists) {
-            // Update existing rating
-            newTotalRating = newTotalRating - oldRating + newRating;
-        } else {
-            // New rating
-            newReviewCount += 1;
-            newTotalRating += newRating;
-        }
-        
-        const newAverageRating = newReviewCount > 0 ? newTotalRating / newReviewCount : 0;
-        
-        // Update leader document
-        transaction.update(leaderRef, {
-            rating: newAverageRating,
-            reviewCount: newReviewCount
-        });
-        
-        // Upsert rating document
-        transaction.set(ratingRef, {
-            userId,
-            leaderId,
-            userName,
+    await supabaseAdmin
+        .from('ratings')
+        .upsert({
+            user_id: userId,
+            leader_id: leaderId,
+            user_name: user.name || 'Anonymous',
             rating: newRating,
-            comment,
-            socialBehaviour,
-            updatedAt: FieldValue.serverTimestamp(),
-        }, { merge: true });
-    });
+            comment: comment,
+            social_behaviour: socialBehaviour,
+            updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,leader_id' });
+
+    const { data: stats } = await supabaseAdmin.rpc('get_leader_stats', { p_leader_id: leaderId });
+    if (stats && stats.length > 0) {
+        const { avg_rating, review_count } = stats[0];
+        await supabaseAdmin
+            .from('leaders')
+            .update({ rating: avg_rating, review_count: review_count })
+            .eq('id', leaderId);
+    }
 
     return getLeaderById(leaderId);
 }
 
-
 export async function getReviewsForLeader(leaderId: string): Promise<Review[]> {
-    const ratingsRef = db.collection('ratings');
-    const snapshot = await ratingsRef.where('leaderId', '==', leaderId).orderBy('updatedAt', 'desc').get();
-    
-    if (snapshot.empty) {
-        return [];
-    }
-    
-    const reviews = snapshot.docs.map(doc => doc.data() as Review);
-    return convertFirestoreData(reviews);
+    const { data, error } = await supabaseAdmin
+        .from('ratings')
+        .select('*')
+        .eq('leader_id', leaderId)
+        .order('updated_at', { ascending: false });
+    return handleSupabaseError({ data, error }, 'getReviewsForLeader') || [];
 }
 
 export async function getRatingDistribution(leaderId: string): Promise<RatingDistribution[]> {
-    const snapshot = await db.collection('ratings').where('leaderId', '==', leaderId).get();
-    if (snapshot.empty) return [];
-
-    const counts: { [key: number]: number } = {};
-    snapshot.docs.forEach(doc => {
-        const rating = doc.data().rating;
-        counts[rating] = (counts[rating] || 0) + 1;
-    });
-
-    return Object.entries(counts)
-      .map(([rating, count]) => ({ rating: Number(rating), count }))
-      .sort((a, b) => b.rating - a.rating);
+    const { data, error } = await supabaseAdmin.rpc('get_rating_distribution', { p_leader_id: leaderId });
+    return handleSupabaseError({ data, error }, 'getRatingDistribution') || [];
 }
 
 export async function getSocialBehaviourDistribution(leaderId: string): Promise<SocialBehaviourDistribution[]> {
-    const snapshot = await db.collection('ratings').where('leaderId', '==', leaderId).get();
-    if (snapshot.empty) return [];
-
-    const counts: { [key: string]: number } = {};
-    snapshot.docs.forEach(doc => {
-        const behaviour = doc.data().socialBehaviour;
-        if (behaviour) {
-            counts[behaviour] = (counts[behaviour] || 0) + 1;
-        }
-    });
-
-    return Object.entries(counts)
-        .map(([name, count]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1).replace('-', ' '), count }))
-        .sort((a, b) => b.count - a.count);
+    const { data, error } = await supabaseAdmin.rpc('get_social_behaviour_distribution', { p_leader_id: leaderId });
+    return handleSupabaseError({ data, error }, 'getSocialBehaviourDistribution') || [];
 }
 
-
 export async function getActivitiesForUser(userId: string): Promise<UserActivity[]> {
-    const ratingsRef = db.collection('ratings');
-    const snapshot = await ratingsRef.where('userId', '==', userId).orderBy('updatedAt', 'desc').get();
-
-    if (snapshot.empty) {
+    const { data, error } = await supabaseAdmin
+      .from('ratings')
+      .select(`
+        leader_id,
+        rating,
+        comment,
+        updated_at,
+        social_behaviour,
+        user_name,
+        leader:leaders(*)
+      `)
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false });
+      
+    if (error) {
+        handleSupabaseError({ data: null, error }, 'getActivitiesForUser');
         return [];
     }
 
-    const activities = await Promise.all(snapshot.docs.map(async (doc) => {
-        const ratingData = doc.data();
-        const leader = await getLeaderById(ratingData.leaderId);
-        
-        if (!leader) return null;
-
-        return {
-            leaderId: leader.id,
-            leaderName: leader.name,
-            leaderPhotoUrl: leader.photoUrl,
-            rating: ratingData.rating,
-            comment: ratingData.comment,
-            updatedAt: ratingData.updatedAt,
-            socialBehaviour: ratingData.socialBehaviour,
-            userName: ratingData.userName,
-            leader: leader,
-        } as UserActivity;
-    }));
-    
-    return convertFirestoreData(activities.filter(a => a !== null));
+    return (data as any[]).map(activity => ({
+        ...activity,
+        leaderId: activity.leader_id,
+        leaderName: activity.leader.name,
+        leaderPhotoUrl: activity.leader.photo_url,
+        updatedAt: activity.updated_at,
+        socialBehaviour: activity.social_behaviour,
+        userName: activity.user_name,
+    })) || [];
 }
 
 
 export async function getLeadersAddedByUser(userId: string): Promise<Leader[]> {
-  const leadersRef = db.collection('leaders');
-  const snapshot = await leadersRef.where('addedByUserId', '==', userId).orderBy('name', 'asc').get();
-  if (snapshot.empty) {
-    return [];
-  }
-  const leaders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Leader));
-  return convertFirestoreData(leaders);
+  const { data, error } = await supabaseAdmin
+    .from('leaders')
+    .select('*')
+    .eq('added_by_user_id', userId)
+    .order('name', { ascending: true });
+  return handleSupabaseError({ data, error }, 'getLeadersAddedByUser') || [];
 }
 
 
 export async function getLeaderCount(filters?: { startDate?: string, endDate?: string, state?: string, constituency?: string }): Promise<number> {
-    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection('leaders');
-
-    if (filters?.startDate && filters?.endDate) {
-        query = query.where('createdAt', '>=', new Date(filters.startDate)).where('createdAt', '<=', new Date(filters.endDate));
-    }
-    if (filters?.state) {
-        query = query.where('location.state', '==', filters.state);
-    }
-    // Firestore doesn't support 'LIKE' queries. We'll filter for exact constituency matches for now.
-    if (filters?.constituency) {
-        query = query.where('constituency', '==', filters.constituency);
-    }
-    
-    const snapshot = await query.count().get();
-    return snapshot.data().count;
+    let query = supabaseAdmin.from('leaders').select('*', { count: 'exact', head: true });
+    if (filters?.startDate) query.gte('created_at', filters.startDate);
+    if (filters?.endDate) query.lte('created_at', filters.endDate);
+    if (filters?.state) query.eq('location->>state', filters.state);
+    if (filters?.constituency) query.eq('constituency', filters.constituency);
+    const { count, error } = await query;
+    if (error) console.error("Error fetching leader count:", error);
+    return count || 0;
 }
 
 export async function getRatingCount(filters?: { startDate?: string, endDate?: string, state?: string, constituency?: string }): Promise<number> {
-    // This is complex with Firestore without denormalization.
-    // For now, we return the total count as filtering across collections is not straightforward.
-    const snapshot = await db.collection('ratings').count().get();
-    return snapshot.data().count;
+    const { count, error } = await supabaseAdmin.from('ratings').select('*', { count: 'exact', head: true });
+    if (error) console.error("Error fetching rating count:", error);
+    return count || 0;
 }
 
-// --- Admin Functions ---
-export async function getLeadersForAdminPanel(filters: {
-    dateFrom?: string;
-    dateTo?: string;
-    state?: string;
-    constituency?: string;
-    candidateName?: string;
-}): Promise<Leader[]> {
-    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection('leaders');
+// Admin Functions
+export async function getLeadersForAdminPanel(filters: { dateFrom?: string; dateTo?: string; state?: string; constituency?: string; candidateName?: string; }): Promise<Leader[]> {
+    let query = supabaseAdmin.from('leaders').select('*, user_name:users(name)');
 
-    if (filters.dateFrom && filters.dateTo) {
-        query = query.where('createdAt', '>=', new Date(filters.dateFrom)).where('createdAt', '<=', new Date(filters.dateTo));
-    }
-    if (filters.state) {
-        query = query.where('location.state', '==', filters.state);
-    }
-    // Firestore doesn't support multiple range/inequality filters or text search on different fields.
-    // This search is now simplified. For full functionality, an external search service like Algolia is recommended.
+    if (filters.dateFrom) query = query.gte('created_at', filters.dateFrom);
+    if (filters.dateTo) query = query.lte('created_at', filters.dateTo);
+    if (filters.state) query = query.eq('location->>state', filters.state);
+
     if (filters.candidateName) {
-        query = query.orderBy('name').startAt(filters.candidateName).endAt(filters.candidateName + '\uf8ff');
+        query = query.ilike('name', `%${filters.candidateName}%`);
     } else if (filters.constituency) {
-         query = query.orderBy('constituency').startAt(filters.constituency).endAt(filters.constituency + '\uf8ff');
-    } else {
-        query = query.orderBy('createdAt', 'desc');
+        query = query.ilike('constituency', `%${filters.constituency}%`);
     }
 
-    const snapshot = await query.get();
-    const leaders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Leader);
-
-    // Fetch user names for 'addedBy'
-    const users = await db.collection('users').get();
-    const userMap = new Map(users.docs.map(doc => [doc.id, doc.data().name]));
-
-    const leadersWithUserNames = leaders.map(leader => ({
-        ...leader,
-        userName: leader.addedByUserId ? userMap.get(leader.addedByUserId) || 'Unknown' : 'Admin/System'
-    }));
-
-    return convertFirestoreData(leadersWithUserNames);
+    const { data, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) handleSupabaseError({ data: null, error }, 'getLeadersForAdminPanel');
+    
+    return data?.map((l: any) => ({ ...l, userName: l.user_name?.name || 'Admin/System' })) || [];
 }
-
 
 export async function approveLeader(leaderId: string): Promise<void> {
-    const leaderRef = db.collection('leaders').doc(leaderId);
-    await leaderRef.update({
-        status: 'approved',
-        adminComment: 'Approved by admin.'
-    });
+    const { error } = await supabaseAdmin
+      .from('leaders')
+      .update({ status: 'approved', admin_comment: 'Approved by admin.' })
+      .eq('id', leaderId);
+    if (error) handleSupabaseError({ data: null, error }, 'approveLeader');
 }
 
 export async function updateLeaderStatus(leaderId: string, status: 'pending' | 'approved' | 'rejected', adminComment: string | null): Promise<void> {
-    const leaderRef = db.collection('leaders').doc(leaderId);
-    await leaderRef.update({ status, adminComment });
+    const { error } = await supabaseAdmin
+      .from('leaders')
+      .update({ status, admin_comment: adminComment })
+      .eq('id', leaderId);
+    if (error) handleSupabaseError({ data: null, error }, 'updateLeaderStatus');
 }
 
 export async function deleteLeader(leaderId: string): Promise<void> {
-    const leaderRef = db.collection('leaders').doc(leaderId);
-    const ratingsRef = db.collection('ratings');
-
-    // In a real app, you'd use a Cloud Function to delete subcollections
-    // or related data. Here we delete related ratings.
-    const snapshot = await ratingsRef.where('leaderId', '==', leaderId).get();
-    
-    const batch = db.batch();
-    snapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-    });
-    batch.delete(leaderRef);
-    
-    await batch.commit();
+    const { error } = await supabaseAdmin.from('leaders').delete().eq('id', leaderId);
+    if (error) handleSupabaseError({ data: null, error }, 'deleteLeader');
 }
 
 export async function deleteRating(userId: string, leaderId: string): Promise<void> {
-    const ratingRef = db.collection('ratings').doc(`${userId}_${leaderId}`);
-    const leaderRef = db.collection('leaders').doc(leaderId);
+    const { error } = await supabaseAdmin.from('ratings').delete().match({ user_id: userId, leader_id: leaderId });
+    if (error) handleSupabaseError({ data: null, error }, 'deleteRating');
 
-    await db.runTransaction(async (transaction) => {
-        const ratingDoc = await transaction.get(ratingRef);
-        const leaderDoc = await transaction.get(leaderRef);
-
-        if (!ratingDoc.exists || !leaderDoc.exists) return;
-
-        const ratingToDelete = ratingDoc.data()?.rating || 0;
-        const leaderData = leaderDoc.data() as Leader;
-        
-        const newReviewCount = (leaderData.reviewCount || 1) - 1;
-        let newAverageRating = 0;
-        if (newReviewCount > 0) {
-            const currentTotal = leaderData.rating * leaderData.reviewCount;
-            newAverageRating = (currentTotal - ratingToDelete) / newReviewCount;
-        }
-
-        transaction.update(leaderRef, {
-            rating: newAverageRating,
-            reviewCount: newReviewCount,
-        });
-
-        transaction.delete(ratingRef);
-    });
+    // Recalculate leader stats
+    const { data: stats } = await supabaseAdmin.rpc('get_leader_stats', { p_leader_id: leaderId });
+    if (stats && stats.length > 0) {
+        const { avg_rating, review_count } = stats[0];
+        await supabaseAdmin
+            .from('leaders')
+            .update({ rating: avg_rating, review_count: review_count })
+            .eq('id', leaderId);
+    }
 }

@@ -1,8 +1,8 @@
 
 'use server';
 
-import { db, convertFirestoreData } from '@/lib/db';
-import { FieldValue } from 'firebase-admin/firestore';
+import { supabaseAdmin, handleSupabaseError } from '@/lib/supabase';
+import { getSiteSettings } from './settings';
 
 export type TicketStatus = 'open' | 'in-progress' | 'resolved' | 'closed';
 
@@ -14,9 +14,9 @@ export interface SupportTicket {
     subject: string;
     message: string;
     status: TicketStatus;
-    created_at: any;
-    updated_at: any;
-    resolved_at: any | null;
+    created_at: string;
+    updated_at: string;
+    resolved_at: string | null;
     admin_notes: string | null;
 }
 
@@ -35,103 +35,58 @@ export interface SupportTicketStats {
 }
 
 export async function createSupportTicket(data: Omit<SupportTicket, 'id' | 'status' | 'created_at' | 'resolved_at' | 'admin_notes' | 'updated_at'>): Promise<void> {
-    const ticketRef = db.collection('support_tickets').doc();
-    const now = FieldValue.serverTimestamp();
-    await ticketRef.set({
-        ...data,
-        status: 'open',
-        admin_notes: null,
-        resolved_at: null,
-        created_at: now,
-        updated_at: now,
-    });
+    const { error } = await supabaseAdmin.from('support_tickets').insert(data);
+    if (error) handleSupabaseError({data: null, error}, 'createSupportTicket');
 }
 
 export async function getSupportTickets(filters: { status?: TicketStatus, dateFrom?: string, dateTo?: string, searchQuery?: string } = {}): Promise<SupportTicket[]> {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const oldTicketsSnapshot = await db.collection('support_tickets')
-        .where('status', 'in', ['in-progress', 'resolved', 'closed'])
-        .where('updated_at', '<', thirtyDaysAgo)
-        .get();
-        
-    if (!oldTicketsSnapshot.empty) {
-        const batch = db.batch();
-        oldTicketsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-        await batch.commit();
-    }
+    let query = supabaseAdmin.from('support_tickets').select('*');
 
-    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection('support_tickets');
-
-    if (filters.status) {
-        query = query.where('status', '==', filters.status);
-    }
-    if (filters.dateFrom && filters.dateTo) {
-        query = query.where('created_at', '>=', new Date(filters.dateFrom)).where('created_at', '<=', new Date(filters.dateTo));
-    }
+    if (filters.status) query = query.eq('status', filters.status);
+    if (filters.dateFrom) query = query.gte('created_at', filters.dateFrom);
+    if (filters.dateTo) query = query.lte('created_at', filters.dateTo);
     if (filters.searchQuery) {
-        // Simple search on one field. For more complex search, use a dedicated service.
-        query = query.orderBy('user_email').startAt(filters.searchQuery).endAt(filters.searchQuery + '\uf8ff');
-    } else {
-        query = query.orderBy('updated_at', 'desc');
+        query = query.or(`user_name.ilike.%${filters.searchQuery}%,user_email.ilike.%${filters.searchQuery}%`);
     }
 
-    const snapshot = await query.get();
-    const tickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as SupportTicket);
-    return convertFirestoreData(tickets);
+    const { data, error } = await query.order('updated_at', { ascending: false });
+    return handleSupabaseError({data, error}, 'getSupportTickets') || [];
 }
 
 export async function updateTicketStatus(ticketId: string, status: TicketStatus, adminNotes: string | null): Promise<void> {
-    const ticketRef = db.collection('support_tickets').doc(ticketId);
-    await ticketRef.update({
+    const updatePayload: Partial<SupportTicket> = {
         status: status,
         admin_notes: adminNotes,
-        resolved_at: (status === 'resolved' || status === 'closed') ? FieldValue.serverTimestamp() : null,
-        updated_at: FieldValue.serverTimestamp(),
-    });
+        updated_at: new Date().toISOString()
+    };
+    if (status === 'resolved' || status === 'closed') {
+        updatePayload.resolved_at = new Date().toISOString();
+    }
+    const { error } = await supabaseAdmin
+        .from('support_tickets')
+        .update(updatePayload)
+        .eq('id', ticketId);
+    
+    if (error) handleSupabaseError({data: null, error}, 'updateTicketStatus');
 }
 
 export async function getSupportTicketStats(): Promise<SupportTicketStats> {
-    const collectionRef = db.collection('support_tickets');
-    const countsSnapshot = await collectionRef.aggregate({
-        open: { 'count': 'open' },
-        inProgress: { 'count': 'in-progress' },
-        resolved: { 'count': 'resolved' },
-        closed: { 'count': 'closed' },
-        total: { 'count': '*' }
-    }).get();
+    const { data: stats, error } = await supabaseAdmin.rpc('get_ticket_stats');
+    const settings = await getSiteSettings();
+
+    if (error || !stats) {
+        console.error("Error fetching ticket stats:", error?.message);
+        return { total: 0, open: 0, inProgress: 0, resolved: 0, closed: 0, avgResolutionHours: null, ...settings };
+    }
     
-    // Firestore aggregation by status is more complex. A simpler way for this app:
-    const open = (await collectionRef.where('status', '==', 'open').count().get()).data().count;
-    const inProgress = (await collectionRef.where('status', '==', 'in-progress').count().get()).data().count;
-    const resolved = (await collectionRef.where('status', '==', 'resolved').count().get()).data().count;
-    const closed = (await collectionRef.where('status', '==', 'closed').count().get()).data().count;
-    const total = open + inProgress + resolved + closed;
-
-    const resolvedSnapshot = await collectionRef.where('status', 'in', ['resolved', 'closed']).where('resolved_at', '!=', null).get();
-    let totalSeconds = 0;
-    resolvedSnapshot.forEach(doc => {
-        const data = doc.data();
-        const createdAt = (data.created_at as Timestamp).toMillis();
-        const resolvedAt = (data.resolved_at as Timestamp).toMillis();
-        totalSeconds += (resolvedAt - createdAt) / 1000;
-    });
-
-    const avgResolutionHours = resolvedSnapshot.size > 0 ? (totalSeconds / resolvedSnapshot.size) / 3600 : null;
-
-    const settingsSnapshot = await db.collection('site_config').doc('main').get();
-    const settings = settingsSnapshot.data() || {};
-
+    const result = stats[0];
     return {
-        total,
-        open,
-        inProgress,
-        resolved,
-        closed,
-        avgResolutionHours,
-        contact_email: settings.contact_email || null,
-        contact_phone: settings.contact_phone || null,
-        contact_twitter: settings.contact_twitter || null,
-        contact_linkedin: settings.contact_linkedin || null,
-        contact_youtube: settings.contact_youtube || null,
+        total: result.total_tickets,
+        open: result.open_tickets,
+        inProgress: result.inprogress_tickets,
+        resolved: result.resolved_tickets,
+        closed: result.closed_tickets,
+        avgResolutionHours: result.avg_resolution_hours,
+        ...settings,
     };
 }

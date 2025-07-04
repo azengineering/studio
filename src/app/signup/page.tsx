@@ -25,7 +25,6 @@ import { useLanguage } from '@/context/language-context';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { firebaseEnabled } from "@/lib/firebase";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -54,7 +53,6 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       router.push('/');
@@ -76,12 +74,7 @@ export default function SignupPage() {
     setIsLoading(true);
     try {
       await signup(values.email, values.password);
-      
-      toast({
-        title: "Account Created Successfully!",
-        description: "You can now log in with your new account.",
-      });
-      // The signup function will handle redirection to login page
+      // Auth context now handles redirection to login page with a success message
     } catch (error) {
       toast({
         title: "Signup Failed",
@@ -99,11 +92,7 @@ export default function SignupPage() {
     setIsGoogleLoading(true);
     try {
       await signInWithGoogle();
-      
-      toast({
-        title: "Welcome to PolitiRate!",
-        description: "Your account has been created successfully.",
-      });
+      // Redirection handled by Supabase
     } catch (error) {
       toast({
         title: "Google Sign-Up Failed",
@@ -139,52 +128,45 @@ export default function SignupPage() {
           </CardHeader>
           
           <CardContent className="px-8 space-y-6">
-            {/* Dedicated Google Sign-Up Section */}
-            {firebaseEnabled && (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-6 rounded-lg border-2 border-green-100 dark:border-green-800/30 space-y-4">
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
-                    Quick Sign-Up with Google
-                  </h3>
-                  <p className="text-sm text-green-700 dark:text-green-300 mb-4">
-                    Create your account instantly with Google
-                  </p>
-                </div>
-                
-                <Button 
-                  variant="default" 
-                  className="w-full py-6 text-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-lg" 
-                  onClick={handleGoogleSignUp}
-                  disabled={isGoogleLoading || isLoading}
-                >
-                  {isGoogleLoading ? (
-                    <>
-                      <Loader2 className="mr-3 h-6 w-6 animate-spin text-green-600" />
-                      Creating account with Google...
-                    </>
-                  ) : (
-                    <>
-                      <GoogleIcon className="mr-3 h-6 w-6 fill-current" />
-                      Sign up with Google
-                    </>
-                  )}
-                </Button>
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-6 rounded-lg border-2 border-green-100 dark:border-green-800/30 space-y-4">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
+                  Quick Sign-Up with Google
+                </h3>
+                <p className="text-sm text-green-700 dark:text-green-300 mb-4">
+                  Create your account instantly with Google
+                </p>
               </div>
-            )}
+              
+              <Button 
+                variant="default" 
+                className="w-full py-6 text-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-lg" 
+                onClick={handleGoogleSignUp}
+                disabled={isGoogleLoading || isLoading}
+              >
+                {isGoogleLoading ? (
+                  <>
+                    <Loader2 className="mr-3 h-6 w-6 animate-spin text-green-600" />
+                    Redirecting to Google...
+                  </>
+                ) : (
+                  <>
+                    <GoogleIcon className="mr-3 h-6 w-6 fill-current" />
+                    Sign up with Google
+                  </>
+                )}
+              </Button>
+            </div>
 
-            {/* Divider */}
-            {firebaseEnabled && (
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm uppercase">
-                  <span className="bg-background px-4 text-muted-foreground font-medium">Or create account with email</span>
-                </div>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-300" />
               </div>
-            )}
+              <div className="relative flex justify-center text-sm uppercase">
+                <span className="bg-background px-4 text-muted-foreground font-medium">Or create account with email</span>
+              </div>
+            </div>
 
-            {/* Email/Password Form */}
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField

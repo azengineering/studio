@@ -3,10 +3,10 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { findUserByEmail, addUser as addNewUser, updateUserProfile, type User, findUserById, unblockUser } from '@/data/users';
+import { createPagesBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { isAfter } from 'date-fns';
-import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
-import { auth, firebaseEnabled } from '@/lib/firebase';
+import { findUserByEmail, addUser as addNewUser, updateUserProfile, type User, findUserById, unblockUser } from '@/data/users';
+import { supabase as supabaseClient } from '@/lib/supabase'; // Public client
 
 interface AuthContextType {
   user: User | null;
@@ -22,172 +22,110 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [supabase] = useState(() => createPagesBrowserClient());
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const initializeAuth = async () => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setLoading(true);
-
-      // 1. Handle Google Redirect Result FIRST
-      if (firebaseEnabled) {
-        try {
-          const result = await getRedirectResult(auth as any);
-          if (result) {
-            const googleUser = result.user;
-            if (!googleUser.email) {
-              throw new Error("Could not retrieve email from Google account.");
-            }
-            
-            let userInDb = await findUserByEmail(googleUser.email);
-            
-            if (!userInDb) {
-              userInDb = await addNewUser({
-                email: googleUser.email,
-                name: googleUser.displayName || googleUser.email.split('@')[0],
-              });
-            }
-
-            if (userInDb) {
-              handleSuccessfulLogin(userInDb); // Set state and local storage
-              const redirectPath = sessionStorage.getItem('auth_redirect');
-              sessionStorage.removeItem('auth_redirect');
-              setLoading(false);
-              router.push(redirectPath || '/');
-              return; // End auth flow here
-            }
-            throw new Error("Failed to create or retrieve user account.");
-          }
-        } catch (error) {
-           console.error("Google Sign-In Redirect Error:", error);
-           sessionStorage.removeItem('auth_redirect');
-           // Continue to check for local session even if redirect fails
-        }
-      }
-
-      // 2. If no redirect, check for an existing session in localStorage
-      try {
-        const storedUserString = localStorage.getItem('politirate_user');
-        if (storedUserString) {
-          const storedUser = JSON.parse(storedUserString);
-          if (storedUser.id) {
-            const freshUser = await findUserById(storedUser.id);
-            if (freshUser) {
-              if (freshUser.isBlocked) {
-                if (freshUser.blockedUntil && isAfter(new Date(), new Date(freshUser.blockedUntil))) {
-                  await unblockUser(freshUser.id);
-                  const unblockedUser = await findUserById(freshUser.id);
-                  if (unblockedUser) setUser(unblockedUser);
-                } else {
-                  // User is still blocked, log them out locally.
-                  localStorage.removeItem('politirate_user');
-                  setUser(null);
-                }
+      if (session) {
+        const userProfile = await findUserById(session.user.id);
+        if (userProfile) {
+           if (userProfile.is_blocked) {
+              if (userProfile.blocked_until && isAfter(new Date(), new Date(userProfile.blocked_until))) {
+                  await unblockUser(userProfile.id);
+                  const unblockedUser = await findUserById(userProfile.id);
+                  setUser(unblockedUser || null);
               } else {
-                setUser(freshUser);
+                  // User is still blocked, log them out client-side
+                  await supabase.auth.signOut();
+                  setUser(null);
               }
-            } else {
-              // User in storage doesn't exist in DB anymore.
-              localStorage.removeItem('politirate_user');
-              setUser(null);
-            }
-          }
+           } else {
+              setUser(userProfile);
+           }
+        } else {
+           // Create a public profile if it doesn't exist (e.g., first social login)
+           const newUserProfile = await addNewUser({
+               id: session.user.id,
+               email: session.user.email!,
+               name: session.user.user_metadata?.full_name || session.user.email!.split('@')[0],
+           });
+           setUser(newUserProfile);
         }
-      } catch (error) {
-        console.error("Failed to sync user from localStorage", error);
-        localStorage.removeItem('politirate_user');
+      } else {
         setUser(null);
-      } finally {
-        setLoading(false);
       }
-    };
-    
-    initializeAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      setLoading(false);
+    });
 
-  const handleSuccessfulLogin = (loggedInUser: User) => {
-    const userToStore: Partial<User> = { ...loggedInUser };
-    delete userToStore.password;
-    localStorage.setItem('politirate_user', JSON.stringify(userToStore));
-    setUser(userToStore as User);
-  };
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase.auth]);
 
   const login = async (email: string, password: string, redirectPath?: string | null) => {
-    let existingUser = await findUserByEmail(email);
-
-    if (!existingUser) {
-      throw new Error("An account with this email does not exist. Please sign up first.");
-    }
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    if (authError) throw new Error(authError.message);
+    if (!authData.user) throw new Error("Login failed, user not found.");
     
-    if (existingUser.password !== password) {
-      throw new Error('Invalid email or password.');
-    }
-
-    if (existingUser.isBlocked) {
-      if (existingUser.blockedUntil && isAfter(new Date(), new Date(existingUser.blockedUntil))) {
-        await unblockUser(existingUser.id);
-        existingUser = (await findUserByEmail(email))!;
+    const userProfile = await findUserById(authData.user.id);
+    if (userProfile?.is_blocked) {
+      await supabase.auth.signOut();
+      if (userProfile.blocked_until && isAfter(new Date(), new Date(userProfile.blocked_until))) {
+          await unblockUser(userProfile.id);
+          // Ask user to try again
+          throw new Error("Your block has expired. Please try logging in again.");
       } else {
-        throw new Error(`BLOCKED::${existingUser.blockReason}::${existingUser.blockedUntil}`);
+          throw new Error(`BLOCKED::${userProfile.block_reason}::${userProfile.blocked_until}`);
       }
     }
-    
-    handleSuccessfulLogin(existingUser);
+
     router.push(redirectPath || '/');
   };
 
   const signup = async (email: string, password: string) => {
-    const existingUser = await findUserByEmail(email);
-    if (existingUser) {
-        throw new Error('An account with this email already exists.');
-    }
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        // emailRedirectTo: `${window.location.origin}/auth/callback`, // For email verification
+      }
+    });
+    if (error) throw new Error(error.message);
+    if (!data.user) throw new Error('Signup failed. Please try again.');
 
-    const newUser = await addNewUser({ email, password });
-
-    if (!newUser) {
-        throw new Error('Failed to create account. Please try again.');
-    }
+    // Create a public profile for the new user
+    await addNewUser({
+      id: data.user.id,
+      email: data.user.email!,
+      name: data.user.email!.split('@')[0],
+    });
     router.push('/login?message=Account+created!+Please+log+in.');
   };
-
+  
   const signInWithGoogle = async (redirectPath?: string | null) => {
-    if (!firebaseEnabled) {
-      throw new Error("Google Sign-In is not configured for this application.");
-    }
-
-    if (redirectPath) {
-      sessionStorage.setItem('auth_redirect', redirectPath);
-    } else {
-      sessionStorage.removeItem('auth_redirect');
-    }
-    
-    const provider = new GoogleAuthProvider();
-    await signInWithRedirect(auth as any, provider);
+      const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+              redirectTo: `${window.location.origin}/auth/callback?redirect_path=${redirectPath || '/'}`,
+          },
+      });
+      if (error) throw new Error(error.message);
   };
 
   const logout = async () => {
-    if (firebaseEnabled) {
-        await signOut(auth as any).catch(console.error);
-    }
-    localStorage.removeItem('politirate_user');
+    await supabase.auth.signOut();
     setUser(null);
     router.push('/');
   };
 
   const updateUser = async (profileData: Partial<User>) => {
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
+    if (!user) throw new Error("User not authenticated");
     const updatedUser = await updateUserProfile(user.id, profileData);
-
-    if (updatedUser) {
-      // Re-set user state and local storage with fresh data.
-      handleSuccessfulLogin(updatedUser);
-    }
-
+    if (updatedUser) setUser(updatedUser);
     return updatedUser;
   };
 

@@ -1,10 +1,9 @@
 
 'use server';
 
-import { db } from '@/lib/db';
+import { db, convertFirestoreData } from '@/lib/db';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import type { User } from './users';
-import { getUsers } from './users';
-import type { RunResult } from 'better-sqlite3';
 
 export interface Leader {
   id: string;
@@ -32,17 +31,18 @@ export interface Leader {
   manifestoUrl?: string;
   twitterUrl?: string;
   addedByUserId?: string | null;
-  createdAt?: string;
+  createdAt?: any; // Allow Timestamp or string
   status: 'pending' | 'approved' | 'rejected';
   adminComment?: string | null;
   userName?: string;
 }
 
 export interface Review {
+  userId: string;
   userName: string;
   rating: number;
   comment: string | null;
-  updatedAt: string;
+  updatedAt: any; // Allow Timestamp or string
   socialBehaviour: string | null;
 }
 
@@ -68,196 +68,69 @@ export interface SocialBehaviourDistribution {
   count: number;
 }
 
-
-// --- DB data transformation ---
-function dbToLeader(dbLeader: any): Leader {
-    return {
-        id: dbLeader.id,
-        name: dbLeader.name,
-        partyName: dbLeader.partyName,
-        gender: dbLeader.gender,
-        age: dbLeader.age,
-        photoUrl: dbLeader.photoUrl,
-        constituency: dbLeader.constituency,
-        nativeAddress: dbLeader.nativeAddress,
-        electionType: dbLeader.electionType,
-        location: {
-            state: dbLeader.location_state,
-            district: dbLeader.location_district,
-        },
-        rating: dbLeader.rating,
-        reviewCount: dbLeader.reviewCount,
-        previousElections: JSON.parse(dbLeader.previousElections || '[]'),
-        manifestoUrl: dbLeader.manifestoUrl,
-        twitterUrl: dbLeader.twitterUrl,
-        addedByUserId: dbLeader.addedByUserId,
-        createdAt: dbLeader.createdAt,
-        status: dbLeader.status,
-        adminComment: dbLeader.adminComment,
-        userName: dbLeader.userName,
-    };
-}
-
-function mapDbActivityToUserActivity(activity: any): UserActivity {
-    const leaderData = dbToLeader({
-        id: activity.leader_id,
-        name: activity.leader_name,
-        partyName: activity.leader_partyName,
-        gender: activity.leader_gender,
-        age: activity.leader_age,
-        photoUrl: activity.leader_photoUrl,
-        constituency: activity.leader_constituency,
-        nativeAddress: activity.leader_nativeAddress,
-        electionType: activity.leader_electionType,
-        location_state: activity.leader_location_state,
-        location_district: activity.leader_location_district,
-        rating: activity.leader_rating,
-        reviewCount: activity.leader_reviewCount,
-        previousElections: activity.leader_previousElections, // Already a string
-        manifestoUrl: activity.leader_manifestoUrl,
-        twitterUrl: activity.leader_twitterUrl,
-        addedByUserId: activity.leader_addedByUserId,
-        createdAt: activity.leader_createdAt,
-        status: activity.leader_status,
-        adminComment: activity.leader_adminComment,
-    });
-
-    return {
-        leaderId: activity.leaderId,
-        leaderName: activity.leader_name,
-        leaderPhotoUrl: activity.leader_photoUrl,
-        rating: activity.rating,
-        comment: activity.comment,
-        updatedAt: activity.updatedAt,
-        socialBehaviour: activity.socialBehaviour,
-        userName: activity.userName,
-        leader: leaderData,
-    };
-}
-
 // --- Public API ---
 
 // Gets only approved leaders for the public site
 export async function getLeaders(): Promise<Leader[]> {
-  const stmt = db.prepare("SELECT * FROM leaders WHERE status = 'approved'");
-  const dbLeaders = stmt.all() as any[];
-  return Promise.resolve(dbLeaders.map(dbToLeader));
+  const leadersRef = db.collection('leaders');
+  const snapshot = await leadersRef.where('status', '==', 'approved').get();
+  
+  if (snapshot.empty) {
+    return [];
+  }
+  
+  const leaders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Leader));
+  return convertFirestoreData(leaders);
 }
 
 export async function addLeader(leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment' | 'userName'>, userId: string | null): Promise<void> {
-    const newLeader: Leader = {
+    const newLeader: Omit<Leader, 'id'> = {
         ...leaderData,
-        id: new Date().getTime().toString(),
         rating: 0,
         reviewCount: 0,
         addedByUserId: userId,
-        createdAt: new Date().toISOString(),
+        createdAt: FieldValue.serverTimestamp(),
         status: 'pending', // New leaders are pending approval
         adminComment: null,
     };
-    
-    const stmt = db.prepare(`
-        INSERT INTO leaders (id, name, partyName, gender, age, photoUrl, constituency, nativeAddress, electionType, location_state, location_district, rating, reviewCount, previousElections, manifestoUrl, twitterUrl, addedByUserId, createdAt, status, adminComment)
-        VALUES (@id, @name, @partyName, @gender, @age, @photoUrl, @constituency, @nativeAddress, @electionType, @location_state, @location_district, @rating, @reviewCount, @previousElections, @manifestoUrl, @twitterUrl, @addedByUserId, @createdAt, @status, @adminComment)
-    `);
-    
-    stmt.run({
-        id: newLeader.id,
-        name: newLeader.name,
-        partyName: newLeader.partyName,
-        gender: newLeader.gender,
-        age: newLeader.age,
-        photoUrl: newLeader.photoUrl,
-        constituency: newLeader.constituency,
-        nativeAddress: newLeader.nativeAddress,
-        electionType: newLeader.electionType,
-        location_state: newLeader.location.state,
-        location_district: newLeader.location.district,
-        rating: newLeader.rating,
-        reviewCount: newLeader.reviewCount,
-        previousElections: JSON.stringify(newLeader.previousElections),
-        manifestoUrl: newLeader.manifestoUrl,
-        twitterUrl: newLeader.twitterUrl,
-        addedByUserId: newLeader.addedByUserId,
-        createdAt: newLeader.createdAt,
-        status: newLeader.status,
-        adminComment: newLeader.adminComment,
-    });
-
-    return Promise.resolve();
+    await db.collection('leaders').add(newLeader);
 }
 
 export async function getLeaderById(id: string): Promise<Leader | null> {
-    const stmt = db.prepare('SELECT * FROM leaders WHERE id = ?');
-    const dbLeader = stmt.get(id) as any;
-    if (dbLeader) {
-        return Promise.resolve(dbToLeader(dbLeader));
+    const docRef = db.collection('leaders').doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+        return null;
     }
-    return Promise.resolve(null);
+    
+    const leaderData = { id: doc.id, ...doc.data() } as Leader;
+    return convertFirestoreData(leaderData);
 }
 
 export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'id' | 'rating' | 'reviewCount' | 'addedByUserId' | 'createdAt' | 'status' | 'adminComment' | 'userName'>, userId: string | null, isAdmin: boolean): Promise<Leader | null> {
-    const leaderToUpdate = await getLeaderById(leaderId);
+    const leaderRef = db.collection('leaders').doc(leaderId);
+    const doc = await leaderRef.get();
 
-    if (!leaderToUpdate) {
+    if (!doc.exists) {
         throw new Error("Leader not found.");
     }
+    const leaderToUpdate = doc.data() as Leader;
     
-    // Authorization: Only the original submitter or an admin can edit.
     if (!isAdmin && leaderToUpdate.addedByUserId !== userId) {
         throw new Error("You are not authorized to edit this leader.");
     }
 
-    let newStatus: Leader['status'];
-    let newAdminComment: string | null | undefined;
+    let newStatus: Leader['status'] = leaderToUpdate.status;
+    let newAdminComment: string | null | undefined = leaderToUpdate.adminComment;
 
-    // This is the core logic for the re-approval workflow.
-    if (isAdmin) {
-        // When an admin edits, they are not changing the approval status here.
-        // Status is managed separately in the admin panel.
-        newStatus = leaderToUpdate.status;
-        newAdminComment = leaderToUpdate.adminComment;
-    } else {
-        // When a non-admin user edits, we must force a re-approval.
+    if (!isAdmin) {
         newStatus = 'pending';
         newAdminComment = 'User updated details. Pending re-approval.';
     }
 
-    const stmt = db.prepare(`
-        UPDATE leaders
-        SET name = @name,
-            partyName = @partyName,
-            gender = @gender,
-            age = @age,
-            photoUrl = @photoUrl,
-            constituency = @constituency,
-            nativeAddress = @nativeAddress,
-            electionType = @electionType,
-            location_state = @location_state,
-            location_district = @location_district,
-            previousElections = @previousElections,
-            manifestoUrl = @manifestoUrl,
-            twitterUrl = @twitterUrl,
-            status = @status,
-            adminComment = @adminComment
-        WHERE id = @id
-    `);
-
-    stmt.run({
-        id: leaderId,
-        name: leaderData.name,
-        partyName: leaderData.partyName,
-        gender: leaderData.gender,
-        age: leaderData.age,
-        photoUrl: leaderData.photoUrl,
-        constituency: leaderData.constituency,
-        nativeAddress: leaderData.nativeAddress,
-        electionType: leaderData.electionType,
-        location_state: leaderData.location.state,
-        location_district: leaderData.location.district,
-        previousElections: JSON.stringify(leaderData.previousElections),
-        manifestoUrl: leaderData.manifestoUrl,
-        twitterUrl: leaderData.twitterUrl,
+    await leaderRef.update({
+        ...leaderData,
         status: newStatus,
         adminComment: newAdminComment,
     });
@@ -265,227 +138,178 @@ export async function updateLeader(leaderId: string, leaderData: Omit<Leader, 'i
     return getLeaderById(leaderId);
 }
 
-
 export async function submitRatingAndComment(leaderId: string, userId: string, newRating: number, comment: string | null, socialBehaviour: string | null): Promise<Leader | null> {
-    const transaction = db.transaction(() => {
-        const now = new Date().toISOString();
+    if (!userId) {
+        throw new Error("User must be authenticated to submit a rating.");
+    }
 
-        // 1. Find existing rating
-        const ratingStmt = db.prepare('SELECT rating FROM ratings WHERE userId = ? AND leaderId = ?');
-        const existingRating = ratingStmt.get(userId, leaderId) as { rating: number } | undefined;
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+        throw new Error("User not found.");
+    }
+    const userName = (userDoc.data() as User)?.name || 'Anonymous';
+    
+    const leaderRef = db.collection('leaders').doc(leaderId);
+    const ratingRef = db.collection('ratings').doc(`${userId}_${leaderId}`);
+
+    await db.runTransaction(async (transaction) => {
+        const leaderDoc = await transaction.get(leaderRef);
+        const ratingDoc = await transaction.get(ratingRef);
+
+        if (!leaderDoc.exists) {
+            throw new Error("Leader not found.");
+        }
+
+        const leaderData = leaderDoc.data() as Leader;
+        const oldRating = ratingDoc.exists ? (ratingDoc.data()?.rating || 0) : 0;
         
-        // 2. Insert or update rating. createdAt is only set on the initial insert.
-        const upsertRatingStmt = db.prepare(`
-            INSERT INTO ratings (userId, leaderId, rating, createdAt, updatedAt, socialBehaviour)
-            VALUES (@userId, @leaderId, @rating, @createdAt, @updatedAt, @socialBehaviour)
-            ON CONFLICT(userId, leaderId) DO UPDATE SET
-            rating = excluded.rating,
-            updatedAt = excluded.updatedAt,
-            socialBehaviour = excluded.socialBehaviour
-        `);
-        upsertRatingStmt.run({ userId, leaderId, rating: newRating, createdAt: now, updatedAt: now, socialBehaviour });
+        // Calculate new average rating
+        let newReviewCount = leaderData.reviewCount;
+        let newTotalRating = leaderData.rating * leaderData.reviewCount;
 
-        // 3. Handle comment
-        if (comment && comment.trim().length > 0) {
-            const upsertCommentStmt = db.prepare(`
-                INSERT INTO comments (userId, leaderId, comment, createdAt, updatedAt)
-                VALUES (@userId, @leaderId, @comment, @createdAt, @updatedAt)
-                ON CONFLICT(userId, leaderId) DO UPDATE SET
-                comment = excluded.comment,
-                updatedAt = excluded.updatedAt
-            `);
-            upsertCommentStmt.run({ userId, leaderId, comment, createdAt: now, updatedAt: now });
-        }
-
-        // 4. Update leader's aggregate rating
-        const leader = db.prepare('SELECT rating, reviewCount FROM leaders WHERE id = ?').get(leaderId) as { rating: number; reviewCount: number };
-        if (!leader) {
-            throw new Error("Leader not found during transaction.");
-        }
-
-        let newReviewCount = leader.reviewCount;
-        let newAverageRating = leader.rating;
-
-        if (existingRating) {
-            // User is updating their rating
-            const oldRatingValue = existingRating.rating;
-            if (leader.reviewCount > 0) {
-                newAverageRating = ((leader.rating * leader.reviewCount) - oldRatingValue + newRating) / leader.reviewCount;
-            } else {
-                newAverageRating = newRating; // Should not happen if reviewCount is consistent
-            }
+        if (ratingDoc.exists) {
+            // Update existing rating
+            newTotalRating = newTotalRating - oldRating + newRating;
         } else {
-            // New rating from this user
-            newReviewCount = leader.reviewCount + 1;
-            newAverageRating = ((leader.rating * leader.reviewCount) + newRating) / newReviewCount;
+            // New rating
+            newReviewCount += 1;
+            newTotalRating += newRating;
         }
-
-        const updateLeaderStmt = db.prepare('UPDATE leaders SET rating = ?, reviewCount = ? WHERE id = ?');
-        updateLeaderStmt.run(newAverageRating.toFixed(2), newReviewCount, leaderId);
+        
+        const newAverageRating = newReviewCount > 0 ? newTotalRating / newReviewCount : 0;
+        
+        // Update leader document
+        transaction.update(leaderRef, {
+            rating: newAverageRating,
+            reviewCount: newReviewCount
+        });
+        
+        // Upsert rating document
+        transaction.set(ratingRef, {
+            userId,
+            leaderId,
+            userName,
+            rating: newRating,
+            comment,
+            socialBehaviour,
+            updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
     });
 
-    try {
-        transaction();
-        return getLeaderById(leaderId);
-    } catch (error) {
-        console.error("Failed to submit rating and comment:", error);
-        throw error;
-    }
+    return getLeaderById(leaderId);
 }
 
 
 export async function getReviewsForLeader(leaderId: string): Promise<Review[]> {
-    const stmt = db.prepare(`
-        SELECT
-            r.rating,
-            r.updatedAt,
-            r.socialBehaviour,
-            c.comment,
-            u.name as userName
-        FROM ratings r
-        JOIN users u ON r.userId = u.id
-        LEFT JOIN comments c ON r.userId = c.userId AND r.leaderId = c.leaderId
-        WHERE r.leaderId = ?
-        ORDER BY r.updatedAt DESC
-    `);
+    const ratingsRef = db.collection('ratings');
+    const snapshot = await ratingsRef.where('leaderId', '==', leaderId).orderBy('updatedAt', 'desc').get();
     
-    const reviews = stmt.all(leaderId) as any[];
-    return Promise.resolve(reviews.map(r => ({ ...r })));
+    if (snapshot.empty) {
+        return [];
+    }
+    
+    const reviews = snapshot.docs.map(doc => doc.data() as Review);
+    return convertFirestoreData(reviews);
 }
 
 export async function getRatingDistribution(leaderId: string): Promise<RatingDistribution[]> {
-    const stmt = db.prepare(`
-        SELECT rating, COUNT(rating) as count
-        FROM ratings
-        WHERE leaderId = ?
-        GROUP BY rating
-        ORDER BY rating DESC
-    `);
-    const results = stmt.all(leaderId) as RatingDistribution[];
-    return Promise.resolve(results);
+    const snapshot = await db.collection('ratings').where('leaderId', '==', leaderId).get();
+    if (snapshot.empty) return [];
+
+    const counts: { [key: number]: number } = {};
+    snapshot.docs.forEach(doc => {
+        const rating = doc.data().rating;
+        counts[rating] = (counts[rating] || 0) + 1;
+    });
+
+    return Object.entries(counts)
+      .map(([rating, count]) => ({ rating: Number(rating), count }))
+      .sort((a, b) => b.rating - a.rating);
 }
 
 export async function getSocialBehaviourDistribution(leaderId: string): Promise<SocialBehaviourDistribution[]> {
-    const stmt = db.prepare(`
-        SELECT socialBehaviour as name, COUNT(socialBehaviour) as count
-        FROM ratings
-        WHERE leaderId = ? AND socialBehaviour IS NOT NULL AND socialBehaviour != ''
-        GROUP BY socialBehaviour
-        ORDER BY count DESC
-    `);
-    const results = stmt.all(leaderId) as SocialBehaviourDistribution[];
-    return Promise.resolve(results.map(r => ({ ...r, name: r.name.charAt(0).toUpperCase() + r.name.slice(1).replace('-', ' ') })));
+    const snapshot = await db.collection('ratings').where('leaderId', '==', leaderId).get();
+    if (snapshot.empty) return [];
+
+    const counts: { [key: string]: number } = {};
+    snapshot.docs.forEach(doc => {
+        const behaviour = doc.data().socialBehaviour;
+        if (behaviour) {
+            counts[behaviour] = (counts[behaviour] || 0) + 1;
+        }
+    });
+
+    return Object.entries(counts)
+        .map(([name, count]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1).replace('-', ' '), count }))
+        .sort((a, b) => b.count - a.count);
 }
 
 
 export async function getActivitiesForUser(userId: string): Promise<UserActivity[]> {
-    const stmt = db.prepare(`
-        SELECT
-            r.leaderId,
-            l.*, l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl, l.addedByUserId as leader_addedByUserId, l.createdAt as leader_createdAt, l.status as leader_status, l.adminComment as leader_adminComment,
-            r.rating,
-            r.updatedAt,
-            r.socialBehaviour,
-            c.comment,
-            u.name as userName
-        FROM ratings r
-        JOIN leaders l ON r.leaderId = l.id
-        JOIN users u ON r.userId = u.id
-        LEFT JOIN comments c ON r.userId = c.userId AND r.leaderId = c.leaderId
-        WHERE r.userId = ?
-        ORDER BY r.updatedAt DESC
-    `);
-    
-    const activities = stmt.all(userId) as any[];
+    const ratingsRef = db.collection('ratings');
+    const snapshot = await ratingsRef.where('userId', '==', userId).orderBy('updatedAt', 'desc').get();
 
-    return Promise.resolve(activities.map(mapDbActivityToUserActivity));
-}
+    if (snapshot.empty) {
+        return [];
+    }
 
-export async function getAllActivities(): Promise<UserActivity[]> {
-    const stmt = db.prepare(`
-        SELECT
-            r.leaderId,
-            l.*, l.id as leader_id, l.name as leader_name, l.partyName as leader_partyName, l.gender as leader_gender, l.age as leader_age, l.photoUrl as leader_photoUrl, l.constituency as leader_constituency, l.nativeAddress as leader_nativeAddress, l.electionType as leader_electionType, l.location_state as leader_location_state, l.location_district as leader_location_district, l.rating as leader_rating, l.reviewCount as leader_reviewCount, l.previousElections as leader_previousElections, l.manifestoUrl as leader_manifestoUrl, l.twitterUrl as leader_twitterUrl, l.addedByUserId as leader_addedByUserId, l.createdAt as leader_createdAt, l.status as leader_status, l.adminComment as leader_adminComment,
-            r.rating,
-            r.updatedAt,
-            r.socialBehaviour,
-            c.comment,
-            u.name as userName
-        FROM ratings r
-        JOIN leaders l ON r.leaderId = l.id
-        JOIN users u ON r.userId = u.id
-        LEFT JOIN comments c ON r.userId = c.userId AND r.leaderId = c.leaderId
-        ORDER BY r.updatedAt DESC
-    `);
+    const activities = await Promise.all(snapshot.docs.map(async (doc) => {
+        const ratingData = doc.data();
+        const leader = await getLeaderById(ratingData.leaderId);
+        
+        if (!leader) return null;
+
+        return {
+            leaderId: leader.id,
+            leaderName: leader.name,
+            leaderPhotoUrl: leader.photoUrl,
+            rating: ratingData.rating,
+            comment: ratingData.comment,
+            updatedAt: ratingData.updatedAt,
+            socialBehaviour: ratingData.socialBehaviour,
+            userName: ratingData.userName,
+            leader: leader,
+        } as UserActivity;
+    }));
     
-    const activities = stmt.all() as any[];
-    return Promise.resolve(activities.map(mapDbActivityToUserActivity));
+    return convertFirestoreData(activities.filter(a => a !== null));
 }
 
 
 export async function getLeadersAddedByUser(userId: string): Promise<Leader[]> {
-  const stmt = db.prepare('SELECT * FROM leaders WHERE addedByUserId = ? ORDER BY name ASC');
-  const dbLeaders = stmt.all(userId) as any[];
-  return Promise.resolve(dbLeaders.map(dbToLeader));
+  const leadersRef = db.collection('leaders');
+  const snapshot = await leadersRef.where('addedByUserId', '==', userId).orderBy('name', 'asc').get();
+  if (snapshot.empty) {
+    return [];
+  }
+  const leaders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Leader));
+  return convertFirestoreData(leaders);
 }
 
 
 export async function getLeaderCount(filters?: { startDate?: string, endDate?: string, state?: string, constituency?: string }): Promise<number> {
-    let query = 'SELECT COUNT(*) as count FROM leaders';
-    const params: (string | number)[] = [];
-    const conditions: string[] = [];
+    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection('leaders');
 
     if (filters?.startDate && filters?.endDate) {
-        conditions.push('createdAt >= ? AND createdAt <= ?');
-        params.push(filters.startDate, filters.endDate);
+        query = query.where('createdAt', '>=', new Date(filters.startDate)).where('createdAt', '<=', new Date(filters.endDate));
     }
     if (filters?.state) {
-        conditions.push('location_state = ?');
-        params.push(filters.state);
+        query = query.where('location.state', '==', filters.state);
     }
+    // Firestore doesn't support 'LIKE' queries. We'll filter for exact constituency matches for now.
     if (filters?.constituency) {
-        conditions.push('constituency LIKE ?');
-        params.push(`%${filters.constituency}%`);
+        query = query.where('constituency', '==', filters.constituency);
     }
-
-    if (conditions.length > 0) {
-        query += ' WHERE ' + conditions.join(' AND ');
-    }
-    const { count } = db.prepare(query).get(...params) as { count: number };
-    return Promise.resolve(count);
+    
+    const snapshot = await query.count().get();
+    return snapshot.data().count;
 }
 
 export async function getRatingCount(filters?: { startDate?: string, endDate?: string, state?: string, constituency?: string }): Promise<number> {
-    let query = 'SELECT COUNT(r.leaderId) as count FROM ratings r';
-    const params: (string | number)[] = [];
-    const conditions: string[] = [];
-    let needsJoin = false;
-
-    if (filters?.startDate && filters?.endDate) {
-        conditions.push('r.createdAt >= ? AND r.createdAt <= ?');
-        params.push(filters.startDate, filters.endDate);
-    }
-    if (filters?.state) {
-        needsJoin = true;
-        conditions.push('l.location_state = ?');
-        params.push(filters.state);
-    }
-    if (filters?.constituency) {
-        needsJoin = true;
-        conditions.push('l.constituency LIKE ?');
-        params.push(`%${filters.constituency}%`);
-    }
-    
-    if (needsJoin) {
-        query += ' JOIN leaders l ON r.leaderId = l.id';
-    }
-
-    if (conditions.length > 0) {
-        query += ' WHERE ' + conditions.join(' AND ');
-    }
-    
-    const { count } = db.prepare(query).get(...params) as { count: number };
-    return Promise.resolve(count);
+    // This is complex with Firestore without denormalization.
+    // For now, we return the total count as filtering across collections is not straightforward.
+    const snapshot = await db.collection('ratings').count().get();
+    return snapshot.data().count;
 }
 
 // --- Admin Functions ---
@@ -496,114 +320,95 @@ export async function getLeadersForAdminPanel(filters: {
     constituency?: string;
     candidateName?: string;
 }): Promise<Leader[]> {
-  let query = `
-    SELECT l.*, u.name as userName
-    FROM leaders l
-    LEFT JOIN users u ON l.addedByUserId = u.id
-  `;
-  const params: (string | number)[] = [];
-  const conditions: string[] = [];
+    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection('leaders');
 
-  if (filters.dateFrom && filters.dateTo) {
-    conditions.push('l.createdAt >= ? AND l.createdAt <= ?');
-    params.push(filters.dateFrom, filters.dateTo);
-  }
-  if (filters.state) {
-    conditions.push('l.location_state = ?');
-    params.push(filters.state);
-  }
-  if (filters.constituency) {
-    conditions.push('l.constituency LIKE ?');
-    params.push(`%${filters.constituency}%`);
-  }
-  if (filters.candidateName) {
-    conditions.push('l.name LIKE ?');
-    params.push(`%${filters.candidateName}%`);
-  }
+    if (filters.dateFrom && filters.dateTo) {
+        query = query.where('createdAt', '>=', new Date(filters.dateFrom)).where('createdAt', '<=', new Date(filters.dateTo));
+    }
+    if (filters.state) {
+        query = query.where('location.state', '==', filters.state);
+    }
+    // Firestore doesn't support multiple range/inequality filters or text search on different fields.
+    // This search is now simplified. For full functionality, an external search service like Algolia is recommended.
+    if (filters.candidateName) {
+        query = query.orderBy('name').startAt(filters.candidateName).endAt(filters.candidateName + '\uf8ff');
+    } else if (filters.constituency) {
+         query = query.orderBy('constituency').startAt(filters.constituency).endAt(filters.constituency + '\uf8ff');
+    } else {
+        query = query.orderBy('createdAt', 'desc');
+    }
 
-  if (conditions.length > 0) {
-    query += ' WHERE ' + conditions.join(' AND ');
-  }
+    const snapshot = await query.get();
+    const leaders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Leader);
 
-  query += ' ORDER BY l.createdAt DESC';
-  
-  const stmt = db.prepare(query);
-  const dbLeaders = stmt.all(...params) as any[];
-  return Promise.resolve(dbLeaders.map(dbToLeader));
+    // Fetch user names for 'addedBy'
+    const users = await db.collection('users').get();
+    const userMap = new Map(users.docs.map(doc => [doc.id, doc.data().name]));
+
+    const leadersWithUserNames = leaders.map(leader => ({
+        ...leader,
+        userName: leader.addedByUserId ? userMap.get(leader.addedByUserId) || 'Unknown' : 'Admin/System'
+    }));
+
+    return convertFirestoreData(leadersWithUserNames);
 }
 
 
 export async function approveLeader(leaderId: string): Promise<void> {
-  const stmt = db.prepare("UPDATE leaders SET status = 'approved', adminComment = 'Approved by admin.' WHERE id = ?");
-  stmt.run(leaderId);
-  return Promise.resolve();
+    const leaderRef = db.collection('leaders').doc(leaderId);
+    await leaderRef.update({
+        status: 'approved',
+        adminComment: 'Approved by admin.'
+    });
 }
 
 export async function updateLeaderStatus(leaderId: string, status: 'pending' | 'approved' | 'rejected', adminComment: string | null): Promise<void> {
-  const stmt = db.prepare("UPDATE leaders SET status = ?, adminComment = ? WHERE id = ?");
-  stmt.run(status, adminComment, leaderId);
-  return Promise.resolve();
+    const leaderRef = db.collection('leaders').doc(leaderId);
+    await leaderRef.update({ status, adminComment });
 }
 
 export async function deleteLeader(leaderId: string): Promise<void> {
-    const transaction = db.transaction((id: string) => {
-        // Explicitly delete dependent records first to ensure foreign key constraints are met.
-        db.prepare('DELETE FROM ratings WHERE leaderId = ?').run(id);
-        db.prepare('DELETE FROM comments WHERE leaderId = ?').run(id);
-        
-        // Now delete the leader.
-        db.prepare('DELETE FROM leaders WHERE id = ?').run(id);
-    });
+    const leaderRef = db.collection('leaders').doc(leaderId);
+    const ratingsRef = db.collection('ratings');
 
-    try {
-        transaction(leaderId);
-    } catch (error) {
-        console.error("Failed to delete leader and associated data:", error);
-        throw error;
-    }
+    // In a real app, you'd use a Cloud Function to delete subcollections
+    // or related data. Here we delete related ratings.
+    const snapshot = await ratingsRef.where('leaderId', '==', leaderId).get();
+    
+    const batch = db.batch();
+    snapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    batch.delete(leaderRef);
+    
+    await batch.commit();
 }
 
 export async function deleteRating(userId: string, leaderId: string): Promise<void> {
-    const transaction = db.transaction(() => {
-        // 1. Get the rating value before deleting
-        const ratingStmt = db.prepare('SELECT rating FROM ratings WHERE userId = ? AND leaderId = ?');
-        const ratingToDelete = ratingStmt.get(userId, leaderId) as { rating: number } | undefined;
+    const ratingRef = db.collection('ratings').doc(`${userId}_${leaderId}`);
+    const leaderRef = db.collection('leaders').doc(leaderId);
 
-        if (!ratingToDelete) {
-            // Nothing to delete, maybe already deleted.
-            return;
-        }
+    await db.runTransaction(async (transaction) => {
+        const ratingDoc = await transaction.get(ratingRef);
+        const leaderDoc = await transaction.get(leaderRef);
 
-        // 2. Delete from ratings and comments
-        db.prepare('DELETE FROM ratings WHERE userId = ? AND leaderId = ?').run(userId, leaderId);
-        db.prepare('DELETE FROM comments WHERE userId = ? AND leaderId = ?').run(userId, leaderId);
+        if (!ratingDoc.exists || !leaderDoc.exists) return;
 
-        // 3. Recalculate leader's average rating
-        const leader = db.prepare('SELECT rating, reviewCount FROM leaders WHERE id = ?').get(leaderId) as { rating: number; reviewCount: number };
-        if (!leader) {
-            // Leader might have been deleted concurrently, which is fine.
-            return;
-        }
-
-        const newReviewCount = leader.reviewCount - 1;
+        const ratingToDelete = ratingDoc.data()?.rating || 0;
+        const leaderData = leaderDoc.data() as Leader;
+        
+        const newReviewCount = (leaderData.reviewCount || 1) - 1;
         let newAverageRating = 0;
-
         if (newReviewCount > 0) {
-            // (Total Score - Deleted Score) / New Count
-            newAverageRating = ((leader.rating * leader.reviewCount) - ratingToDelete.rating) / newReviewCount;
+            const currentTotal = leaderData.rating * leaderData.reviewCount;
+            newAverageRating = (currentTotal - ratingToDelete) / newReviewCount;
         }
-        // If newReviewCount is 0, newAverageRating remains 0, which is correct.
 
-        // 4. Update the leader
-        const updateLeaderStmt = db.prepare('UPDATE leaders SET rating = ?, reviewCount = ? WHERE id = ?');
-        updateLeaderStmt.run(newAverageRating.toFixed(2), newReviewCount, leaderId);
+        transaction.update(leaderRef, {
+            rating: newAverageRating,
+            reviewCount: newReviewCount,
+        });
+
+        transaction.delete(ratingRef);
     });
-
-    try {
-        transaction();
-        return Promise.resolve();
-    } catch (error) {
-        console.error("Failed to delete rating:", error);
-        throw error;
-    }
 }

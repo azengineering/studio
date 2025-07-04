@@ -29,24 +29,22 @@ const defaultSettings: SiteSettings = {
     contact_facebook: null,
 };
 
+const settingsRef = db.collection('site_config').doc('main');
+
 /**
  * Retrieves all site settings from the database.
  * @returns A promise that resolves to an object containing all site settings.
  */
 export async function getSiteSettings(): Promise<SiteSettings> {
     try {
-        const stmt = db.prepare('SELECT key, value FROM site_settings');
-        const rows = stmt.all() as { key: string; value: string }[];
-        
-        const settings: Partial<SiteSettings> = {};
-        for (const row of rows) {
-            settings[row.key as keyof SiteSettings] = row.value as any;
+        const doc = await settingsRef.get();
+        if (!doc.exists) {
+            // If the settings document doesn't exist, create it with defaults
+            await settingsRef.set(defaultSettings);
+            return defaultSettings;
         }
-        
-        // Merge with defaults to ensure all keys are present
-        return { ...defaultSettings, ...settings };
+        return { ...defaultSettings, ...doc.data() as Partial<SiteSettings> };
     } catch (error) {
-        // This might happen if the table doesn't exist on first run
         console.error("Failed to get site settings, returning defaults.", error);
         return defaultSettings;
     }
@@ -58,20 +56,10 @@ export async function getSiteSettings(): Promise<SiteSettings> {
  * @returns A promise that resolves when the settings have been updated.
  */
 export async function updateSiteSettings(settings: Partial<SiteSettings>): Promise<void> {
-    const stmt = db.prepare(`
-        INSERT INTO site_settings (key, value)
-        VALUES (@key, @value)
-        ON CONFLICT(key) DO UPDATE SET value = excluded.value
-    `);
-
-    const transaction = db.transaction((settingsToUpdate: Partial<SiteSettings>) => {
-        for (const [key, value] of Object.entries(settingsToUpdate)) {
-            stmt.run({ key, value: String(value) });
-        }
-    });
-
     try {
-        transaction(settings);
+        // Using set with merge:true will create the document if it doesn't exist,
+        // or update it if it does, only changing the specified fields.
+        await settingsRef.set(settings, { merge: true });
     } catch (error) {
         console.error("Failed to update site settings:", error);
         throw new Error("Database transaction for updating settings failed.");

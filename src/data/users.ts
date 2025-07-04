@@ -1,7 +1,7 @@
 
 'use server';
 
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/db';
 import { isAfter } from 'date-fns';
 
 export interface User {

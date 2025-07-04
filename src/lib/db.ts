@@ -2,13 +2,23 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// --- IMPORTANT ---
+// These are placeholder Supabase credentials.
+// Replace them with your actual Supabase project URL and keys.
+// You can find these in your Supabase project's API settings.
+const placeholderSupabaseUrl = "https://your-project-id.supabase.co";
+const placeholderSupabaseAnonKey = "your-anon-key";
+const placeholderSupabaseServiceRoleKey = "your-service-role-key";
 
-if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
-  throw new Error('Supabase environment variables are not set. Please check your .env.local file.');
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || placeholderSupabaseUrl;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || placeholderSupabaseAnonKey;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || placeholderSupabaseServiceRoleKey;
+
+if (supabaseUrl === placeholderSupabaseUrl || supabaseAnonKey === placeholderSupabaseAnonKey) {
+    console.warn("WARNING: Supabase environment variables are not set. The application is running with placeholder credentials. Please update them in your environment settings.");
 }
+
 
 // Public client for use in browser with RLS
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);

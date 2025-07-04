@@ -1,7 +1,7 @@
 
 'use server';
 
-import { supabaseAdmin, handleSupabaseError } from '@/lib/supabase';
+import { supabaseAdmin, handleSupabaseError } from '@/lib/db';
 import { getSiteSettings } from './settings';
 
 export type TicketStatus = 'open' | 'in-progress' | 'resolved' | 'closed';

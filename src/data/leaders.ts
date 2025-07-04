@@ -1,7 +1,7 @@
 
 'use server';
 
-import { supabaseAdmin, handleSupabaseError } from '@/lib/supabase';
+import { supabaseAdmin, handleSupabaseError } from '@/lib/db';
 import type { User } from './users';
 
 export interface Leader {

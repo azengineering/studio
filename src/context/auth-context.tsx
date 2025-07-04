@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createPagesBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { isAfter } from 'date-fns';
 import { findUserByEmail, addUser as addNewUser, updateUserProfile, type User, findUserById, unblockUser } from '@/data/users';
-import { supabase as supabaseClient } from '@/lib/supabase'; // Public client
+import { supabase as supabaseClient } from '@/lib/db'; // Public client
 
 interface AuthContextType {
   user: User | null;

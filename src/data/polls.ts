@@ -1,7 +1,7 @@
 
 'use server';
 
-import { supabaseAdmin, handleSupabaseError } from '@/lib/supabase';
+import { supabaseAdmin, handleSupabaseError } from '@/lib/db';
 import { PostgrestError } from '@supabase/supabase-js';
 
 export type PollQuestionType = 'yes_no' | 'multiple_choice';

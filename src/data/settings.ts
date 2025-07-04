@@ -1,7 +1,7 @@
 
 'use server';
 
-import { supabaseAdmin, handleSupabaseError } from '@/lib/supabase';
+import { supabaseAdmin, handleSupabaseError } from '@/lib/db';
 
 export interface SiteSettings {
     maintenance_active: boolean;

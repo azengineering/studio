@@ -23,15 +23,27 @@ export async function getNotifications(): Promise<SiteNotification[]> {
 
 export async function getActiveNotifications(): Promise<SiteNotification[]> {
     const now = new Date().toISOString();
-    const { data, error } = await supabaseAdmin
-        .from('notifications')
-        .select('*')
-        .eq('is_active', true)
-        .or(`start_time.is.null,start_time.lte.${now}`)
-        .or(`end_time.is.null,end_time.gte.${now}`)
-        .order('created_at', { ascending: false });
-        
-    return handleSupabaseError({ data, error }, 'getActiveNotifications') || [];
+    
+    // This is a non-critical function. If it fails, the app should not crash.
+    // We log the error and return an empty array.
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('notifications')
+            .select('*')
+            .and(`is_active.eq.true,or(start_time.is.null,start_time.lte.${now}),or(end_time.is.null,end_time.gte.${now})`)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            // This can fail with placeholder keys, so we prevent a crash.
+            console.error("Could not fetch active notifications:", error.message);
+            return [];
+        }
+            
+        return data || [];
+    } catch (e) {
+        console.error("An unexpected error occurred while fetching notifications:", e);
+        return [];
+    }
 }
 
 type NotificationPayload = Omit<SiteNotification, 'id' | 'created_at'>;

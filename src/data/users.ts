@@ -63,7 +63,7 @@ export async function addUser(user: Partial<User> & { id: string; email: string 
   
   const { data, error } = await supabaseAdmin
     .from('users')
-    .insert({
+    .upsert({
       id: user.id,
       email: user.email.toLowerCase(),
       name: formattedName,
@@ -72,7 +72,7 @@ export async function addUser(user: Partial<User> & { id: string; email: string 
     .single();
 
   if (error) {
-    console.error("Error adding user profile:", error);
+    console.error("Error creating/updating user profile:", error);
     throw new Error('Failed to create user profile.');
   }
   

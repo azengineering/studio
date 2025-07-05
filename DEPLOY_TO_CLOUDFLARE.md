@@ -28,9 +28,11 @@ On the "Set up builds and deployments" screen, configure the following:
 -   **Production branch**: Select the branch you want to deploy from (usually `main` or `master`).
 -   **Framework preset**: Cloudflare should automatically detect **Next.js**. If not, select it from the dropdown.
 
-The build settings should be automatically configured by the preset. They should look like this:
--   **Build command**: `next build`
+The build settings should be automatically configured by the preset. Verify they look like this:
+-   **Build command**: `npm run build`
 -   **Build output directory**: `.next`
+
+**Important:** If Cloudflare sets the build command to `next build`, you must change it to `npm run build`. This ensures that your project's dependencies are correctly used during the build process.
 
 ---
 

@@ -47,7 +47,7 @@ This is the most important step to connect your application to your Supabase dat
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY`| Your Supabase public anon key          | Value  |
 | `SUPABASE_SERVICE_ROLE_KEY`   | Your Supabase service role key         | Secret |
 
-**Important:** For `SUPABASE_SERVICE_ROLE_KEY`, be sure to click the "Encrypt" button to protect its value.
+**Important:** For `SUPABASE_SERVICE_ROLE_KEY`, be sure to click the **Encrypt** button next to the value field. This turns the variable into a "Secret," which hides its value in the Cloudflare dashboard and build logs for security.
 
 ---
 

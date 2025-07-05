@@ -199,6 +199,10 @@ export default function LoginPage() {
             </CardHeader>
             
             <CardContent className="px-8 space-y-6">
+<<<<<<< HEAD
+=======
+              {/* Dedicated Google Sign-In Section */}
+>>>>>>> 8101b16b387c37d514d6ddc62cfef33abe62a5fd
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-6 rounded-lg border-2 border-blue-100 dark:border-blue-800/30 space-y-4">
                 <div className="text-center">
                   <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
@@ -218,7 +222,11 @@ export default function LoginPage() {
                   {isGoogleLoading ? (
                     <>
                       <Loader2 className="mr-3 h-6 w-6 animate-spin text-blue-600" />
+<<<<<<< HEAD
                       Redirecting to Google...
+=======
+                      Signing in with Google...
+>>>>>>> 8101b16b387c37d514d6ddc62cfef33abe62a5fd
                     </>
                   ) : (
                     <>
@@ -229,6 +237,10 @@ export default function LoginPage() {
                 </Button>
               </div>
 
+<<<<<<< HEAD
+=======
+              {/* Divider */}
+>>>>>>> 8101b16b387c37d514d6ddc62cfef33abe62a5fd
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t border-gray-300" />

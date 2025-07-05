@@ -39,15 +39,16 @@ The build settings should be automatically configured by the preset. They should
 This is the most important step to connect your application to your Supabase database.
 
 1.  Scroll down to the **Environment variables (advanced)** section.
-2.  Click **Add variable** for each of the following keys from your `.env.local` file.
+2.  Click **Add variable** for each of the keys from your `.env.local` file.
+3.  For standard variables, you will add them as a `Value`. For sensitive keys, you must add them as a **`Secret text`**.
 
-| Variable Name                 | Value                                  | Type   |
-| ----------------------------- | -------------------------------------- | ------ |
-| `NEXT_PUBLIC_SUPABASE_URL`    | Your Supabase project URL              | Value  |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`| Your Supabase public anon key          | Value  |
-| `SUPABASE_SERVICE_ROLE_KEY`   | Your Supabase service role key         | Secret |
+| Variable Name                 | Value                                  | Add as...     |
+| ----------------------------- | -------------------------------------- |---------------|
+| `NEXT_PUBLIC_SUPABASE_URL`    | Your Supabase project URL              | Value         |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`| Your Supabase public anon key          | Value         |
+| `SUPABASE_SERVICE_ROLE_KEY`   | Your Supabase service role key         | **Secret text** |
 
-**Important:** For `SUPABASE_SERVICE_ROLE_KEY`, be sure to click the **Encrypt** button next to the value field. This turns the variable into a "Secret," which hides its value in the Cloudflare dashboard and build logs for security.
+**Important:** For `SUPABASE_SERVICE_ROLE_KEY`, it is critical that you add it as a **Secret text**. This encrypts the value and ensures it is not exposed in your build logs or the Cloudflare dashboard, which is essential for security.
 
 ---
 
